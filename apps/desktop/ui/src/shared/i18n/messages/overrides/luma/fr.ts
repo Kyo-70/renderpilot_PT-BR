@@ -6,91 +6,90 @@ import {
 } from './schema';
 
 const translations = {
-  sherlockDx11Performance:
-    'L’argument de lancement -dx11 peut réduire les performances du processeur en mode DX11. Avec DLAA et AutoExposure:On, des bords crénelés peuvent apparaître sur l’herbe.',
-  guiltyGearStriveAa:
-    'L’anticrénelage ne fonctionne pas sur l’écran de sélection du personnage. Dans le jeu, choisissez AA « Temporal Anti Aliasing », puis ajoutez à Engine.ini : [SystemSettings] r.DefaultFeature.AntiAliasing=2 r.PostProcessAAQuality=4.',
-  manualLaunchArgument: 'Ajoutez cet argument de lancement manuellement.',
-  manualEngineIni: 'Appliquez manuellement les réglages suivants dans Engine.ini.',
   publicMatchmaking:
-    'Évitez le matchmaking public officiel tant que Luma est installé. Cela peut entraîner un bannissement.',
-  edithFinchExit:
-    'DLAA fonctionne sans modification supplémentaire, mais le jeu peut ne pas se fermer complètement après avoir quitté. OptiScaler peut résoudre ce problème.',
-  dlssNoHdr: 'DLSS uniquement (pas de HDR pour le moment).',
-  fallout4DlssGtaoOnly: 'Ce profil ne prend actuellement en charge que DLSS et GTAO.',
-  kh3Txaa: 'Choisissez d’abord « TXAA » dans le jeu.',
-  aceFxaaHigh: 'Choisissez d’abord AA « FXAA High » dans le jeu.',
-  tetrisFxaa6: 'Choisissez d’abord AA « FXAA:6 » et une échelle de rendu de 100 % dans le jeu.',
-  projectWingmanFxaa: 'Choisissez d’abord AA « FXAA » dans le jeu.',
-  dnfCharacterSelection:
-    'L’anticrénelage ne fonctionne pas sur l’écran de sélection du personnage.',
-  tekkenNoD3D9Ex: 'Comme prérequis, ajoutez l’argument de lancement -nod3d9ex.',
-  scornOptiscaler:
-    'Le jeu prend nativement en charge FSR 2.1 ; vous pouvez donc ajouter DLSS ou un autre upscaler via OptiScaler.',
-  hatsuneExclusiveFullscreen:
-    'En cas de problème, n’utilisez pas le plein écran exclusif. Appuyez sur Alt+Entrée pour le quitter.',
-  deadlineUltra: 'Dans les réglages du jeu, choisissez « Ultra ».',
-  filamentAaHigh: 'Dans les réglages du jeu, choisissez AA « High » ou « Very High ».',
-  aaHigh: 'Dans les réglages du jeu, choisissez AA « High ».',
-  aaUltra: 'Dans les réglages du jeu, choisissez AA « Ultra ».',
-  mutantMotionBlur:
-    'Dans les réglages du jeu, choisissez AA « High ». Pour des mouvements plus nets, r.motionblur.amount=0 est recommandé dans Engine.ini.',
-  supralandTaa: 'Dans les réglages du jeu, choisissez AA « Temporal Anti Aliasing ».',
-  scarletNexusTxaa: 'Dans les réglages du jeu, choisissez AA « TXAA ».',
-  closeToSunAa4x: 'Dans les réglages du jeu, choisissez AA 4X.',
-  darksidersAaEpic: 'Dans les réglages du jeu, choisissez AA Epic.',
-  codeVeinAaHighest: 'Dans les réglages du jeu, choisissez AA Highest.',
-  orcsAaHigh: 'Dans les réglages du jeu, choisissez la qualité AA « High ».',
-  clashAaVeryHigh: 'Dans les réglages du jeu, choisissez la qualité AA « Very High ».',
-  vampyrTxaa6x: 'Dans les réglages du jeu, choisissez AA TXAA 6X.',
-  crashAaMedium:
-    'Dans les réglages du jeu, choisissez au moins la qualité d’anticrénelage Medium (2x).',
-  callSeaEpic: 'Dans les réglages du jeu, choisissez la qualité globale « Epic ».',
-  spiritNorthUltra: 'Dans les réglages du jeu, choisissez la qualité graphique « Ultra ».',
-  goatHighAa: 'Dans les réglages du jeu, choisissez High AA.',
-  crabHighAntialiasing: 'Dans les réglages du jeu, choisissez High Anti-aliasing Type.',
-  spyroHighTaa: 'Dans les réglages du jeu, choisissez High TAA.',
-  dieYoungTaa: 'Dans les réglages du jeu, choisissez TAA « High » ou « Epic ».',
-  kakarotBdzKfix:
-    'Dans les réglages du jeu, choisissez TAA et utilisez BDZKFix pour la version Legacy ou son fork mis à jour pour la version HD.',
-  preyData: 'Conservez les fichiers de données Luma supplémentaires de Prey avec l’add-on.',
-  daymareOptiscalerUuu:
-    'Luma fonctionne seul, mais plante lorsqu’il est combiné avec OptiScaler ou UUU.',
-  smtLyallFix: "Lyall's Fix est nécessaire pour forcer TAA.",
+    'Évitez le matchmaking public officiel lorsque Luma est installé. Cela pourrait entraîner un bannissement.',
   deusExBorisEnb:
-    'Incompatible avec Boris ENB (DX9). Fonctionne avec DE et l’édition originale. Le mod Gold Filter Restoration est redondant.',
+    'Incompatible avec Boris ENB (DX9). Fonctionne avec la version Director’s Cut et l’édition originale. Le mod Gold Filter Restoration est superflu avec Luma.',
+  dlssOnlyNoHdr:
+    'Ce profil prend en charge uniquement le DLSS ; le HDR n’est pas pris en charge actuellement.',
+  hatsuneExclusiveFullscreen:
+    'En cas de problème d’affichage, évitez le plein écran exclusif. Appuyez sur Alt+Entrée pour changer de mode.',
+  heavyRainSteamUltrawide:
+    'La prise en charge du format ultra-large peut ne fonctionner que sur Steam.',
   xboxStore: 'Incompatible avec la version Xbox Store.',
+  metroWindowed:
+    'Nécessite le mode fenêtré ou sans bordures, configuré via des mods ou en désactivant le plein écran dans la configuration du jeu.',
+  metroBorderless: 'Utilisez le mode fenêtré sans bordures.',
+  preyData:
+    'Conservez les fichiers de données Luma supplémentaires pour Prey avec le module complémentaire.',
   massEffectNativeAa:
     'Seuls les modes DLAA / FSR 3 Native AA sont disponibles ; il ne s’agit pas de super-résolution DLSS ou FSR.',
-  metaphorNativeAa:
-    'Seuls les modes DLAA / FSR Native AA sont disponibles ; il ne s’agit pas de super-résolution DLSS ou FSR.',
-  itTakesTwoTitle: 'Fonctionne uniquement pendant la séquence de l’écran-titre.',
-  talesAriseSdk: 'Nécessite Arise-SDK avec UseUE4TAA = true.',
-  metroWindowed:
-    'Nécessite le mode fenêtré ou fenêtré sans bordure, via des mods ou en désactivant le plein écran dans le fichier de configuration du jeu.',
-  edithFinch4k:
-    'Le jeu ne fonctionne pas correctement en 4K. Réglez Effects sur Low avant de modifier Engine.ini manuellement.',
+  manualLaunchArgument: 'Ajoutez cet argument de lancement manuellement.',
+  aceFxaaHigh: 'Dans les paramètres du jeu, utilisez : AA « FXAA High ».',
+  manualEngineIni: 'Appliquez manuellement les paramètres suivants dans Engine.ini.',
+  callSeaEpic: 'Dans les paramètres du jeu, sélectionnez la qualité globale « Epic ».',
+  codeVeinAaHighest: 'Dans les paramètres du jeu, sélectionnez AA Highest.',
+  crabHighAntialiasing: 'Dans les paramètres du jeu, sélectionnez High Anti-aliasing Type.',
+  crashAaMedium:
+    'Dans les paramètres du jeu, utilisez : qualité d’anticrénelage au moins Medium (2x).',
+  clashAaVeryHigh: 'Dans les paramètres du jeu, sélectionnez la qualité d’AA « Very High ».',
+  closeToSunAa4x: 'Dans les paramètres du jeu, sélectionnez AA 4X.',
+  darksidersAaEpic: 'Dans les paramètres du jeu, sélectionnez AA Epic.',
+  daymareOptiscalerUuu:
+    'Luma fonctionne seul, mais plante lorsqu’il est combiné avec OptiScaler ou UUU.',
+  deadlineUltra: 'Dans les paramètres du jeu, sélectionnez « Ultra ».',
+  dieYoungTaa: 'Dans les paramètres du jeu, sélectionnez TAA « High » ou « Epic ».',
+  dnfCharacterSelection:
+    'L’anticrénelage ne fonctionne pas sur l’écran de sélection des personnages.',
+  kakarotBdzKfix:
+    'Dans les paramètres du jeu, utilisez : TAA. Utilisez BDZKFix pour la version Legacy ou son fork mis à jour pour la version HD.',
+  filamentAaHigh: 'Dans les paramètres du jeu, sélectionnez AA « High » ou « Very High ».',
+  goatHighAa: 'Dans les paramètres du jeu, sélectionnez High AA.',
+  guiltyGearStriveAa:
+    'L’anticrénelage ne fonctionne pas sur l’écran de sélection des personnages. En jeu : AA « Temporal Anti Aliasing ». Dans Engine.ini sous [SystemSettings], ajoutez : r.DefaultFeature.AntiAliasing=2 et r.PostProcessAAQuality=4.',
+  itTakesTwoTitle: 'Fonctionne uniquement pendant la séquence de l’écran titre.',
+  aaHigh: 'Dans les paramètres du jeu, sélectionnez AA « High ».',
+  kh3Txaa: 'Dans les paramètres du jeu, utilisez : « TXAA ».',
+  mutantMotionBlur:
+    'Dans les paramètres du jeu, utilisez : AA « High ». Pour une meilleure netteté des mouvements, définissez r.motionblur.amount=0 dans Engine.ini.',
+  orcsAaHigh: 'Dans les paramètres du jeu, sélectionnez la qualité d’AA « High ».',
+  projectWingmanFxaa: 'Dans les paramètres du jeu, utilisez : AA « FXAA ».',
+  scarletNexusTxaa: 'Dans les paramètres du jeu, sélectionnez AA « TXAA ».',
+  scornOptiscaler:
+    'Prend en charge FSR 2.1 nativement ; DLSS ou d’autres upscalers peuvent être ajoutés via OptiScaler.',
+  smtLyallFix: 'Nécessite Lyall’s Fix pour forcer le TAA.',
+  spiritNorthUltra: 'Dans les paramètres du jeu, sélectionnez la qualité graphique « Ultra ».',
+  spyroHighTaa: 'Dans les paramètres du jeu, sélectionnez High TAA.',
+  supralandTaa: 'Dans les paramètres du jeu, sélectionnez AA « Temporal Anti Aliasing ».',
+  talesAriseSdk: 'Nécessite Arise-SDK avec UseUE4TAA=true.',
+  tekkenNoD3D9Ex: 'Nécessite l’argument de lancement -nod3d9ex.',
+  tetrisFxaa6: 'Dans les paramètres du jeu, utilisez : AA « FXAA:6 » et échelle de rendu à 100 %.',
   sinkingCityOriginal:
-    'La version originale fonctionne. L’état de la version remasterisée est inconnu.',
-  heavyRainSteamUltrawide: 'L’ultralarge peut ne fonctionner qu’en lançant le jeu via Steam.',
-  metroBorderless: 'Utilisez le mode fenêtré sans bordure.',
-  dlssOnlyNoHdr:
-    'Ce profil ajoute uniquement la prise en charge de DLSS ; HDR n’est pas pris en charge actuellement.',
-  biomutantAaHighOrMax: 'Dans les réglages du jeu, utilisez AA « High » ou « Max ».',
+    'Compatible avec la version originale ; compatibilité non confirmée avec l’édition Remastered.',
+  vampyrTxaa6x: 'Dans les paramètres du jeu, sélectionnez AA TXAA 6X.',
+  edithFinchExit:
+    'DLAA fonctionne sans modifications supplémentaires, mais le jeu peut ne pas se fermer complètement après l’avoir quitté. OptiScaler peut résoudre ce problème.',
+  edithFinch4k:
+    'Le jeu est instable en résolution 4K. Réglez Effects sur Low avant d’appliquer les paramètres manuels dans Engine.ini.',
+  sherlockDx11Performance:
+    'L’argument de lancement -dx11 entraîne de mauvaises performances CPU. Avec DLAA et Auto Exposure activé, des bordures crénelées apparaissent sur l’herbe.',
+  fallout4DlssGtaoOnly: 'Ce profil ne prend actuellement en charge que DLSS et GTAO.',
+  biomutantAaHighOrMax: 'Dans les paramètres du jeu, sélectionnez AA « High » ou « Max ».',
   blairWitchTxaaFull:
-    'Dans les réglages du jeu, utilisez TXAA et l’échelle de résolution « Full ».',
-  flickeringIssues: 'Des problèmes de scintillement semblent se produire.',
+    'Dans les paramètres du jeu, utilisez : TXAA et échelle de résolution « Full ».',
+  flickeringIssues: 'Des clignotements visuels peuvent survenir.',
   brambleEpicVram:
-    'La qualité Epic peut remplir progressivement la VRAM et provoquer des saccades. Évitez de basculer plusieurs fois entre High et Epic lorsque Luma est actif.',
+    'La qualité Epic peut saturer progressivement la VRAM et provoquer des saccades. Évitez de basculer à répétition entre High et Epic lorsque Luma est actif.',
   daemonDlaaReset:
-    'Charger un niveau ou modifier les réglages graphiques force r.TemporalAASamples=1 et désactive DLAA.',
+    'Le chargement d’un niveau ou la modification des réglages graphiques force r.TemporalAASamples=1 et désactive DLAA.',
   easyAntiCheatBlocked: 'Bloqué par Easy Anti-Cheat.',
   echoDlaaAutoExposure:
-    'DLAA cesse de fonctionner après le premier niveau. Avec AutoExposure: On, les sources lumineuses scintillent ; avec AutoExposure: Off, l’anticrénelage se dégrade fortement.',
-  dx11BootFailure: 'Ne démarre pas avec DX11.',
+    'DLAA cesse de fonctionner après le premier niveau. Avec Auto Exposure activé, les sources lumineuses clignotent ; avec Auto Exposure désactivé, la qualité d’anticrénelage se dégrade nettement.',
+  dx11BootFailure: 'Ne se lance pas en mode DirectX 11.',
   rainCodeAaHighMaxResolution:
-    'Dans les réglages du jeu, utilisez la qualité AA « High » et placez le curseur de résolution au maximum.',
-  roboquestTaaQuality3: 'Dans les réglages du jeu, utilisez TAA et la qualité « 3 ».',
+    'Dans les paramètres du jeu, utilisez : qualité d’AA « High » et curseur de résolution au maximum.',
+  roboquestTaaQuality3: 'Dans les paramètres du jeu, sélectionnez TAA et la qualité « 3 ».',
+  aaUltra: 'Dans les paramètres du jeu, sélectionnez AA « Ultra ».',
 } as const satisfies LumaMessageTranslations;
 
 export const lumaOverrides = defineLocalizedCatalog<'fr', LumaSourceCatalog>()(

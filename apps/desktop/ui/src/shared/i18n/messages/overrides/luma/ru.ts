@@ -6,85 +6,84 @@ import {
 } from './schema';
 
 const translations = {
-  sherlockDx11Performance:
-    'Аргумент запуска -dx11 может снизить производительность CPU в режиме DX11. При DLAA с AutoExposure:On на траве могут появляться зубчатые края.',
-  guiltyGearStriveAa:
-    'Сглаживание не работает на экране выбора персонажа. В игре выберите AA «Temporal Anti Aliasing», затем внесите в Engine.ini: [SystemSettings] r.DefaultFeature.AntiAliasing=2 r.PostProcessAAQuality=4.',
-  manualLaunchArgument: 'Добавьте этот аргумент запуска вручную.',
-  manualEngineIni: 'Вручную добавьте в Engine.ini следующие настройки.',
   publicMatchmaking:
     'Не используйте официальный публичный матчмейкинг, пока Luma установлена. Это может привести к бану.',
-  edithFinchExit:
-    'DLAA работает без дополнительных изменений, но игра может не завершаться полностью после выхода. OptiScaler может устранить эту проблему.',
-  dlssNoHdr: 'Только DLSS (HDR пока не поддерживается).',
-  fallout4DlssGtaoOnly: 'Сейчас этот профиль поддерживает только DLSS и GTAO.',
-  kh3Txaa: 'В игре предварительно выберите «TXAA».',
-  aceFxaaHigh: 'В игре предварительно выберите AA «FXAA High».',
-  tetrisFxaa6: 'В игре предварительно выберите AA «FXAA:6» и масштаб рендеринга 100%.',
-  projectWingmanFxaa: 'В игре предварительно выберите AA «FXAA».',
-  dnfCharacterSelection: 'Сглаживание не работает на экране выбора персонажа.',
-  tekkenNoD3D9Ex: 'В качестве предварительной настройки добавьте аргумент запуска -nod3d9ex.',
-  scornOptiscaler:
-    'В игре есть нативная поддержка FSR 2.1, поэтому DLSS или другой апскейлер можно добавить через OptiScaler.',
-  hatsuneExclusiveFullscreen:
-    'При проблемах не используйте эксклюзивный полноэкранный режим. Чтобы выйти из него, нажмите Alt+Enter.',
-  deadlineUltra: 'В настройках игры выберите «Ultra».',
-  filamentAaHigh: 'В настройках игры выберите AA «High» или «Very High».',
-  aaHigh: 'В настройках игры выберите AA «High».',
-  aaUltra: 'В настройках игры выберите AA «Ultra».',
-  mutantMotionBlur:
-    'В настройках игры выберите AA «High». Для более чёткого движения рекомендуется задать r.motionblur.amount=0 в Engine.ini.',
-  supralandTaa: 'В настройках игры выберите AA «Temporal Anti Aliasing».',
-  scarletNexusTxaa: 'В настройках игры выберите AA «TXAA».',
-  closeToSunAa4x: 'В настройках игры выберите AA 4X.',
-  darksidersAaEpic: 'В настройках игры выберите AA Epic.',
-  codeVeinAaHighest: 'В настройках игры выберите AA Highest.',
-  orcsAaHigh: 'В настройках игры выберите качество AA «High».',
-  clashAaVeryHigh: 'В настройках игры выберите качество AA «Very High».',
-  vampyrTxaa6x: 'В настройках игры выберите AA TXAA 6X.',
-  crashAaMedium: 'В настройках игры выберите качество сглаживания не ниже Medium (2x).',
-  callSeaEpic: 'В настройках игры выберите общее качество «Epic».',
-  spiritNorthUltra: 'В настройках игры выберите качество графики «Ultra».',
-  goatHighAa: 'В настройках игры выберите High AA.',
-  crabHighAntialiasing: 'В настройках игры выберите High Anti-aliasing Type.',
-  spyroHighTaa: 'В настройках игры выберите High TAA.',
-  dieYoungTaa: 'В настройках игры выберите TAA «High» или «Epic».',
-  kakarotBdzKfix:
-    'В настройках игры выберите TAA и используйте BDZKFix для Legacy-версии либо его обновлённый форк для HD-версии.',
-  preyData: 'Дополнительные файлы данных Luma для Prey должны оставаться рядом с аддоном.',
-  daymareOptiscalerUuu: 'Luma работает сама по себе, но вылетает вместе с OptiScaler или UUU.',
-  smtLyallFix: "Для принудительного TAA требуется Lyall's Fix.",
   deusExBorisEnb:
-    'Несовместимо с Boris ENB (DX9). Работает с DE и оригинальным изданием. Мод Gold Filter Restoration здесь не нужен.',
+    'Несовместимо с Boris ENB (DX9). Совместимо с Director’s Cut и оригинальным изданием. Мод Gold Filter Restoration при использовании Luma не требуется.',
+  dlssOnlyNoHdr: 'Этот профиль добавляет только поддержку DLSS; HDR сейчас не поддерживается.',
+  hatsuneExclusiveFullscreen:
+    'При проблемах с отображением избегайте эксклюзивного полноэкранного режима. Чтобы переключить режим, нажмите Alt+Enter.',
+  heavyRainSteamUltrawide: 'Ультраширокий режим может работать только при запуске через Steam.',
   xboxStore: 'Несовместимо с версией из Xbox Store.',
-  massEffectNativeAa:
-    'Доступны только режимы DLAA / FSR 3 Native AA; это не суперразрешение DLSS или FSR.',
-  metaphorNativeAa:
-    'Доступны только режимы DLAA / FSR Native AA; это не суперразрешение DLSS или FSR.',
-  itTakesTwoTitle: 'Работает только в последовательности на титульном экране.',
-  talesAriseSdk: 'Требуется Arise-SDK с параметром UseUE4TAA = true.',
   metroWindowed:
     'Требуется оконный или безрамочный режим: через моды либо отключением полноэкранного режима в конфиге игры.',
-  edithFinch4k:
-    'Игра работает некорректно в 4K. Перед ручным изменением Engine.ini установите Effects на Low.',
-  sinkingCityOriginal: 'Оригинальная версия работает. Совместимость ремастера неизвестна.',
-  heavyRainSteamUltrawide: 'Ультраширокий режим может работать только при запуске через Steam.',
   metroBorderless: 'Используйте безрамочный оконный режим.',
-  dlssOnlyNoHdr: 'Этот профиль добавляет только поддержку DLSS; HDR сейчас не поддерживается.',
+  preyData: 'Дополнительные файлы данных Luma для Prey должны оставаться рядом с аддоном.',
+  massEffectNativeAa:
+    'Доступны только режимы сглаживания DLAA / FSR 3 Native AA; суперразрешение DLSS или FSR не поддерживается.',
+  manualLaunchArgument: 'Добавьте этот аргумент запуска вручную.',
+  aceFxaaHigh: 'В настройках игры выберите AA «FXAA High».',
+  manualEngineIni: 'Вручную добавьте в Engine.ini следующие настройки.',
+  callSeaEpic: 'В настройках игры выберите общее качество «Epic».',
+  codeVeinAaHighest: 'В настройках игры выберите AA Highest.',
+  crabHighAntialiasing: 'В настройках игры выберите High Anti-aliasing Type.',
+  crashAaMedium: 'В настройках игры выберите качество сглаживания не ниже Medium (2x).',
+  clashAaVeryHigh: 'В настройках игры выберите качество AA «Very High».',
+  closeToSunAa4x: 'В настройках игры выберите AA 4X.',
+  darksidersAaEpic: 'В настройках игры выберите AA Epic.',
+  daymareOptiscalerUuu:
+    'Luma работает автономно, но вылетает при совместном использовании с OptiScaler или UUU.',
+  deadlineUltra: 'В настройках игры выберите «Ultra».',
+  dieYoungTaa: 'В настройках игры выберите TAA «High» или «Epic».',
+  dnfCharacterSelection: 'Сглаживание не работает на экране выбора персонажа.',
+  kakarotBdzKfix:
+    'В настройках игры выберите TAA. Используйте BDZKFix для Legacy-версии либо его обновлённый форк для HD-версии.',
+  filamentAaHigh: 'В настройках игры выберите AA «High» или «Very High».',
+  goatHighAa: 'В настройках игры выберите High AA.',
+  guiltyGearStriveAa:
+    'Сглаживание не работает на экране выбора персонажа. В игре: AA «Temporal Anti Aliasing». В Engine.ini в секции [SystemSettings] добавьте: r.DefaultFeature.AntiAliasing=2 и r.PostProcessAAQuality=4.',
+  itTakesTwoTitle: 'Работает только во время вступительной заставки на титульном экране.',
+  aaHigh: 'В настройках игры выберите AA «High».',
+  kh3Txaa: 'В настройках игры выберите «TXAA».',
+  mutantMotionBlur:
+    'В настройках игры выберите AA «High». Для более чёткого движения рекомендуется задать r.motionblur.amount=0 в Engine.ini.',
+  orcsAaHigh: 'В настройках игры выберите качество AA «High».',
+  projectWingmanFxaa: 'В настройках игры выберите AA «FXAA».',
+  scarletNexusTxaa: 'В настройках игры выберите AA «TXAA».',
+  scornOptiscaler:
+    'В игре есть нативная поддержка FSR 2.1; DLSS или другие апскейлеры можно добавить через OptiScaler.',
+  smtLyallFix: 'Для принудительного включения TAA требуется Lyall’s Fix.',
+  spiritNorthUltra: 'В настройках игры выберите качество графики «Ultra».',
+  spyroHighTaa: 'В настройках игры выберите High TAA.',
+  supralandTaa: 'В настройках игры выберите AA «Temporal Anti Aliasing».',
+  talesAriseSdk: 'Требуется Arise-SDK с параметром UseUE4TAA=true.',
+  tekkenNoD3D9Ex: 'Требуется аргумент запуска -nod3d9ex.',
+  tetrisFxaa6: 'В настройках игры выберите AA «FXAA:6» и масштаб рендеринга 100%.',
+  sinkingCityOriginal:
+    'Оригинальная версия работает. Совместимость с изданием Remastered не подтверждена.',
+  vampyrTxaa6x: 'В настройках игры выберите AA TXAA 6X.',
+  edithFinchExit:
+    'DLAA работает без дополнительных изменений, но игра может не завершаться полностью после выхода. OptiScaler может устранить эту проблему.',
+  edithFinch4k:
+    'Игра работает нестабильно в разрешении 4K. Перед внесением настроек в Engine.ini установите Effects на Low.',
+  sherlockDx11Performance:
+    'Аргумент запуска -dx11 снижает производительность CPU. При включённом Auto Exposure в режиме DLAA на траве появляются зубчатые края.',
+  fallout4DlssGtaoOnly: 'Сейчас этот профиль поддерживает только DLSS и GTAO.',
   biomutantAaHighOrMax: 'В настройках игры выберите AA «High» или «Max».',
   blairWitchTxaaFull: 'В настройках игры выберите TXAA и масштаб разрешения «Full».',
-  flickeringIssues: 'Возможны проблемы с мерцанием.',
+  flickeringIssues: 'Возможны проблемы с мерцанием изображения.',
   brambleEpicVram:
-    'Качество Epic может постепенно заполнить VRAM и вызвать подтормаживания. Пока Luma активна, не переключайтесь многократно между High и Epic.',
+    'Качество Epic может со временем заполнить видеопамять (VRAM) и вызвать микрофризы. Избегайте многократного переключения между High и Epic при активной Luma.',
   daemonDlaaReset:
     'Загрузка уровня или изменение настроек графики принудительно задаёт r.TemporalAASamples=1 и отключает DLAA.',
   easyAntiCheatBlocked: 'Заблокировано системой Easy Anti-Cheat.',
   echoDlaaAutoExposure:
-    'После первого уровня DLAA перестаёт работать. При AutoExposure: On источники света мерцают, а при AutoExposure: Off качество сглаживания значительно ухудшается.',
-  dx11BootFailure: 'Не запускается в DX11.',
+    'После первого уровня DLAA перестаёт работать. При включённом Auto Exposure источники света мерцают, а при отключённом качество сглаживания заметно ухудшается.',
+  dx11BootFailure: 'Не запускается в режиме DirectX 11.',
   rainCodeAaHighMaxResolution:
     'В настройках игры выберите качество AA «High» и установите ползунок разрешения на максимум.',
   roboquestTaaQuality3: 'В настройках игры выберите TAA и качество «3».',
+  aaUltra: 'В настройках игры выберите AA «Ultra».',
 } as const satisfies LumaMessageTranslations;
 
 export const lumaOverrides = defineLocalizedCatalog<'ru', LumaSourceCatalog>()(
