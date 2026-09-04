@@ -31,6 +31,17 @@ needless_pass_by_value = "warn"
 redundant_clone = "warn"
 unnecessary_to_owned = "warn"
 
+# Optimize non-workspace dependencies for interactive development builds;
+# workspace crates remain at dev defaults.
+[profile.dev.package."*"]
+opt-level = 3
+
+# Cargo's built-in test profile inherits `dev`. Keep test dependencies
+# unoptimized so clean local and CI test builds do not pay the opt-level 3
+# compilation cost.
+[profile.test.package."*"]
+opt-level = 0
+
 # Continuous integration profile: keep line tables for readable panic backtraces
 # while eliminating heavy type/variable debuginfo to accelerate CI passes.
 [profile.ci]
@@ -45,63 +56,39 @@ opt-level = "s"
 codegen-units = 1
 strip = true
 
-# Hot leaf dependencies: opt-level does not propagate from a crate to its own
-# dependencies, so each crate and its engines must be listed explicitly
-# (e.g. `regex` and `regex-automata`). C-backed crates are unaffected by
-# opt-level and are intentionally absent.
-[profile.release.package.sha2]
-opt-level = 3
-[profile.release.package.serde_json]
-opt-level = 3
-[profile.release.package.serde]
-opt-level = 3
-[profile.release.package.serde_core]
-opt-level = 3
-[profile.release.package.zmij]
-opt-level = 3
-[profile.release.package.itoa]
-opt-level = 3
-[profile.release.package.regex]
-opt-level = 3
-[profile.release.package.regex-automata]
-opt-level = 3
-[profile.release.package.regex-syntax]
-opt-level = 3
-[profile.release.package.aho-corasick]
-opt-level = 3
-[profile.release.package.memchr]
-opt-level = 3
-[profile.release.package.miniz_oxide]
-opt-level = 3
-[profile.release.package.simd-adler32]
-opt-level = 3
-[profile.release.package.zlib-rs]
-opt-level = 3
-[profile.release.package.zip]
-opt-level = 3
-[profile.release.package.crc32fast]
-opt-level = 3
-[profile.release.package.adler2]
-opt-level = 3
-[profile.release.package.brotli]
-opt-level = 3
-[profile.release.package.brotli-decompressor]
-opt-level = 3
-[profile.release.package.quick-xml]
-opt-level = 3
-[profile.release.package.png]
-opt-level = 3
-[profile.release.package.hex]
-opt-level = 3
-[profile.release.package.time]
-opt-level = 3
-[profile.release.package.jiff]
-opt-level = 3
-[profile.release.package.jiff-core]
-opt-level = 3
-
-# Proven hot workspace crate: file hashing, directory traversal and filtering
-# benefit significantly (+25% SHA-256 throughput, 2x cold catalog bootstrap)
-# from opt-level 3 with negligible binary size overhead (+99 KB / +0.5%).
-[profile.release.package.renderpilot-detection]
-opt-level = 3
+# Hot leaf dependencies used by archive decoding, hashing, and parsing, plus
+# the proven hot workspace crate (`renderpilot-detection`).
+# opt-level does not propagate from a crate to its own dependencies, so each
+# crate and its engines must be listed explicitly (e.g. `sevenz-rust2` and
+# `lzma-rust2`). C-backed crates are unaffected and intentionally absent.
+[profile.release.package]
+renderpilot-detection = { opt-level = 3 }
+sha2 = { opt-level = 3 }
+digest = { opt-level = 3 }
+block-buffer = { opt-level = 3 }
+crypto-common = { opt-level = 3 }
+serde_json = { opt-level = 3 }
+serde = { opt-level = 3 }
+serde_core = { opt-level = 3 }
+zmij = { opt-level = 3 }
+itoa = { opt-level = 3 }
+regex = { opt-level = 3 }
+regex-automata = { opt-level = 3 }
+regex-syntax = { opt-level = 3 }
+aho-corasick = { opt-level = 3 }
+memchr = { opt-level = 3 }
+flate2 = { opt-level = 3 }
+miniz_oxide = { opt-level = 3 }
+simd-adler32 = { opt-level = 3 }
+zlib-rs = { opt-level = 3 }
+zip = { opt-level = 3 }
+crc32fast = { opt-level = 3 }
+adler2 = { opt-level = 3 }
+brotli = { opt-level = 3 }
+brotli-decompressor = { opt-level = 3 }
+quick-xml = { opt-level = 3 }
+png = { opt-level = 3 }
+hex = { opt-level = 3 }
+time = { opt-level = 3 }
+jiff = { opt-level = 3 }
+jiff-core = { opt-level = 3 }

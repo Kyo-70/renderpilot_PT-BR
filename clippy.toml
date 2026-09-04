@@ -1,0 +1,24 @@
+# Clippy configuration for RenderPilot workspace
+# See https://rust-lang.github.io/rust-clippy/master/index.html
+
+doc-valid-idents = [
+    "..",
+    "BattlEye",
+    "CodeWeavers",
+    "CrossOver",
+    "DX12Core",
+    "ETag",
+    "FidelityFX",
+    "GeForce",
+    "GridDB",
+    "GShade",
+    "NuGet",
+    "OpenVR",
+    "OptiScaler",
+    "ProgramData",
+    "RenderPilot",
+    "RenoDX",
+    "ReShade",
+    "SteamGridDB",
+    "WebView2",
+]
