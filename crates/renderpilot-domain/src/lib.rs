@@ -22,10 +22,16 @@ mod version;
 pub mod xiph;
 
 pub use addon::{
-    InstalledAddon, InstalledAddonHostKind, InstalledAddonInvariantError, InstalledAddonParts,
-    LumaInstallState, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode, RenoDxHostKind,
-    RenoDxInstallState, SharedArtifactKind, SharedArtifactOrigin, SharedArtifactRecord,
-    SharedArtifactSource, TrackedSource, TrackedSourceRole,
+    FileOwnership, FileReceipt, GameProxyTopology, InstalledAddon, InstalledAddonHostKind,
+    InstalledAddonInvariantError, InstalledAddonParts, LumaInstallState, ManagedAddonFile,
+    ManagedFileBaseline, ManagedFileMode, OptiScalerAdoptionState, OptiScalerConfigurationBaseline,
+    OptiScalerDirectoryReceipt, OptiScalerFileBaseline, OptiScalerFileCleanup,
+    OptiScalerFileReceipt, OptiScalerFileRole, OptiScalerInstallState, OptiScalerInstallStateParts,
+    OptiScalerModuleRuntimeBinding, OptiScalerPrerequisiteBinding, OptiScalerReleaseFileBaseline,
+    OptiScalerStateError, ProxyImplementation, ProxyLink, ProxyRootPrestate, ProxyTopologyError,
+    RenoDxHostKind, RenoDxInstallState, SharedArtifactKind, SharedArtifactOrigin,
+    SharedArtifactRecord, SharedArtifactSource, TrackedSource, TrackedSourceRole,
+    from_new_adoption, from_new_install, from_persisted,
 };
 pub use catalog_package::{
     CatalogLegalDocumentFormat, CatalogLegalDocumentKind, CatalogLegalDocumentReceipt,

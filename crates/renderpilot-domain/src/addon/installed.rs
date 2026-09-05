@@ -192,6 +192,58 @@ impl InstalledAddon {
         self
     }
 
+    /// Compares the complete durable record while ignoring database-managed
+    /// persistence timestamps.
+    ///
+    /// The exhaustive destructuring is intentional: adding a new field to the
+    /// record must make this comparison fail to compile until that field is
+    /// classified explicitly.
+    #[must_use]
+    pub fn eq_ignoring_persistence_timestamps(&self, other: &Self) -> bool {
+        let Self {
+            game_id,
+            kind,
+            addon_file,
+            addon_version,
+            created_files,
+            backed_up_files,
+            managed_files,
+            tracked_sources,
+            installed_at: _,
+            updated_at: _,
+            host_kind,
+            reshade_channel,
+            registered_exe_path,
+        } = self;
+        let Self {
+            game_id: other_game_id,
+            kind: other_kind,
+            addon_file: other_addon_file,
+            addon_version: other_addon_version,
+            created_files: other_created_files,
+            backed_up_files: other_backed_up_files,
+            managed_files: other_managed_files,
+            tracked_sources: other_tracked_sources,
+            installed_at: _,
+            updated_at: _,
+            host_kind: other_host_kind,
+            reshade_channel: other_reshade_channel,
+            registered_exe_path: other_registered_exe_path,
+        } = other;
+
+        game_id == other_game_id
+            && kind == other_kind
+            && addon_file == other_addon_file
+            && addon_version == other_addon_version
+            && created_files == other_created_files
+            && backed_up_files == other_backed_up_files
+            && managed_files == other_managed_files
+            && tracked_sources == other_tracked_sources
+            && host_kind == other_host_kind
+            && reshade_channel == other_reshade_channel
+            && registered_exe_path == other_registered_exe_path
+    }
+
     /// Attaches host metadata to the install.
     #[must_use]
     pub fn with_host_kind(mut self, host_kind: InstalledAddonHostKind) -> Self {
@@ -412,5 +464,25 @@ impl InstalledAddon {
         self.tracked_sources.iter().any(|source| {
             source.role() == TrackedSourceRole::AddonPayload && !source.url().is_empty()
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timestamp_agnostic_equality_ignores_only_persistence_timestamps() {
+        let record = InstalledAddon::new(
+            GameId::new("steam:1").expect("game id"),
+            AddonKind::Luma,
+            PathRef::new("C:/Games/Test/luma.addon64").expect("addon path"),
+        )
+        .with_timestamps(Some(10), Some(20));
+        let retimestamped = record.clone().with_timestamps(Some(30), Some(40));
+        assert!(record.eq_ignoring_persistence_timestamps(&retimestamped));
+
+        let changed = retimestamped.with_addon_version("2.0.0");
+        assert!(!record.eq_ignoring_persistence_timestamps(&changed));
     }
 }

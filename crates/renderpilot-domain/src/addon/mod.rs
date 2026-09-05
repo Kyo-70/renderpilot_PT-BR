@@ -19,6 +19,8 @@
 
 pub mod installed;
 pub mod managed_file;
+pub mod optiscaler_state;
+pub mod proxy_topology;
 pub mod shared_artifact;
 pub mod states;
 pub mod tracked;
@@ -26,6 +28,16 @@ pub mod tracked;
 pub use installed::{InstalledAddon, InstalledAddonParts};
 pub use managed_file::{
     InstalledAddonInvariantError, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode,
+};
+pub use optiscaler_state::{
+    FileOwnership, FileReceipt, OptiScalerAdoptionState, OptiScalerConfigurationBaseline,
+    OptiScalerDirectoryReceipt, OptiScalerFileBaseline, OptiScalerFileCleanup,
+    OptiScalerFileReceipt, OptiScalerFileRole, OptiScalerInstallState, OptiScalerInstallStateParts,
+    OptiScalerModuleRuntimeBinding, OptiScalerPrerequisiteBinding, OptiScalerReleaseFileBaseline,
+    OptiScalerStateError, from_new_adoption, from_new_install, from_persisted,
+};
+pub use proxy_topology::{
+    GameProxyTopology, ProxyImplementation, ProxyLink, ProxyRootPrestate, ProxyTopologyError,
 };
 pub use shared_artifact::{
     SharedArtifactKind, SharedArtifactOrigin, SharedArtifactRecord, SharedArtifactSource,

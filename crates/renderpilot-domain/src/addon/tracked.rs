@@ -60,7 +60,10 @@ pub struct TrackedSource {
     url: String,
     /// HTTP cache validator (ETag/Last-Modified) for a cheap update pre-check.
     etag: Option<String>,
-    /// SHA-256 of the installed bytes — the durable change-detection digest.
+    /// SHA-256 identity for the tracked source. It is not intrinsically an
+    /// installed-file digest: the owning add-on kind, role, and advisory status
+    /// determine whether it identifies a downloaded source artifact or installed
+    /// bytes. Consumers must apply those typed semantics.
     digest: String,
     /// The raw `Last-Modified` HTTP-date string from the download response, when
     /// the host sent one. Surfaced to the UI as the upstream "dated" anchor (a
@@ -144,7 +147,9 @@ impl TrackedSource {
         self.etag.as_deref()
     }
 
-    /// Returns the change-detection digest (SHA-256 of the installed bytes).
+    /// Returns the source identity digest. Its authority is specific to the
+    /// owning add-on kind, role, and advisory status; callers must apply those
+    /// typed semantics rather than assuming installed-byte authority.
     #[must_use]
     pub fn digest(&self) -> &str {
         &self.digest
