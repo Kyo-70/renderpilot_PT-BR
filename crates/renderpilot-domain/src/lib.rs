@@ -51,7 +51,15 @@ pub use model::{
     Platform, Swappability,
 };
 pub use package_version::{PackageVersion, PackageVersionParseError};
-pub use path::{PathRef, PathRefError, normalized_path_key};
+pub use path::{
+    PathRef, PathRefError,
+    capability::CapabilityToken,
+    capability::CapabilityTokenError,
+    durable_wire,
+    durable_wire::DurablePathWireError,
+    normalized_path_key,
+    relation::{NormalizedPathRelation, normalized_path_relation},
+};
 pub use version::{Version, VersionParseError};
 
 /// Human-readable product name used across user-facing entry points.

@@ -46,6 +46,16 @@ pub fn normalized_path_key(path: &str) -> String {
     }
 }
 
+pub mod capability;
+pub mod durable_wire;
+/// Purely lexical relationship between two normalized path spellings.
+///
+/// This deliberately does not touch the filesystem or perform dot-segment,
+/// Unicode, or junction resolution.  The existing [`normalized_path_key`]
+/// remains the sole normalization operation; this type only classifies the
+/// resulting keys while respecting anchor boundaries.
+pub mod relation;
+
 impl PathRef {
     /// Creates a normalized path reference.
     pub fn new(value: impl Into<String>) -> Result<Self, PathRefError> {
@@ -54,6 +64,33 @@ impl PathRef {
         validate_path_text(&value)?;
 
         Ok(Self(normalize_path_text(&value)))
+    }
+
+    /// Converts an already resolved native absolute path to the canonical
+    /// durable wire spelling.
+    ///
+    /// This is lexical only. Filesystem/junction resolution belongs to the
+    /// platform adapter; this method only turns that result into the one
+    /// representation allowed in durable peer records.
+    pub fn from_canonical_native_absolute(
+        path: &Path,
+    ) -> Result<Self, durable_wire::DurablePathWireError> {
+        durable_wire::from_canonical_native_absolute(path)
+    }
+
+    /// Parses a path read from a durable wire record.
+    ///
+    /// Unlike PathRef::new, this rejects values which would need
+    /// normalization.
+    pub fn parse_exact(value: &str) -> Result<Self, durable_wire::DurablePathWireError> {
+        durable_wire::parse_exact(value)
+    }
+
+    /// Returns the target-platform comparison key. The key is for lookup
+    /// only and must never be serialized or included in a fingerprint.
+    #[must_use]
+    pub fn comparison_key(&self) -> String {
+        durable_wire::comparison_key(self)
     }
 
     /// Returns normalized path text.
@@ -192,6 +229,7 @@ fn is_windows_drive_root(path: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{PathRef, PathRefError, normalized_path_key};
+    use serde_json::json;
 
     #[test]
     fn path_ref_normalizes_windows_separators_and_trailing_slash() {
@@ -357,5 +395,82 @@ mod tests {
             super::normalized_path_key(r"C:\Games\DLSS.dll"),
             super::normalized_path_key("C:/Games/DLSS.dll")
         );
+    }
+
+    #[test]
+    fn durable_wire_renders_drive_and_unc_aliases() {
+        let cases = [
+            (r"c:\Games\Example", "C:/Games/Example"),
+            ("C:/Games/Example", "C:/Games/Example"),
+            (r"\\?\C:\Games\Example", "C:/Games/Example"),
+            (r"\\server\share\Game", "//server/share/Game"),
+            (r"\\?\UNC\server\share\Game", "//server/share/Game"),
+            ("//server/share/Game", "//server/share/Game"),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(
+                PathRef::from_canonical_native_absolute(std::path::Path::new(input))
+                    .expect("native path")
+                    .as_str(),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn durable_wire_rejects_noncanonical_persisted_spellings() {
+        for input in [
+            r"C:\Games\Example",
+            "//?/C:/Games/Example",
+            "c:/Games/Example",
+            "C:/Games/Example/",
+            "C:/Games//Example",
+            "C:/Games/../Example",
+            "game/Example",
+            "C:Example",
+            "//server",
+            "//?/GLOBALROOT/device",
+        ] {
+            assert!(PathRef::parse_exact(input).is_err(), "{input}");
+        }
+        for input in [
+            "C:/Games/Example",
+            "//server/share/Game",
+            "/var/lib/renderpilot",
+            "/",
+            "C:/",
+        ] {
+            assert!(PathRef::parse_exact(input).is_ok(), "{input}");
+        }
+    }
+
+    #[test]
+    fn durable_wire_serde_adapter_is_strict_without_changing_general_pathref() {
+        #[derive(serde::Deserialize, serde::Serialize)]
+        struct StrictPath(#[serde(with = "super::durable_wire")] PathRef);
+
+        assert!(serde_json::from_value::<StrictPath>(json!(r"C:\Games\Example")).is_err());
+        assert_eq!(
+            serde_json::from_value::<StrictPath>(json!("C:/Games/Example"))
+                .expect("strict path")
+                .0
+                .as_str(),
+            "C:/Games/Example"
+        );
+        assert!(serde_json::from_value::<PathRef>(json!(r"C:\Games\Example")).is_ok());
+        let noncanonical = PathRef::new("c:/Games/Example").expect("permissive path");
+        assert!(serde_json::to_value(StrictPath(noncanonical)).is_err());
+    }
+
+    #[test]
+    fn durable_wire_comparison_key_is_platform_specific_and_not_wire_text() {
+        let path = PathRef::parse_exact("C:/Games/Example").expect("path");
+        let key = path.comparison_key();
+        if cfg!(windows) {
+            assert_eq!(key, "c:/games/example");
+        } else {
+            assert_eq!(key, "C:/Games/Example");
+        }
+        assert_eq!(path.as_str(), "C:/Games/Example");
     }
 }

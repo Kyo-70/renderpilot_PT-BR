@@ -14,9 +14,8 @@ impl Sha256Hash {
     pub const HEX_LENGTH: usize = 64;
 
     /// Creates a normalized SHA-256 hash from a 64-character hexadecimal string.
-    pub fn new(value: impl Into<String>) -> Result<Self, ComponentError> {
-        let value = value.into();
-        let trimmed = value.trim();
+    pub fn new(value: impl AsRef<str>) -> Result<Self, ComponentError> {
+        let trimmed = value.as_ref().trim();
 
         if trimmed.len() != Self::HEX_LENGTH {
             return Err(ComponentError::InvalidSha256Hash);
