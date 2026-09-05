@@ -43,12 +43,17 @@ impl From<SteamInstallDetails> for InstallIdentityDetails {
 /// 1. Steam (`…/steamapps/common/<dir>` + matching `appmanifest_*.acf`)
 /// 2. GOG (`goggame-*.info` inside the install dir)
 /// 3. Epic (`*.item` manifest whose `InstallLocation` matches this dir)
+/// 4. Xbox / Microsoft Store (an exact current-user registered package root)
 ///
 /// Returns `None` when no launcher metadata is found (true manual install).
 pub fn detect_install_identity(game_install_root: &Path) -> Option<InstallIdentityDetails> {
-    steam_identity(game_install_root)
+    let identity = steam_identity(game_install_root)
         .or_else(|| gog_identity(game_install_root))
-        .or_else(|| epic_identity(game_install_root))
+        .or_else(|| epic_identity(game_install_root));
+    #[cfg(windows)]
+    let identity = identity
+        .or_else(|| crate::game_libraries::xbox_identity_for_registered_root(game_install_root));
+    identity
 }
 
 fn steam_identity(game_install_root: &Path) -> Option<InstallIdentityDetails> {

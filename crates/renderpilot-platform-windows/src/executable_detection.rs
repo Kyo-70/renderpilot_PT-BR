@@ -372,6 +372,27 @@ pub fn is_readable_windows_pe_executable(path: &Path) -> bool {
     file.read_exact(&mut signature).is_ok() && signature == *b"PE\0\0"
 }
 
+/// Returns whether one executable directly in an installation root is an
+/// accepted game candidate.
+///
+/// This is the non-recursive counterpart to [`inspect_executable_candidates`].
+/// It deliberately reuses the same filename exclusion classifier, so callers
+/// that already know the exact root entry do not need to rescan sibling trees
+/// merely to reject launchers, installers, and support tools.
+#[must_use]
+pub fn is_accepted_root_game_executable(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let Some(stem) = path.file_stem().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    path.extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("exe"))
+        && is_readable_windows_pe_executable(path)
+        && classify(file_name, stem, file_name).is_none()
+}
+
 // -----------------------------------------------------------------------------
 // Ranking constants
 // -----------------------------------------------------------------------------
@@ -441,7 +462,10 @@ fn collect_raw_candidates(
         root,
         |file_name| {
             let lower = file_name.to_ascii_lowercase();
-            lower.ends_with(".exe") || is_structural_file_name(&lower)
+            Path::new(file_name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
+                || is_structural_file_name(&lower)
         },
         is_cancelled,
     ) else {
@@ -474,7 +498,7 @@ fn collect_raw_candidates(
         let relative_path = relative_path_from(root, path);
         let depth = Path::new(&relative_path)
             .parent()
-            .map(|parent| parent.components().count() as u32)
+            .and_then(|parent| u32::try_from(parent.components().count()).ok())
             .unwrap_or(0);
         let file_name_no_ext = file_name
             .rsplit_once('.')
@@ -509,26 +533,26 @@ fn relative_path_from(root: &Path, full: &Path) -> String {
     full.strip_prefix(root)
         .ok()
         .and_then(|rel| rel.to_str())
-        .map(|s| s.replace('\\', "/"))
-        .unwrap_or_else(|| {
-            full.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_owned()
-        })
+        .map_or_else(
+            || {
+                full.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_owned()
+            },
+            |s| s.replace('\\', "/"),
+        )
 }
 
 /// Returns the parent-directory segment of `relative_path` (forward-slash,
 /// relative to the install root) that matches a known installer/redist folder,
 /// case-insensitively. The final segment (the file name) is never considered.
 fn non_game_dir_segment(relative_path: &str) -> Option<String> {
-    let mut segments: Vec<&str> = relative_path.split('/').collect();
-    segments.pop(); // drop the file name; only parent folders count
-    segments.into_iter().find_map(|segment| {
-        let lower = segment.to_ascii_lowercase();
+    let (parent, _) = relative_path.rsplit_once('/')?;
+    parent.split('/').find_map(|segment| {
         NON_GAME_DIR_SEGMENTS
             .iter()
-            .find(|&&dir| dir == lower)
+            .find(|&&dir| dir.eq_ignore_ascii_case(segment))
             .map(|&dir| dir.to_owned())
     })
 }

@@ -108,7 +108,6 @@ pub fn primary_score(
 ///
 /// An existing `override_path` wins outright; otherwise the best-scoring scanned
 /// executable is returned (or `None` when the directory holds no game binary).
-#[cfg(windows)]
 #[must_use]
 pub fn resolve_primary_executable(
     install_dir: &Path,
@@ -116,7 +115,7 @@ pub fn resolve_primary_executable(
     prefer_directx: bool,
 ) -> Option<ResolvedExecutable> {
     use renderpilot_detection::analyze_executable;
-    use renderpilot_platform_windows::{detect_executable_candidates, launcher_launch_executable};
+    use renderpilot_platform_windows::detect_executable_candidates;
 
     if let Some(over) = override_path.filter(|path| path.exists())
         && let Ok(path) = PathRef::new(to_forward_slashes(over))
@@ -129,7 +128,10 @@ pub fn resolve_primary_executable(
         });
     }
 
-    let launch_exe = launcher_launch_executable(install_dir);
+    #[cfg(windows)]
+    let launch_exe = renderpilot_platform_windows::launcher_launch_executable(install_dir);
+    #[cfg(not(windows))]
+    let launch_exe: Option<String> = None;
     detect_executable_candidates(install_dir)
         .into_iter()
         .filter(|candidate| candidate.rejection.is_none())
@@ -159,23 +161,10 @@ pub fn resolve_primary_executable(
         .map(|(_, resolved)| resolved)
 }
 
-/// Non-Windows stub: executable resolution relies on Windows-only detection.
-#[cfg(not(windows))]
-#[must_use]
-pub fn resolve_primary_executable(
-    _install_dir: &Path,
-    _override_path: Option<&Path>,
-    _prefer_directx: bool,
-) -> Option<ResolvedExecutable> {
-    None
-}
-
-#[cfg(windows)]
 fn to_forward_slashes(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
-#[cfg(windows)]
 fn file_name_of(path: &Path) -> String {
     path.file_name()
         .and_then(|name| name.to_str())
@@ -277,5 +266,22 @@ mod tests {
             false,
         );
         assert!(vulkan_game > dx_helper);
+    }
+
+    #[test]
+    fn resolve_primary_executable_returns_none_for_empty_dir() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        assert!(resolve_primary_executable(temp.path(), None, true).is_none());
+    }
+
+    #[test]
+    fn resolve_primary_executable_honors_existing_override() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let fake_exe = temp.path().join("custom_game.exe");
+        std::fs::write(&fake_exe, b"MZ").expect("write fake exe");
+        let resolved = resolve_primary_executable(temp.path(), Some(&fake_exe), true);
+        assert!(resolved.is_some());
+        let resolved = resolved.unwrap();
+        assert_eq!(resolved.file_name, "custom_game.exe");
     }
 }

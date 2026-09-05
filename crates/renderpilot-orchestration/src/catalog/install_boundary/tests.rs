@@ -263,6 +263,30 @@ fn valid_game_root_never_recommends_a_neighbor_container() {
 }
 
 #[test]
+fn valid_game_root_never_recommends_a_parent_launcher_from_component_context() {
+    let temp = tempdir().expect("temp");
+    let library = temp.path().join("Games");
+    let selected = library.join("The Last of Us Part I");
+    copy_pe(&selected.join("tlou-i.exe"));
+    fs::create_dir_all(selected.join("D3D12")).expect("component directory");
+    fs::write(selected.join("D3D12/D3D12Core.dll"), b"component").expect("component payload");
+    copy_pe(&library.join("Steam.exe"));
+
+    let assessment = InstallBoundaryAnalyzer::inspect(InstallBoundaryRequest {
+        selected_root: &selected,
+        launcher_install_roots: &[],
+        launcher_library_roots: &[],
+        cancellation: None,
+    });
+
+    assert_eq!(assessment.selected.kind, InstallBoundaryKind::SingleInstall);
+    assert!(
+        assessment.recommendation.is_none(),
+        "a valid selected game must remain its own boundary despite component context"
+    );
+}
+
+#[test]
 fn black_flag_nested_component_directories_are_one_installation() {
     let temp = tempdir().expect("temp");
     let root = temp.path().join("Assassins Creed IV Black Flag");
@@ -281,6 +305,83 @@ fn black_flag_nested_component_directories_are_one_installation() {
 
     assert_eq!(assessment.selected.kind, InstallBoundaryKind::SingleInstall);
     assert!(assessment.recommendation.is_none());
+}
+
+#[test]
+fn component_selection_never_recurses_through_a_parent_sibling_tree() {
+    let temp = tempdir().expect("temp");
+    let library = temp.path().join("Games");
+    let selected = library.join("D3D12");
+    fs::create_dir_all(&selected).expect("component directory");
+    fs::write(selected.join("D3D12Core.dll"), b"component").expect("component payload");
+    copy_pe(&library.join("Other Game/Bin/OtherGame.exe"));
+    fs::write(library.join("common.pak"), b"unrelated package").expect("sibling payload");
+
+    let assessment = InstallBoundaryAnalyzer::inspect(InstallBoundaryRequest {
+        selected_root: &selected,
+        launcher_install_roots: &[],
+        launcher_library_roots: &[],
+        cancellation: None,
+    });
+
+    assert!(
+        assessment.recommendation.is_none(),
+        "a component selection must not scan a parent tree and recommend a sibling game"
+    );
+}
+
+#[test]
+fn component_selection_does_not_promote_a_parent_setup_executable() {
+    let temp = tempdir().expect("temp");
+    let root = temp.path().join("Game");
+    let selected = root.join("D3D12");
+    fs::create_dir_all(&selected).expect("component directory");
+    fs::write(selected.join("D3D12Core.dll"), b"component").expect("component payload");
+    copy_pe(&root.join("Setup.exe"));
+
+    let assessment = InstallBoundaryAnalyzer::inspect(InstallBoundaryRequest {
+        selected_root: &selected,
+        launcher_install_roots: &[],
+        launcher_library_roots: &[],
+        cancellation: None,
+    });
+
+    assert!(
+        assessment.recommendation.is_none(),
+        "a setup executable is not a game-root recommendation"
+    );
+}
+
+#[test]
+fn component_selection_promotes_an_accepted_direct_parent_game_executable() {
+    let temp = tempdir().expect("temp");
+    let root = temp.path().join("Game");
+    let selected = root.join("D3D12");
+    fs::create_dir_all(&selected).expect("component directory");
+    fs::write(selected.join("D3D12Core.dll"), b"component").expect("component payload");
+    copy_pe(&root.join("Game.exe"));
+
+    let assessment = InstallBoundaryAnalyzer::inspect(InstallBoundaryRequest {
+        selected_root: &selected,
+        launcher_install_roots: &[],
+        launcher_library_roots: &[],
+        cancellation: None,
+    });
+
+    assert_eq!(
+        assessment
+            .recommendation
+            .as_ref()
+            .map(|recommendation| recommendation.root.as_path()),
+        Some(root.as_path())
+    );
+    assert_eq!(
+        assessment
+            .recommendation
+            .as_ref()
+            .map(|recommendation| recommendation.source),
+        Some(RootRecommendationSource::RootExecutable)
+    );
 }
 
 #[test]

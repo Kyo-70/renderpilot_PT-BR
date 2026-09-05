@@ -2,6 +2,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fs,
     path::{Path, PathBuf},
     sync::atomic::{AtomicBool, Ordering},
 };
@@ -10,7 +11,7 @@ use renderpilot_detection::InstallTreeCompleteness;
 use renderpilot_domain::InstallKey;
 use renderpilot_platform_windows::{
     EngineLayoutRequest, analyze_engine_layout, inspect_executable_candidates_bounded,
-    is_readable_windows_pe_executable,
+    is_accepted_root_game_executable, is_readable_windows_pe_executable,
 };
 
 use super::classification::*;
@@ -149,6 +150,26 @@ pub(super) fn inspect(request: &InstallBoundaryRequest<'_>) -> InstallBoundaryAs
         };
     }
 
+    if let Some(recommendation) =
+        direct_parent_root_executable_recommendation(&selected, request.selected_root)
+    {
+        recommendations.push((0, recommendation));
+    }
+
+    let selected_allows_parent_search = matches!(
+        selected.kind,
+        InstallBoundaryKind::EngineProjectSubtree | InstallBoundaryKind::BinarySubtree
+    ) || request
+        .selected_root
+        .parent()
+        .is_some_and(parent_is_shared_engine_subtree);
+    if !selected_allows_parent_search {
+        return InstallBoundaryAssessment {
+            selected,
+            recommendation: choose_best_recommendation(recommendations),
+        };
+    }
+
     let mut parent = request.selected_root.parent();
     let mut distance = 1_usize;
     while let Some(candidate) = parent {
@@ -184,6 +205,51 @@ pub(super) fn inspect(request: &InstallBoundaryRequest<'_>) -> InstallBoundaryAs
         selected,
         recommendation: choose_best_recommendation(recommendations),
     }
+}
+
+/// Recovers a component-directory selection only from an immediately adjacent,
+/// independently verified root executable. This deliberately enumerates one
+/// directory level and never performs a parent-tree assessment: a generic
+/// component such as `D3D12` must not cause traversal of sibling games.
+fn direct_parent_root_executable_recommendation(
+    selected: &CandidateBoundaryAssessment,
+    selected_root: &Path,
+) -> Option<RootRecommendation> {
+    if !selected
+        .evidence
+        .contains(&InstallBoundaryEvidenceKind::ComponentContext)
+    {
+        return None;
+    }
+    let parent = selected_root.parent()?;
+    let has_root_executable = fs::read_dir(parent)
+        .ok()?
+        .filter_map(Result::ok)
+        .any(|entry| {
+            entry.file_type().is_ok_and(|file_type| file_type.is_file())
+                && is_accepted_root_game_executable(&entry.path())
+        });
+    has_root_executable.then(|| RootRecommendation {
+        root: parent.to_path_buf(),
+        source: RootRecommendationSource::RootExecutable,
+        completeness: BoundaryCompleteness::Complete,
+        evidence: BTreeSet::from([InstallBoundaryEvidenceKind::RootExecutable]),
+    })
+}
+
+/// Identifies the one nested Unreal case whose distribution boundary is the
+/// immediate parent. This invokes the platform's structural detector only; it
+/// does not enumerate a parent installation tree.
+fn parent_is_shared_engine_subtree(parent: &Path) -> bool {
+    analyze_engine_layout(&EngineLayoutRequest {
+        candidate: parent,
+        accepted_executables: &[],
+    })
+    .iter()
+    .any(|evidence| {
+        evidence.role() == renderpilot_platform_windows::EngineLayoutRole::SharedEngineSubtree
+            && evidence.distribution_root().is_some()
+    })
 }
 
 fn recommendation_for_root(

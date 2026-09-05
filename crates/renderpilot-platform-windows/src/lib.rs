@@ -26,7 +26,8 @@ pub use engine_layout::{
 pub use executable_detection::{
     ExecutableCandidate, ExecutableDetectionReport, RejectionReason, detect_executable_candidates,
     inspect_executable_candidates, inspect_executable_candidates_bounded,
-    inspect_executable_candidates_complete, is_readable_windows_pe_executable,
+    inspect_executable_candidates_complete, is_accepted_root_game_executable,
+    is_readable_windows_pe_executable,
 };
 #[cfg(windows)]
 pub use game_libraries::launcher_launch_executable;

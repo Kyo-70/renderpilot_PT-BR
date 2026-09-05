@@ -1,7 +1,8 @@
 //! Registry and manifest based discovery of game install folders.
 //!
 //! Discovers per-game install directories for common Windows game launchers:
-//! Steam, Epic Games Store, GOG Galaxy, EA App / Origin, and Ubisoft Connect.
+//! Steam, Epic Games Store, GOG Galaxy, EA App / Origin, Ubisoft Connect, and
+//! current-user Xbox / Microsoft Store registered game packages.
 //!
 //! Internally, sources are split into two kinds:
 //!
@@ -23,8 +24,10 @@ mod launch_exe;
 mod launchers;
 mod paths;
 mod registry;
+mod xbox;
 
 pub use launch_exe::launcher_launch_executable;
+pub(crate) use xbox::identity_for_registered_root as xbox_identity_for_registered_root;
 
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
@@ -37,6 +40,7 @@ use self::launchers::{
     discover_steam_libraries, discover_ubisoft_libraries,
 };
 use self::paths::{comparable_path_key, existing_unique_dirs, normalize_existing_dir};
+use self::xbox::discover_registered_packages;
 
 /// Game sources discovered from common Windows launchers.
 #[derive(Debug, Default, Clone)]
@@ -154,7 +158,7 @@ impl LauncherInstallProvider for FunctionLauncherInstallProvider {
     }
 }
 
-const LAUNCHER_INSTALL_PROVIDERS: [FunctionLauncherInstallProvider; 5] = [
+const LAUNCHER_INSTALL_PROVIDERS: [FunctionLauncherInstallProvider; 6] = [
     FunctionLauncherInstallProvider {
         discover: discover_steam_libraries,
     },
@@ -170,6 +174,9 @@ const LAUNCHER_INSTALL_PROVIDERS: [FunctionLauncherInstallProvider; 5] = [
     FunctionLauncherInstallProvider {
         discover: discover_ubisoft_libraries,
     },
+    FunctionLauncherInstallProvider {
+        discover: discover_registered_packages,
+    },
 ];
 
 impl DiscoveredSources {
@@ -180,8 +187,8 @@ impl DiscoveredSources {
     }
 
     fn finalize(self) -> DiscoveredGameSources {
-        let library_roots = existing_unique_dirs(self.library_roots.iter().cloned());
-        let steam_common_roots = existing_unique_dirs(self.steam_common_roots.iter().cloned());
+        let library_roots = existing_unique_dirs(self.library_roots);
+        let steam_common_roots = existing_unique_dirs(self.steam_common_roots);
 
         let steam = enumerate_steam_common_root_children(&steam_common_roots);
 

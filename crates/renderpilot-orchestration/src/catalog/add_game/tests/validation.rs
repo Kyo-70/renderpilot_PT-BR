@@ -191,11 +191,10 @@ fn inspection_explains_why_a_folder_without_a_readable_executable_is_not_addable
 
     let inspection = inspect_game_install(&context, &root).expect("inspection");
 
-    assert!(matches!(
-        inspection.decision,
-        AddGameDecision::Unavailable { ref reasons }
-            if reasons == &[AddGameUnavailableReason::NoReadableExecutable]
-    ));
+    let AddGameDecision::Unavailable { reasons } = &inspection.decision else {
+        panic!("expected an unavailable decision, got {inspection:#?}");
+    };
+    assert_eq!(reasons, &[AddGameUnavailableReason::NoReadableExecutable]);
     assert!(
         inspection.warnings.is_empty(),
         "an unavailable reason must not also be returned as a warning"

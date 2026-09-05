@@ -2,10 +2,10 @@
 //!
 //! A folder scan can only guess which binary is the game; the launcher itself
 //! records the exact executable it runs. This reads that record for a given
-//! install directory — GOG's per-install `goggame-*.info` and Epic's `*.item`
-//! manifests — and returns the launch executable's basename. The JSON parsing is
-//! pure (unit-tested with fixtures); locating the files on disk is the only
-//! platform-specific part.
+//! install directory — GOG's per-install `goggame-*.info`, Epic's `*.item`
+//! manifests, or an exact registered Xbox package root — and returns the launch
+//! executable's basename. The metadata parsing is pure (unit-tested with
+//! fixtures); locating the files on disk is the only platform-specific part.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,12 +17,15 @@ use super::paths::{env_path, has_extension_ignore_ascii_case};
 /// The authoritative launch-executable basename for an install directory, read
 /// from its launcher's metadata, or `None` when no launcher names one.
 ///
-/// Tries GOG (a `goggame-*.info` inside the directory) then Epic (the `*.item`
-/// manifest whose `InstallLocation` is this directory). The returned name is just
-/// the basename; callers match it against the directory's scanned executables.
+/// Tries GOG (a `goggame-*.info` inside the directory), Epic (the `*.item`
+/// manifest whose `InstallLocation` is this directory), then an exact
+/// current-user registered Xbox package root. The returned name is just the
+/// basename; callers match it against the directory's scanned executables.
 #[must_use]
 pub fn launcher_launch_executable(install_dir: &Path) -> Option<String> {
-    gog_launch_executable(install_dir).or_else(|| epic_launch_executable(install_dir))
+    gog_launch_executable(install_dir)
+        .or_else(|| epic_launch_executable(install_dir))
+        .or_else(|| super::xbox::launch_executable_for_registered_root(install_dir))
 }
 
 // -----------------------------------------------------------------------------
