@@ -397,8 +397,14 @@ pub fn resolve_transition(
         .ok_or_else(|| AppError::invalid_input("component target has no parent directory"))?
         .to_owned();
 
-    let current_by_path = file_map(component.files(), &target_directory, "component")?;
-    let baseline_by_path = file_map(baseline, &target_directory, "baseline")?;
+    let xiph_component = component.technology() == LibraryTechnology::XiphVorbis;
+    let current_by_path = file_map(
+        component.files(),
+        &target_directory,
+        "component",
+        xiph_component,
+    )?;
+    let baseline_by_path = file_map(baseline, &target_directory, "baseline", xiph_component)?;
     let (writes, xiph) =
         transition_writes(component, artifact, external_aliases, &target_directory)?;
 
@@ -502,9 +508,20 @@ pub fn resolve_transition(
         }
     }
 
-    let primary_target = writes
-        .get(&normalized_path_key(primary.path().as_str()))
-        .map(|write| write.target.clone())
+    let primary_target = xiph_component
+        .then_some(primary)
+        .and_then(xiph_member_for_component_file)
+        .and_then(|primary_member| {
+            writes
+                .values()
+                .find(|write| write.member == Some(primary_member))
+                .map(|write| write.target.clone())
+        })
+        .or_else(|| {
+            writes
+                .get(&normalized_path_key(primary.path().as_str()))
+                .map(|write| write.target.clone())
+        })
         .or_else(|| {
             paths.iter().find_map(|path| match path {
                 ResolvedPathDisposition::Write(write) => Some(write.target.clone()),
@@ -550,7 +567,7 @@ fn transition_writes(
             external_aliases,
         )
         .map_err(|error| AppError::invalid_input(error.to_string()))?;
-        return xiph_transition_writes(component, artifact, external_aliases, target_directory);
+        return xiph_transition_writes(component, artifact, external_aliases);
     }
 
     let members = resolve_transition_members(component, artifact)?;
@@ -574,7 +591,6 @@ fn xiph_transition_writes(
     component: &LibraryComponent,
     artifact: &LibraryArtifact,
     external_aliases: &ExternalAliasRequirements,
-    target_directory: &str,
 ) -> AppResult<(
     BTreeMap<String, TransitionWrite>,
     Option<ResolvedXiphTransition>,
@@ -636,7 +652,7 @@ fn xiph_transition_writes(
     let mut writes = BTreeMap::new();
     let mut targets_by_member = BTreeMap::new();
     let mut candidate_sources = BTreeMap::new();
-    for (member, (installed_name, _)) in &installed {
+    for (member, (installed_name, installed_file)) in &installed {
         let (style, candidate_name, source) = candidates.get(member).ok_or_else(|| {
             AppError::invalid_input(format!(
                 "Xiph package does not cover installed member: {}",
@@ -655,7 +671,11 @@ fn xiph_transition_writes(
         } else {
             candidate_name.clone()
         };
-        let target = join_target(target_directory, &target_name)?;
+        let directory = installed_file
+            .path()
+            .parent()
+            .ok_or_else(|| AppError::invalid_input("Xiph target has no parent directory"))?;
+        let target = join_target(directory, &target_name)?;
         targets_by_member.insert(*member, target_name);
         candidate_sources.insert(*member, *source);
         insert_transition_write(
@@ -731,6 +751,7 @@ fn file_map<'a>(
     files: &'a [ComponentFile],
     target_directory: &str,
     label: &str,
+    allow_multiple_directories: bool,
 ) -> AppResult<BTreeMap<String, &'a ComponentFile>> {
     let mut mapped = BTreeMap::new();
     for file in files {
@@ -746,7 +767,9 @@ fn file_map<'a>(
         let parent = file.path().parent().ok_or_else(|| {
             AppError::invalid_input(format!("{label} file has no parent directory"))
         })?;
-        if normalized_path_key(parent) != normalized_path_key(target_directory) {
+        if !allow_multiple_directories
+            && normalized_path_key(parent) != normalized_path_key(target_directory)
+        {
             return Err(AppError::invalid_input(format!(
                 "{label} files do not share one transition directory"
             )));
@@ -1073,7 +1096,7 @@ mod tests {
             .map(|(index, name)| {
                 file(
                     &format!("C:/Library/{name}"),
-                    char::from(b'a' + index as u8),
+                    char::from(b'a' + u8::try_from(index).unwrap_or(0)),
                 )
             })
             .collect();
@@ -1138,7 +1161,7 @@ mod tests {
             .map(|(index, name)| {
                 file(
                     &format!("C:/Library/{name}"),
-                    char::from(b'a' + index as u8),
+                    char::from(b'a' + u8::try_from(index).unwrap_or(0)),
                 )
             })
             .collect();
@@ -1257,6 +1280,59 @@ mod tests {
             targets,
             ["libvorbis.dll", "libvorbisfile.dll", "libogg.dll"],
             "the optional encoder must not expand a three-member game integration"
+        );
+    }
+
+    #[test]
+    fn split_xiph_transition_writes_each_member_into_its_own_directory() {
+        let component = [
+            dide_member(
+                "vorbisfile.dll",
+                &["vorbis.dll", "ogg.dll"],
+                '1',
+                "C:/Game/Plugin",
+            ),
+            dide_member("vorbis.dll", &["ogg.dll"], '2', "C:/Game/Codec"),
+            dide_member("ogg.dll", &[], '3', "C:/Game/Container"),
+        ]
+        .into_iter()
+        .fold(
+            LibraryComponent::new(
+                ComponentId::new("component:split-xiph-transition").expect("component"),
+                GameId::new("game:split-xiph-transition").expect("game"),
+                ComponentKind::NativeLibrary,
+                LibraryTechnology::XiphVorbis,
+                Swappability::BundleOnly,
+            ),
+            LibraryComponent::with_file,
+        );
+        let resolved = resolve_transition(
+            &component,
+            &canonical_dide_artifact(),
+            component.files(),
+            &ExternalAliasRequirements::NotRequired,
+        )
+        .expect("split Xiph transition");
+
+        assert_eq!(resolved.target_directory(), "C:/Game/Plugin");
+        assert_eq!(
+            resolved.primary_target().as_str(),
+            "C:/Game/Plugin/vorbisfile.dll"
+        );
+        assert_eq!(
+            resolved
+                .paths()
+                .iter()
+                .filter_map(|path| match path {
+                    ResolvedPathDisposition::Write(write) => Some(write.target().as_str()),
+                    _ => None,
+                })
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "C:/Game/Codec/vorbis.dll",
+                "C:/Game/Container/ogg.dll",
+                "C:/Game/Plugin/vorbisfile.dll",
+            ])
         );
     }
 

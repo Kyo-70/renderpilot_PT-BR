@@ -5,7 +5,7 @@ use renderpilot_application::{AppResult, GameRepository, InstalledAddonRepositor
 use renderpilot_detection::sha256_file;
 use renderpilot_domain::{
     ComponentFile, ComponentRollbackBaseline, D3d12ExecutableBaseline, D3d12ExecutableIdentity,
-    GameId, LibraryComponent, LibraryTechnology, PathRef, fsr,
+    GameId, LibraryComponent, LibraryTechnology, PathRef, fsr, xiph,
 };
 use renderpilot_storage_sqlite::{
     ComponentBaselineMutation, GameMutationCommit, InstalledAddonMutation, SqliteStorage,
@@ -141,6 +141,21 @@ pub(super) fn recover_orphaned_backups(
             recover_orphaned_fsr_split_members(parent, &mut recovered_baseline)?;
         }
 
+        // Xiph sidecars are one immutable deployment, not independent files.
+        // Never turn a partial set into a durable rollback claim: that would
+        // make a later cross-directory regrouping able to overwrite an
+        // original member without a recoverable byte source.
+        if component.technology() == LibraryTechnology::XiphVorbis
+            && !recovered_baseline.is_empty()
+            && !has_complete_xiph_recovery(component, &recovered_baseline)
+        {
+            log::info!(
+                "recovery: leaving incomplete or invalid Xiph sidecar set unpromoted for {}",
+                component.id()
+            );
+            continue;
+        }
+
         if !recovered_baseline.is_empty() {
             let mut rollback_baseline = ComponentRollbackBaseline::new(recovered_baseline)
                 .with_expected_active_files(component.files().to_vec());
@@ -158,6 +173,30 @@ pub(super) fn recover_orphaned_backups(
     }
 
     Ok(())
+}
+
+fn has_complete_xiph_recovery(
+    component: &LibraryComponent,
+    recovered_baseline: &[ComponentFile],
+) -> bool {
+    if recovered_baseline.len() != component.files().len() {
+        return false;
+    }
+    let expected = component
+        .files()
+        .iter()
+        .filter_map(|file| {
+            file.install_as()
+                .or_else(|| file.path().file_name())
+                .and_then(|name| xiph::parse_runtime_file_name(name).ok().flatten())
+                .map(|name| name.member())
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    let Some(layout) = xiph::detect_layout(recovered_baseline) else {
+        return false;
+    };
+    expected.len() == component.files().len()
+        && layout.members().collect::<std::collections::BTreeSet<_>>() == expected
 }
 
 fn baseline_has_complete_sidecars(files: &[ComponentFile]) -> bool {
@@ -252,7 +291,7 @@ fn recover_d3d12_executable_pair(live_path: &Path) -> AppResult<Option<D3d12Exec
 /// Returns `None` only when the backup does not exist. Once a classic sidecar
 /// exists it is a baseline claim: invalid, empty or unreadable bytes block the
 /// scan instead of being silently ignored and later overwritten by a mutator.
-fn recover_bak_file_for_technology(
+pub(super) fn recover_bak_file_for_technology(
     bak_path: &std::path::Path,
     original_path: &str,
     technology: LibraryTechnology,
@@ -596,6 +635,50 @@ mod tests {
             .filter_map(|file| file.path().file_name().map(str::to_owned))
             .collect();
         assert_eq!(names, vec!["amd_fidelityfx_upscaler_dx12.dll"]);
+    }
+
+    #[test]
+    fn recovery_never_promotes_a_partial_xiph_sidecar_set() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let executable = dir.path().join("game.exe");
+        write(&executable, b"game");
+        let files = ["vorbisfile.dll", "vorbis.dll", "ogg.dll"]
+            .into_iter()
+            .map(|name| {
+                let path = dir.path().join(name);
+                write(&path, b"live");
+                ComponentFile::new(path_ref(&path))
+                    .with_sha256(renderpilot_detection::sha256_file(&path).expect("live hash"))
+            })
+            .collect::<Vec<_>>();
+        write(&dir.path().join("vorbisfile.dll.bak"), b"only-one-original");
+        let game = recovery_game(dir.path(), &executable, "partial-xiph");
+        let component_id = ComponentId::new("component:recovery-partial-xiph").expect("id");
+        let component = files.into_iter().fold(
+            LibraryComponent::new(
+                component_id.clone(),
+                game.id().clone(),
+                ComponentKind::NativeLibrary,
+                LibraryTechnology::XiphVorbis,
+                Swappability::BundleOnly,
+            ),
+            LibraryComponent::with_file,
+        );
+        let storage = SqliteStorage::in_memory().expect("storage");
+        storage.upsert_game(&game).expect("game");
+        storage
+            .replace_components_for_game(game.id(), std::slice::from_ref(&component))
+            .expect("component");
+
+        recover_orphaned_backups(&storage, game.id(), &[component]).expect("recovery");
+
+        assert!(
+            storage
+                .get_component_backup(&component_id)
+                .expect("query")
+                .is_none(),
+            "one sidecar cannot become a durable Xiph rollback baseline"
+        );
     }
 
     fn path_ref(path: &Path) -> PathRef {

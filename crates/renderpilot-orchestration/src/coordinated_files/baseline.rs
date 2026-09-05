@@ -1,12 +1,13 @@
 //! Classic `.bak` baseline resolution and conflict vocabulary.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::{Path, PathBuf};
 
 use renderpilot_application::AppError;
 use renderpilot_domain::{
     ComponentFile, LibraryTechnology, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode,
-    PathRef, Sha256Hash,
+    PathRef, Sha256Hash, normalized_path_key, xiph,
 };
 
 /// The trustworthy source selected for one pre-mutation file.
@@ -57,6 +58,12 @@ pub(crate) enum BaselineConflict {
         managed: Option<Sha256Hash>,
         actual: Sha256Hash,
     },
+    /// A persisted Xiph baseline does not cover exactly the component paths
+    /// it would be allowed to restore.
+    XiphBaselineCoverage(String),
+    /// A persisted Xiph baseline cannot be interpreted as one complete,
+    /// validated Xiph topology.
+    InvalidXiphBaselineLayout,
 }
 
 impl fmt::Display for BaselineConflict {
@@ -135,6 +142,14 @@ impl fmt::Display for BaselineConflict {
                 }
                 write!(formatter, ", got {actual}")
             }
+            Self::XiphBaselineCoverage(detail) => {
+                write!(
+                    formatter,
+                    "Xiph rollback baseline coverage conflict: {detail}"
+                )
+            }
+            Self::InvalidXiphBaselineLayout => formatter
+                .write_str("Xiph rollback baseline does not form a complete valid runtime layout"),
         }
     }
 }
@@ -179,7 +194,7 @@ impl<'a> BaselineResolver<'a> {
 
         let binding = self.binding_for(live_path);
         if let Some(binding) = binding {
-            self.validate_binding_sidecar(binding, &sidecar)?;
+            Self::validate_binding_sidecar(binding, &sidecar)?;
         }
 
         if let Some(recorded) = recorded {
@@ -241,7 +256,6 @@ impl<'a> BaselineResolver<'a> {
     }
 
     fn validate_binding_sidecar(
-        &self,
         binding: &ManagedAddonFile,
         sidecar: &Path,
     ) -> Result<(), BaselineConflict> {
@@ -303,6 +317,7 @@ pub(crate) fn resolve_component_baseline(
 ) -> Result<Vec<ComponentFile>, BaselineConflict> {
     let resolver = BaselineResolver::new(game_root, managed_files, technology);
     if let Some(recorded) = recorded {
+        validate_recorded_xiph_baseline(technology, current, recorded, managed_files)?;
         return recorded
             .iter()
             .map(|file| {
@@ -326,6 +341,142 @@ pub(crate) fn resolve_component_baseline(
             },
         )
         .collect()
+}
+
+/// Validates the durable topology contract before a recorded Xiph baseline is
+/// allowed to select live or sidecar bytes. This guard is shared by swap,
+/// rollback, recovery, and the pre-persistence admission check.
+pub(crate) fn validate_recorded_xiph_baseline(
+    technology: LibraryTechnology,
+    current: &[ComponentFile],
+    recorded: &[ComponentFile],
+    managed_files: &[ManagedAddonFile],
+) -> Result<(), BaselineConflict> {
+    if technology != LibraryTechnology::XiphVorbis {
+        return Ok(());
+    }
+
+    let current_by_member = xiph_files_by_member("current", current, true)?;
+    let recorded_by_member = xiph_files_by_member("recorded baseline", recorded, false)?;
+    // These are an independent path-safety invariant. They are deliberately
+    // not the baseline coverage relation: a vendor original can legitimately
+    // restore to a different canonical active path for the same member.
+    files_by_normalized_path("current", current)?;
+    files_by_normalized_path("recorded baseline", recorded)?;
+
+    let absent_members = current_by_member
+        .iter()
+        .filter(|(_, current)| {
+            let current_path = normalized_path_key(current.path().as_str());
+            managed_files.iter().any(|binding| {
+                binding.mode() == ManagedFileMode::Owned
+                    && matches!(binding.baseline(), ManagedFileBaseline::Absent)
+                    && normalized_path_key(binding.path().as_str()) == current_path
+            })
+        })
+        .map(|(member, _)| *member)
+        .collect::<BTreeSet<_>>();
+    let covered_members = recorded_by_member
+        .keys()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .union(&absent_members)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let current_members = current_by_member.keys().copied().collect::<BTreeSet<_>>();
+    if covered_members != current_members {
+        return Err(BaselineConflict::XiphBaselineCoverage(
+            "recorded members plus exact owned-absent current members do not exactly equal the current Xiph semantic set"
+                .to_owned(),
+        ));
+    }
+
+    // The parse passes above intentionally run even when an owned-absent
+    // exception supplies a member. A corrupted record must never be hidden by
+    // add-on ownership. Layout validation uses the current metadata only for
+    // that exact, explicitly absent path; it is never a fallback for a missing
+    // ordinary immutable baseline member.
+    let mut layout_files = Vec::with_capacity(current_by_member.len());
+    for member in current_by_member.keys() {
+        if let Some(file) = recorded_by_member.get(member) {
+            layout_files.push(*file);
+        } else if absent_members.contains(member) {
+            layout_files.push(current_by_member[member]);
+        } else {
+            return Err(BaselineConflict::XiphBaselineCoverage(
+                "current Xiph semantic member has no immutable baseline identity".to_owned(),
+            ));
+        }
+    }
+    let layout = xiph::detect_layout_with_file_names(layout_files.iter().map(|file| {
+        (
+            xiph_runtime_name(file).expect("Xiph member was parsed above"),
+            *file,
+        )
+    }));
+    if layout.is_none()
+        || current_by_member.len() != layout_files.len()
+        || recorded_by_member.len() > current_by_member.len()
+    {
+        return Err(BaselineConflict::InvalidXiphBaselineLayout);
+    }
+    Ok(())
+}
+
+fn xiph_files_by_member<'a>(
+    label: &str,
+    files: &'a [ComponentFile],
+    require_nonempty: bool,
+) -> Result<BTreeMap<xiph::XiphMember, &'a ComponentFile>, BaselineConflict> {
+    let mut result = BTreeMap::new();
+    for file in files {
+        let name = xiph_runtime_name(file).ok_or_else(|| {
+            BaselineConflict::XiphBaselineCoverage(format!(
+                "{label} Xiph file has no runtime basename"
+            ))
+        })?;
+        let member = xiph::parse_runtime_file_name(name)
+            .ok()
+            .flatten()
+            .ok_or_else(|| {
+                BaselineConflict::XiphBaselineCoverage(format!(
+                    "{label} contains an unsupported Xiph runtime basename: {name}"
+                ))
+            })?
+            .member();
+        if result.insert(member, file).is_some() {
+            return Err(BaselineConflict::XiphBaselineCoverage(format!(
+                "{label} contains duplicate Xiph semantic member {}",
+                member.as_slug()
+            )));
+        }
+    }
+    if require_nonempty && result.is_empty() {
+        return Err(BaselineConflict::XiphBaselineCoverage(format!(
+            "{label} contains no Xiph semantic members"
+        )));
+    }
+    Ok(result)
+}
+
+fn files_by_normalized_path<'a>(
+    label: &str,
+    files: &'a [ComponentFile],
+) -> Result<BTreeMap<String, &'a ComponentFile>, BaselineConflict> {
+    let mut result = BTreeMap::new();
+    for file in files {
+        let path = normalized_path_key(file.path().as_str());
+        if result.insert(path.clone(), file).is_some() {
+            return Err(BaselineConflict::XiphBaselineCoverage(format!(
+                "{label} contains duplicate normalized path {path}"
+            )));
+        }
+    }
+    Ok(result)
+}
+
+fn xiph_runtime_name(file: &ComponentFile) -> Option<&str> {
+    file.install_as().or_else(|| file.path().file_name())
 }
 
 fn component_file_from_disk(

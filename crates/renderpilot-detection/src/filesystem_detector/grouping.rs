@@ -1,13 +1,16 @@
 //! Clusters detected library files into library components and locally-observed
 //! artifact bundles, keyed by `(directory, grouping technology)`.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
+
+use sha2::{Digest, Sha256};
 
 use renderpilot_application::AppResult;
 use renderpilot_domain::{
     ArtifactId, ArtifactMetadata, ArtifactTrustLevel, ComponentFile, ComponentId, ComponentKind,
-    GameId, GameInstallation, LibraryArtifact, LibraryComponent, LibraryTechnology, PathRef,
-    Swappability, fsr, xiph,
+    GameId, GameInstallation, LibraryArtifact, LibraryComponent, LibraryTechnology,
+    NormalizedPathRelation, PathRef, Swappability, fsr, normalized_path_key,
+    normalized_path_relation, xiph,
 };
 
 use crate::error::detection_error;
@@ -49,6 +52,7 @@ pub fn group_into_artifacts(
 struct GroupedDetectedFiles<'a> {
     technology: LibraryTechnology,
     discriminator: Option<String>,
+    xiph_closure_key: Option<String>,
     files: Vec<&'a DetectedLibraryFile>,
 }
 
@@ -57,15 +61,19 @@ struct GroupedDetectedFiles<'a> {
 /// deterministic.
 fn group_detected_files(libraries: &[DetectedLibraryFile]) -> Vec<GroupedDetectedFiles<'_>> {
     let native_fsr_directories = native_fsr_directories(libraries);
-    let xiph_discriminators = super::xiph_grouping::discriminators(libraries);
+    let xiph_facts = super::xiph_grouping::grouping_facts(libraries);
     let mut groups: Vec<GroupedDetectedFiles<'_>> = Vec::new();
     let mut index: HashMap<(String, &'static str, Option<String>), usize> = HashMap::new();
 
     for (library_index, library) in libraries.iter().enumerate() {
         let parent_dir = parent_directory(library.file_path());
         let technology = grouping_technology(library, &parent_dir, &native_fsr_directories);
-        let discriminator = xiph_discriminators.get(&library_index).cloned();
-        let key = (parent_dir, technology.as_slug(), discriminator.clone());
+        let discriminator = xiph_facts.discriminators.get(&library_index).cloned();
+        let xiph_closure_key = xiph_facts.closure_keys.get(&library_index).cloned();
+        // Only an authenticated cross-directory Xiph closure is permitted to
+        // replace the historic parent-directory part of the grouping key.
+        let grouping_parent = xiph_closure_key.clone().unwrap_or(parent_dir);
+        let key = (grouping_parent, technology.as_slug(), discriminator.clone());
 
         if let Some(&existing) = index.get(&key) {
             groups[existing].files.push(library);
@@ -74,6 +82,7 @@ fn group_detected_files(libraries: &[DetectedLibraryFile]) -> Vec<GroupedDetecte
             groups.push(GroupedDetectedFiles {
                 technology,
                 discriminator,
+                xiph_closure_key,
                 files: vec![library],
             });
         }
@@ -88,12 +97,20 @@ fn build_grouped_component(
 ) -> AppResult<LibraryComponent> {
     let ordered = order_with_primary_first(&group.files);
     let parent_dir = parent_directory(ordered[0].file_path());
-    let component_id = grouped_component_id(
-        game,
-        group.technology,
-        &parent_dir,
-        group.discriminator.as_deref(),
-    )?;
+    let component_id = match group.xiph_closure_key.as_ref() {
+        Some(_) => cross_xiph_component_id(
+            game,
+            group.technology,
+            group.discriminator.as_deref(),
+            &ordered,
+        )?,
+        None => grouped_component_id(
+            game,
+            group.technology,
+            &parent_dir,
+            group.discriminator.as_deref(),
+        )?,
+    };
 
     let mut component = LibraryComponent::new(
         component_id,
@@ -203,7 +220,7 @@ fn primary_rank(
             .map_or(4, |runtime_name| runtime_name.member().primary_rank());
     }
 
-    if file.technology() == family { 0 } else { 1 }
+    u8::from(file.technology() != family)
 }
 
 fn group_kind(ordered: &[&DetectedLibraryFile]) -> ComponentKind {
@@ -264,8 +281,7 @@ fn group_swappability(
 
     ordered
         .first()
-        .map(|file| file.swappability())
-        .unwrap_or(Swappability::Unknown)
+        .map_or(Swappability::Unknown, |file| file.swappability())
 }
 
 fn grouped_component_id(
@@ -281,6 +297,98 @@ fn grouped_component_id(
         technology.as_slug(),
     ))
     .map_err(detection_error)
+}
+
+/// Returns the stable v2 identity for an authenticated cross-directory Xiph
+/// deployment. The descriptor intentionally contains only normalized paths
+/// relative to this game's root: moving the whole installation leaves its
+/// identity intact, while changing its physical topology does not.
+fn cross_xiph_component_id(
+    game: &GameInstallation,
+    technology: LibraryTechnology,
+    discriminator: Option<&str>,
+    files: &[&DetectedLibraryFile],
+) -> AppResult<ComponentId> {
+    if technology != LibraryTechnology::XiphVorbis {
+        return Err(detection_error(
+            "cross-directory grouping is only valid for Xiph",
+        ));
+    }
+    let discriminator = discriminator.ok_or_else(|| {
+        detection_error("authenticated cross-directory Xiph closure has no discriminator")
+    })?;
+    let mut records = BTreeMap::new();
+    for file in files {
+        let member = xiph::parse_runtime_file_name(file.file_name())
+            .map_err(|error| detection_error(error.to_string()))?
+            .ok_or_else(|| {
+                detection_error("cross-directory Xiph member has an unsupported DLL alias")
+            })?
+            .member();
+        let relative = normalized_relative_path(game.install_path(), file.file_path())?;
+        if records.insert(member, relative).is_some() {
+            return Err(detection_error(
+                "authenticated cross-directory Xiph closure has duplicate semantic members",
+            ));
+        }
+    }
+    if records.is_empty() {
+        return Err(detection_error(
+            "authenticated cross-directory Xiph closure is empty",
+        ));
+    }
+    let mut descriptor = String::from("renderpilot-xiph-layout-id-v2\0");
+    descriptor.push_str("discriminator=");
+    descriptor.push_str(discriminator);
+    descriptor.push('\0');
+    let mut records = records
+        .into_iter()
+        .map(|(member, path)| (member.as_slug(), path))
+        .collect::<Vec<_>>();
+    records.sort_unstable();
+    for (member, path) in records {
+        descriptor.push_str("member=");
+        descriptor.push_str(member);
+        descriptor.push_str("\tpath=");
+        descriptor.push_str(&path);
+        descriptor.push('\0');
+    }
+    let digest = hex::encode(Sha256::digest(descriptor.as_bytes()));
+    ComponentId::new(format!(
+        "component:{}:{}:layout-v2:{digest}",
+        game.id(),
+        technology.as_slug(),
+    ))
+    .map_err(detection_error)
+}
+
+fn normalized_relative_path(root: &PathRef, path: &PathRef) -> AppResult<String> {
+    if normalized_path_relation(root.as_str(), path.as_str())
+        != NormalizedPathRelation::LeftAncestor
+    {
+        return Err(detection_error(format!(
+            "cross-directory Xiph member is not strictly inside the game root: {}",
+            path.as_str()
+        )));
+    }
+    let root = normalized_path_key(root.as_str());
+    let path = normalized_path_key(path.as_str());
+    let relative = path
+        .strip_prefix(&root)
+        .and_then(|suffix| suffix.strip_prefix('/'))
+        .filter(|suffix| !suffix.is_empty())
+        .ok_or_else(|| {
+            detection_error("cross-directory Xiph member has an invalid root-relative path")
+        })?;
+    if relative
+        .split('/')
+        .any(|component| component.is_empty() || matches!(component, "." | ".."))
+    {
+        return Err(detection_error(
+            "cross-directory Xiph member has an unsafe root-relative path",
+        ));
+    }
+    Ok(relative.to_owned())
 }
 
 fn native_fsr_directories(libraries: &[DetectedLibraryFile]) -> HashSet<String> {

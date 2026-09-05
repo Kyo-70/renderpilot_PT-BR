@@ -3,7 +3,7 @@ use std::fs;
 use renderpilot_domain::{
     Architecture, ComponentFile, ComponentId, ComponentKind, GameId, LibraryComponent,
     LibraryTechnology, ManagedAddonFile, ManagedFileBaseline, PathRef, PeCompatibilityProfile,
-    PeExportSet, Swappability,
+    PeExportSet, PeImportProfile, PeImportSet, Sha256Hash, Swappability,
 };
 
 use super::*;
@@ -191,6 +191,79 @@ fn openvr_snapshot_and_recorded_baseline_discard_stale_pe_metadata() {
     )
     .expect("baseline");
     assert_eq!(baseline[0].pe_compatibility(), None);
+}
+
+#[test]
+fn xiph_recorded_baseline_rejects_a_partial_semantic_set_before_disk_resolution() {
+    let current = canonical_xiph_files("C:/Game");
+
+    let error = validate_recorded_xiph_baseline(
+        LibraryTechnology::XiphVorbis,
+        &current,
+        &current[..2],
+        &[],
+    )
+    .expect_err("partial Xiph baseline");
+    assert!(matches!(error, BaselineConflict::XiphBaselineCoverage(_)));
+}
+
+#[test]
+fn xiph_recorded_baseline_accepts_complete_vendor_baseline_with_canonical_runtime_aliases() {
+    let recorded = vendor_xiph_files("C:/Game");
+    let current = canonical_xiph_files("C:/Game");
+
+    validate_recorded_xiph_baseline(LibraryTechnology::XiphVorbis, &current, &recorded, &[])
+        .expect("complete Xiph baseline");
+}
+
+fn canonical_xiph_files(root: &str) -> Vec<ComponentFile> {
+    vec![
+        xiph_file(
+            &format!("{root}/Plugin/vorbisfile.dll"),
+            &["vorbis.dll", "ogg.dll"],
+            '1',
+        ),
+        xiph_file(&format!("{root}/Codec/vorbis.dll"), &["ogg.dll"], '2'),
+        xiph_file(&format!("{root}/Container/ogg.dll"), &[], '3'),
+    ]
+}
+
+fn vendor_xiph_files(root: &str) -> Vec<ComponentFile> {
+    vec![
+        xiph_file(
+            &format!("{root}/Plugin/vorbisfile_vs2010_x64_rwdi.dll"),
+            &["vorbis_vs2010_x64_rwdi.dll", "ogg_vs2010_x64_rwdi.dll"],
+            '1',
+        ),
+        xiph_file(
+            &format!("{root}/Codec/vorbis_vs2010_x64_rwdi.dll"),
+            &["ogg_vs2010_x64_rwdi.dll"],
+            '2',
+        ),
+        xiph_file(
+            &format!("{root}/Container/ogg_vs2010_x64_rwdi.dll"),
+            &[],
+            '3',
+        ),
+    ]
+}
+
+fn xiph_file(path: &str, imports: &[&str], hash: char) -> ComponentFile {
+    ComponentFile::new(PathRef::new(path).expect("path"))
+        .with_sha256(Sha256Hash::new(hash.to_string().repeat(64)).expect("hash"))
+        .with_pe_compatibility(
+            PeCompatibilityProfile::new(
+                Architecture::X64,
+                PeExportSet::from_observed_names(vec!["xiph_export".to_owned()]).expect("exports"),
+            )
+            .with_imports(PeImportProfile {
+                regular: PeImportSet::from_observed_names(
+                    imports.iter().map(|name| (*name).to_owned()).collect(),
+                )
+                .expect("imports"),
+                delay: PeImportSet::default(),
+            }),
+        )
 }
 
 #[test]

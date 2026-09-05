@@ -19,6 +19,7 @@ use crate::catalog::{
 
 use super::reconcile::{CatalogInstallIndex, build_library_artifacts, reconcile_game_with_catalog};
 use super::recovery;
+use super::xiph_admission;
 
 /// Inputs owned or borrowed by one aggregate catalog write.
 pub(super) struct PersistScanRequest<'a> {
@@ -51,16 +52,24 @@ pub(super) fn persist_scan_result(
         consolidation_candidates,
     } = request;
     let owned_catalog_index;
-    let catalog_index = match prefetched_catalog_index {
-        Some(index) => index,
-        None => {
-            owned_catalog_index = CatalogInstallIndex::load(storage)?;
-            &owned_catalog_index
-        }
+    let catalog_index = if let Some(index) = prefetched_catalog_index {
+        index
+    } else {
+        owned_catalog_index = CatalogInstallIndex::load(storage)?;
+        &owned_catalog_index
     };
 
     let existed = catalog_index.contains_install_path_str(game.install_path().as_str());
     let game = reconcile_game_with_catalog(catalog_index, game);
+    // This must run before any component-row replacement. A newly recognized
+    // multi-directory Xiph closure otherwise could delete the legacy row whose
+    // immutable rollback state still protects one of its exact paths.
+    xiph_admission::admit_cross_directory_xiph_components(
+        storage,
+        catalog_index,
+        &game,
+        components,
+    )?;
     let artifacts = build_library_artifacts(game.id(), &libraries)?;
     let observations = build_game_observations(game.id(), &libraries)?;
     let mut changed = catalog_index.card_facts_changed(&game, components, &artifacts);

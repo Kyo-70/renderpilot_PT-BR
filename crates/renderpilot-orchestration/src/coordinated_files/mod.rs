@@ -21,7 +21,7 @@ pub(crate) use backup::{
     ComponentBackupAvailability, available_component_backup_ids, classify_component_backup,
     load_component_backup_availability,
 };
-pub(crate) use baseline::resolve_component_baseline;
+pub(crate) use baseline::{resolve_component_baseline, validate_recorded_xiph_baseline};
 pub(crate) use claim::{CatalogPathClaim, catalog_path_claim, managed_files_of};
 pub(crate) use observed_metadata::{with_observed_inspection, with_observed_metadata};
 pub(crate) use plan::{

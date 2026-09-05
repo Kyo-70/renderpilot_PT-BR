@@ -20,6 +20,7 @@ mod persist;
 mod prune;
 mod reconcile;
 mod recovery;
+mod xiph_admission;
 
 #[cfg(windows)]
 mod auto;

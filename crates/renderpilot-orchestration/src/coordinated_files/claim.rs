@@ -26,6 +26,7 @@ impl CatalogPathClaim {
     pub(crate) fn baseline(&self) -> Option<&ManagedFileBaseline> {
         self.baseline.as_ref()
     }
+
 }
 
 /// Returns the managed-file bindings of an optional installed-addon record,
