@@ -22,16 +22,25 @@ mod version;
 pub mod xiph;
 
 pub use addon::{
+    ArtifactSlot, CleanupState, ControlNamespaceBinding, CreateDirectoryEffect,
+    CreateDirectoryState, DeleteEffect, DeleteState, DurableObservation, Endpoint, ExpectedAfter,
     FileOwnership, FileReceipt, GameProxyTopology, InstalledAddon, InstalledAddonHostKind,
     InstalledAddonInvariantError, InstalledAddonParts, LumaInstallState, ManagedAddonFile,
-    ManagedFileBaseline, ManagedFileMode, OptiScalerAdoptionState, OptiScalerConfigurationBaseline,
-    OptiScalerDirectoryReceipt, OptiScalerFileBaseline, OptiScalerFileCleanup,
-    OptiScalerFileReceipt, OptiScalerFileRole, OptiScalerInstallState, OptiScalerInstallStateParts,
-    OptiScalerModuleRuntimeBinding, OptiScalerPrerequisiteBinding, OptiScalerReleaseFileBaseline,
-    OptiScalerStateError, ProxyImplementation, ProxyLink, ProxyRootPrestate, ProxyTopologyError,
-    RenoDxHostKind, RenoDxInstallState, SharedArtifactKind, SharedArtifactOrigin,
-    SharedArtifactRecord, SharedArtifactSource, TrackedSource, TrackedSourceRole,
-    from_new_adoption, from_new_install, from_persisted,
+    ManagedFileBaseline, ManagedFileMode, MaterializationState, NamespaceCapability,
+    OperationEffect, OperationEndpoint, OperationRecord, OptiScalerAdoptionState,
+    OptiScalerCleanupLifecycle, OptiScalerConfigurationBaseline, OptiScalerDirectoryReceipt,
+    OptiScalerFileBaseline, OptiScalerFileCleanup, OptiScalerFileReceipt, OptiScalerFileRole,
+    OptiScalerInstallState, OptiScalerInstallStateParts, OptiScalerJournal, OptiScalerJournalError,
+    OptiScalerJournalKind, OptiScalerModuleRuntimeBinding, OptiScalerPrerequisiteBinding,
+    OptiScalerReleaseFileBaseline, OptiScalerStateError, OptiScalerTransitionDirection, Preimage,
+    PrivateArtifactSlots, PrivateWorkspaceBinding, ProxyImplementation, ProxyLink,
+    ProxyRootPrestate, ProxyTopologyError, RelocateEffect, RelocateState, RemoveDirectoryEffect,
+    RemoveDirectoryState, RenoDxHostKind, RenoDxInstallState, SharedArtifactKind,
+    SharedArtifactOrigin, SharedArtifactRecord, SharedArtifactSource, ThreatModel, TrackedSource,
+    TrackedSourceRole, VerifyEffect, VerifyState, WriteEffect, WriteState, from_new_adoption,
+    from_new_install, from_persisted, validate_optiscaler_cleanup_artifact,
+    validate_optiscaler_cleanup_overlay, validate_optiscaler_effect_transition,
+    validate_optiscaler_operation_transition,
 };
 pub use catalog_package::{
     CatalogLegalDocumentFormat, CatalogLegalDocumentKind, CatalogLegalDocumentReceipt,

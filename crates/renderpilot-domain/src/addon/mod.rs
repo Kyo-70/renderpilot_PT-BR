@@ -19,6 +19,7 @@
 
 pub mod installed;
 pub mod managed_file;
+pub mod optiscaler_journal;
 pub mod optiscaler_state;
 pub mod proxy_topology;
 pub mod shared_artifact;
@@ -28,6 +29,17 @@ pub mod tracked;
 pub use installed::{InstalledAddon, InstalledAddonParts};
 pub use managed_file::{
     InstalledAddonInvariantError, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode,
+};
+pub use optiscaler_journal::{
+    ArtifactSlot, CleanupState, ControlNamespaceBinding, CreateDirectoryEffect,
+    CreateDirectoryState, DeleteEffect, DeleteState, DurableObservation, Endpoint, ExpectedAfter,
+    MaterializationState, NamespaceCapability, OperationEffect, OperationEndpoint, OperationRecord,
+    OptiScalerCleanupLifecycle, OptiScalerJournal, OptiScalerJournalError, OptiScalerJournalKind,
+    OptiScalerTransitionDirection, Preimage, PrivateArtifactSlots, PrivateWorkspaceBinding,
+    RelocateEffect, RelocateState, RemoveDirectoryEffect, RemoveDirectoryState, ThreatModel,
+    VerifyEffect, VerifyState, WriteEffect, WriteState, validate_optiscaler_cleanup_artifact,
+    validate_optiscaler_cleanup_overlay, validate_optiscaler_effect_transition,
+    validate_optiscaler_operation_transition,
 };
 pub use optiscaler_state::{
     FileOwnership, FileReceipt, OptiScalerAdoptionState, OptiScalerConfigurationBaseline,
