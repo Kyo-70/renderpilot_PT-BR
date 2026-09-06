@@ -18,6 +18,7 @@ pub mod games {
     pub const EXECUTABLE_CANDIDATES_JSON: &str = "executable_candidates_json";
     pub const CREATED_AT: &str = "created_at";
     pub const UPDATED_AT: &str = "updated_at";
+    pub const PEER_AGGREGATE_REVISION: &str = "peer_aggregate_revision";
 
     pub const ALL: &[&str] = &[
         ID,
@@ -33,6 +34,7 @@ pub mod games {
         EXECUTABLE_CANDIDATES_JSON,
         CREATED_AT,
         UPDATED_AT,
+        PEER_AGGREGATE_REVISION,
     ];
 }
 
@@ -201,6 +203,8 @@ pub mod pending_file_mutations {
     pub const MANIFEST_JSON: &str = "manifest_json";
     pub const CREATED_AT: &str = "created_at";
     pub const UPDATED_AT: &str = "updated_at";
+    pub const AGGREGATE_KIND: &str = "aggregate_kind";
+    pub const AGGREGATE_REVISION: &str = "aggregate_revision";
 
     pub const ALL: &[&str] = &[
         ID,
@@ -211,6 +215,60 @@ pub mod pending_file_mutations {
         MANIFEST_JSON,
         CREATED_AT,
         UPDATED_AT,
+        AGGREGATE_KIND,
+        AGGREGATE_REVISION,
+    ];
+}
+
+pub mod game_proxy_topologies {
+    pub const GAME_ID: &str = "game_id";
+    pub const ID: &str = "id";
+    pub const TOPOLOGY_JSON: &str = "topology_json";
+    pub const CREATED_AT: &str = "created_at";
+    pub const UPDATED_AT: &str = "updated_at";
+    pub const ALL: &[&str] = &[GAME_ID, ID, TOPOLOGY_JSON, CREATED_AT, UPDATED_AT];
+}
+
+pub mod optiscaler_install_states {
+    pub const GAME_ID: &str = "game_id";
+    pub const RELEASE_ID: &str = "release_id";
+    pub const MANIFEST_REVISION: &str = "manifest_revision";
+    pub const ARCHIVE_SHA256: &str = "archive_sha256";
+    pub const SOURCE: &str = "source";
+    pub const TARGET_EXE_PATH: &str = "target_exe_path";
+    pub const TARGET_DIR: &str = "target_dir";
+    pub const MODULES_JSON: &str = "modules_json";
+    pub const RELEASE_FILES_JSON: &str = "release_files_json";
+    pub const RUNTIME_BINDINGS_JSON: &str = "runtime_bindings_json";
+    pub const DIRECTORY_RECEIPTS_JSON: &str = "directory_receipts_json";
+    pub const PROXY_TOPOLOGY_ID: &str = "proxy_topology_id";
+    pub const CONFIG_SCHEMA: &str = "config_schema";
+    pub const CONFIG_BASE_RELEASE: &str = "config_base_release";
+    pub const ADOPTION_STATE: &str = "adoption_state";
+    pub const PREREQUISITE_BINDING: &str = "prerequisite_binding";
+    pub const CONFIGURATION_BASELINE_JSON: &str = "configuration_baseline_json";
+    pub const CREATED_AT: &str = "created_at";
+    pub const UPDATED_AT: &str = "updated_at";
+    pub const ALL: &[&str] = &[
+        GAME_ID,
+        RELEASE_ID,
+        MANIFEST_REVISION,
+        ARCHIVE_SHA256,
+        SOURCE,
+        TARGET_EXE_PATH,
+        TARGET_DIR,
+        MODULES_JSON,
+        RELEASE_FILES_JSON,
+        RUNTIME_BINDINGS_JSON,
+        DIRECTORY_RECEIPTS_JSON,
+        PROXY_TOPOLOGY_ID,
+        CONFIG_SCHEMA,
+        CONFIG_BASE_RELEASE,
+        ADOPTION_STATE,
+        PREREQUISITE_BINDING,
+        CREATED_AT,
+        UPDATED_AT,
+        CONFIGURATION_BASELINE_JSON,
     ];
 }
 
@@ -225,6 +283,9 @@ pub mod pending_shared_vulkan_mutations {
     pub const ROOT_CAPABILITIES_JSON: &str = "root_capabilities_json";
     pub const CREATED_AT: &str = "created_at";
     pub const UPDATED_AT: &str = "updated_at";
+    pub const AGGREGATE_KIND: &str = "aggregate_kind";
+    pub const AGGREGATE_REVISION: &str = "aggregate_revision";
+    pub const AGGREGATE_PROGRAM: &str = "aggregate_program";
 
     pub const ALL: &[&str] = &[
         RESOURCE_KEY,
@@ -235,6 +296,31 @@ pub mod pending_shared_vulkan_mutations {
         STATE,
         MANIFEST_JSON,
         ROOT_CAPABILITIES_JSON,
+        CREATED_AT,
+        UPDATED_AT,
+        AGGREGATE_KIND,
+        AGGREGATE_REVISION,
+        AGGREGATE_PROGRAM,
+    ];
+}
+
+pub mod peer_aggregate_reservations {
+    pub const GAME_ID: &str = "game_id";
+    pub const OPERATION_ID: &str = "operation_id";
+    pub const AGGREGATE_KIND: &str = "aggregate_kind";
+    pub const PENDING_BINDING: &str = "pending_binding";
+    pub const STATE: &str = "state";
+    pub const EXPECTED_REVISION: &str = "expected_revision";
+    pub const CREATED_AT: &str = "created_at";
+    pub const UPDATED_AT: &str = "updated_at";
+
+    pub const ALL: &[&str] = &[
+        GAME_ID,
+        OPERATION_ID,
+        AGGREGATE_KIND,
+        PENDING_BINDING,
+        STATE,
+        EXPECTED_REVISION,
         CREATED_AT,
         UPDATED_AT,
     ];
@@ -408,6 +494,12 @@ pub const CONTRACT_TABLES: &[(&str, &[&str])] = &[
     ("component_backups", component_backups::ALL),
     ("installed_addons", installed_addons::ALL),
     ("pending_file_mutations", pending_file_mutations::ALL),
+    (
+        "peer_aggregate_reservations",
+        peer_aggregate_reservations::ALL,
+    ),
+    ("game_proxy_topologies", game_proxy_topologies::ALL),
+    ("optiscaler_install_states", optiscaler_install_states::ALL),
     (
         "pending_shared_vulkan_mutations",
         pending_shared_vulkan_mutations::ALL,

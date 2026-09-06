@@ -3,7 +3,7 @@
 use renderpilot_application::AppResult;
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::error::storage_context;
+use crate::error::{storage_context, storage_error};
 
 use super::super::SHARED_VULKAN_RESOURCE_KEY;
 use super::common::MS_UNIXEPOCH_DEFAULT;
@@ -11,10 +11,10 @@ use super::common::MS_UNIXEPOCH_DEFAULT;
 const TABLE_NAME: &str = "pending_shared_vulkan_mutations";
 pub(crate) const RESOURCE_KEY: &str = SHARED_VULKAN_RESOURCE_KEY;
 
-/// Full CREATE for greenfield catalogs and the v17→v18 additive migration.
+/// Full CREATE for the released v17→v18 edge.
 pub(crate) fn create_table_sql() -> String {
     format!(
-        r#"
+        r"
 CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
     resource_key TEXT    PRIMARY KEY NOT NULL,
     id           TEXT    UNIQUE NOT NULL,
@@ -24,10 +24,10 @@ CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
     state        TEXT    NOT NULL,
     manifest_json TEXT   NOT NULL,
     root_capabilities_json TEXT NOT NULL,
-    created_at   INTEGER NOT NULL DEFAULT ({default}),
-    updated_at   INTEGER NOT NULL DEFAULT ({default}),
+    created_at   INTEGER NOT NULL DEFAULT ({MS_UNIXEPOCH_DEFAULT}),
+    updated_at   INTEGER NOT NULL DEFAULT ({MS_UNIXEPOCH_DEFAULT}),
 
-    CHECK (resource_key = '{resource_key}'),
+    CHECK (resource_key = '{RESOURCE_KEY}'),
     CHECK (length(trim(id)) > 0),
     CHECK (instr(id, char(0)) = 0),
     CHECK (scope IN ('shared_only', 'game_shared')),
@@ -44,10 +44,156 @@ CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
     CHECK (created_at >= 0),
     CHECK (updated_at >= created_at)
 ) STRICT;
-"#,
-        default = MS_UNIXEPOCH_DEFAULT,
-        resource_key = RESOURCE_KEY,
+",
     )
+}
+
+/// Full CREATE for the final-v19 baseline.  The v17→v18 function above is
+/// intentionally kept at its released shape; v19 adds the aggregate binding
+/// columns in one explicit migration step.
+pub(super) fn baseline_sql() -> String {
+    format!(
+        r"
+CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+    resource_key TEXT    PRIMARY KEY NOT NULL,
+    id           TEXT    UNIQUE NOT NULL,
+    scope        TEXT    NOT NULL,
+    game_id      TEXT,
+    feature      TEXT    NOT NULL,
+    state        TEXT    NOT NULL,
+    manifest_json TEXT   NOT NULL,
+    root_capabilities_json TEXT NOT NULL,
+    created_at   INTEGER NOT NULL DEFAULT ({MS_UNIXEPOCH_DEFAULT}),
+    updated_at   INTEGER NOT NULL DEFAULT ({MS_UNIXEPOCH_DEFAULT}),
+    aggregate_kind TEXT,
+    aggregate_revision INTEGER,
+    aggregate_program BLOB,
+
+    CHECK (resource_key = '{RESOURCE_KEY}'),
+    CHECK (length(trim(id)) > 0),
+    CHECK (instr(id, char(0)) = 0),
+    CHECK (scope IN ('shared_only', 'game_shared')),
+    CHECK ((scope = 'shared_only' AND game_id IS NULL)
+        OR (scope = 'game_shared' AND game_id IS NOT NULL AND length(trim(game_id)) > 0)),
+    CHECK (game_id IS NULL OR instr(game_id, char(0)) = 0),
+    CHECK (feature <> '' AND length(trim(feature)) > 0),
+    CHECK (instr(feature, char(0)) = 0),
+    CHECK (state IN ('preparing', 'prepared', 'committed')),
+    CHECK (json_valid(manifest_json)),
+    CHECK (json_type(manifest_json) = 'object'),
+    CHECK (json_valid(root_capabilities_json)),
+    CHECK (json_type(root_capabilities_json) = 'object'),
+    CHECK (
+        (aggregate_kind IS NULL AND aggregate_revision IS NULL AND aggregate_program IS NULL)
+        OR
+        (scope = 'game_shared' AND game_id IS NOT NULL AND length(trim(game_id)) > 0
+            AND aggregate_kind = 'shared_peer'
+            AND aggregate_revision IS NOT NULL AND aggregate_revision >= 0
+            AND typeof(aggregate_program) = 'blob'
+            AND length(aggregate_program) BETWEEN 1 AND 100663296)
+    ),
+    CHECK (created_at >= 0),
+    CHECK (updated_at >= created_at)
+) STRICT;
+",
+    )
+}
+
+const CURRENT_TRIGGERS_SQL: &str = r"
+CREATE TRIGGER IF NOT EXISTS trg_pending_shared_vulkan_mutations_freeze_aggregate_binding
+BEFORE UPDATE OF aggregate_kind, aggregate_revision, aggregate_program
+ON pending_shared_vulkan_mutations
+FOR EACH ROW
+WHEN NEW.aggregate_kind IS NOT OLD.aggregate_kind
+  OR NEW.aggregate_revision IS NOT OLD.aggregate_revision
+  OR NEW.aggregate_program IS NOT OLD.aggregate_program
+BEGIN
+    SELECT RAISE(ABORT, 'pending shared Vulkan aggregate binding is immutable');
+END;
+";
+
+/// Baseline fragment: final-v19 table and its immutable aggregate trigger.
+pub(super) fn baseline_sql_with_triggers() -> String {
+    format!("{}\n{}", baseline_sql(), CURRENT_TRIGGERS_SQL)
+}
+
+/// Adds the final-v19 aggregate columns and trigger to a released v18 table.
+pub(in crate::schema) fn apply_v19_columns(connection: &Connection) -> AppResult<()> {
+    if !has_released_columns(connection)? {
+        // An invalid stamped catalog is repaired by the outer schema
+        // validator after the migration chain.  Do not guess how to salvage
+        // a table that is not even the released v18 shape.
+        return Ok(());
+    }
+    let has_kind = has_column(connection, "aggregate_kind")?;
+    let has_revision = has_column(connection, "aggregate_revision")?;
+    let has_program = has_column(connection, "aggregate_program")?;
+    match (has_kind, has_revision, has_program) {
+        (true, true, true) => connection
+            .execute_batch(CURRENT_TRIGGERS_SQL)
+            .map_err(|error| {
+                storage_context("could not add v19 shared Vulkan aggregate trigger", error)
+            }),
+        (false, false, false) => rebuild_as_v19(connection),
+        _ => Err(storage_error(
+            "pending_shared_vulkan_mutations has a partial v19 aggregate column set",
+        )),
+    }
+}
+
+fn has_column(connection: &Connection, column: &str) -> AppResult<bool> {
+    connection
+        .query_row(
+            "SELECT 1 FROM pragma_table_info(?1) WHERE name = ?2 LIMIT 1",
+            [TABLE_NAME, column],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map(|value| value.is_some())
+        .map_err(|error| storage_context("could not inspect shared Vulkan columns", error))
+}
+
+fn has_released_columns(connection: &Connection) -> AppResult<bool> {
+    [
+        "resource_key",
+        "id",
+        "scope",
+        "game_id",
+        "feature",
+        "state",
+        "manifest_json",
+        "root_capabilities_json",
+        "created_at",
+        "updated_at",
+    ]
+    .into_iter()
+    .try_fold(true, |ready, column| {
+        has_column(connection, column).map(|present| ready && present)
+    })
+}
+
+fn rebuild_as_v19(connection: &Connection) -> AppResult<()> {
+    connection
+        .execute_batch(
+            "ALTER TABLE pending_shared_vulkan_mutations
+                 RENAME TO pending_shared_vulkan_mutations_v18;",
+        )
+        .map_err(|error| storage_context("could not stage released shared Vulkan table", error))?;
+    connection
+        .execute_batch(&format!(
+            "{};
+             INSERT INTO pending_shared_vulkan_mutations
+                 (resource_key, id, scope, game_id, feature, state, manifest_json,
+                  root_capabilities_json, created_at, updated_at)
+             SELECT resource_key, id, scope, game_id, feature, state, manifest_json,
+                    root_capabilities_json, created_at, updated_at
+               FROM pending_shared_vulkan_mutations_v18;
+             DROP TABLE pending_shared_vulkan_mutations_v18;
+             {}",
+            baseline_sql(),
+            CURRENT_TRIGGERS_SQL,
+        ))
+        .map_err(|error| storage_context("could not rebuild shared Vulkan table for v19", error))
 }
 
 #[derive(Clone, Copy)]
@@ -139,6 +285,30 @@ const COLUMNS: &[ColumnContract] = &[
         type_name: "INTEGER",
         not_null: 1,
         default: Some(MILLIS_DEFAULT),
+        primary_key: 0,
+        hidden: 0,
+    },
+    ColumnContract {
+        name: "aggregate_kind",
+        type_name: "TEXT",
+        not_null: 0,
+        default: None,
+        primary_key: 0,
+        hidden: 0,
+    },
+    ColumnContract {
+        name: "aggregate_revision",
+        type_name: "INTEGER",
+        not_null: 0,
+        default: None,
+        primary_key: 0,
+        hidden: 0,
+    },
+    ColumnContract {
+        name: "aggregate_program",
+        type_name: "BLOB",
+        not_null: 0,
+        default: None,
         primary_key: 0,
         hidden: 0,
     },
@@ -342,7 +512,7 @@ pub(in crate::schema) fn validates_observational(connection: &Connection) -> App
     else {
         return Ok(false);
     };
-    if normalize_table_sql(&sql) != normalize_table_sql(&create_table_sql()) {
+    if normalize_table_sql(&sql) != normalize_table_sql(&baseline_sql()) {
         return Ok(false);
     }
     let strict: i64 = connection
@@ -388,7 +558,7 @@ fn columns_match(connection: &Connection) -> AppResult<bool> {
         .enumerate()
         .all(|(cid, (row, expected))| {
             let (actual_cid, name, type_name, not_null, default, primary_key, hidden) = row;
-            *actual_cid == cid as i64
+            i64::try_from(cid).ok() == Some(*actual_cid)
                 && name == expected.name
                 && type_name == expected.type_name
                 && *not_null == expected.not_null

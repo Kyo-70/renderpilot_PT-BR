@@ -12,6 +12,7 @@ mod v14_to_v15;
 mod v15_to_v16;
 mod v16_to_v17;
 mod v17_to_v18;
+mod v18_to_v19;
 mod v4_to_v8;
 mod v8_to_v9;
 mod v9_to_v10;
@@ -59,6 +60,11 @@ const STEPS: &[(i32, i32, StepFn)] = &[
         v17_to_v18::SOURCE_VERSION,
         v17_to_v18::TARGET_VERSION,
         v17_to_v18::apply,
+    ),
+    (
+        v18_to_v19::SOURCE_VERSION,
+        v18_to_v19::TARGET_VERSION,
+        v18_to_v19::apply,
     ),
 ];
 

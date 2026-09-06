@@ -11,6 +11,8 @@
 
 pub(super) mod common;
 pub(super) mod observations;
+pub(super) mod optiscaler_state;
+pub(super) mod peer_aggregate_reservations;
 pub(super) mod pending_file_mutations;
 pub(super) mod pending_shared_vulkan_mutations;
 pub(super) mod portable_path_tags;
@@ -40,23 +42,27 @@ const CORE_SQL: &str = include_str!("../../../migrations/fragments/core.sql");
 /// Composed CURRENT catalog DDL (idempotent CREATE IF NOT EXISTS).
 pub(super) fn compose_baseline() -> String {
     let pending = pending_file_mutations::baseline_sql();
-    let pending_shared = pending_shared_vulkan_mutations::create_table_sql();
+    let pending_shared = pending_shared_vulkan_mutations::baseline_sql_with_triggers();
+    let peer_aggregate_reservations = peer_aggregate_reservations::baseline_sql();
     let shared_table = shared_artifacts::create_table_sql();
     let shared_trigger = shared_artifacts::touch_trigger_sql();
     let profile_capabilities = profile_addon_capabilities::baseline_sql();
     let portable_path_tags = portable_path_tags::baseline_sql();
     let observations = observations::SQL;
+    let optiscaler_state = optiscaler_state::baseline_sql();
 
     let mut sql = String::with_capacity(
         BASELINE_HEADER.len()
             + CORE_SQL.len()
             + pending.len()
             + pending_shared.len()
+            + peer_aggregate_reservations.len()
             + shared_table.len()
             + shared_trigger.len()
             + profile_capabilities.len()
             + portable_path_tags.len()
             + observations.len()
+            + optiscaler_state.len()
             + 8,
     );
     sql.push_str(BASELINE_HEADER.trim_start());
@@ -67,6 +73,8 @@ pub(super) fn compose_baseline() -> String {
     sql.push('\n');
     sql.push_str(&pending_shared);
     sql.push('\n');
+    sql.push_str(&peer_aggregate_reservations);
+    sql.push('\n');
     sql.push_str(&shared_table);
     sql.push('\n');
     sql.push_str(&shared_trigger);
@@ -76,6 +84,8 @@ pub(super) fn compose_baseline() -> String {
     sql.push_str(portable_path_tags);
     sql.push('\n');
     sql.push_str(observations);
+    sql.push('\n');
+    sql.push_str(optiscaler_state);
     sql.push('\n');
     sql
 }

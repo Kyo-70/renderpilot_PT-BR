@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-use super::{create_table_sql, validates, validates_observational};
+use super::{baseline_sql, validates, validates_observational};
 
 const CHECKS: &[&str] = &[
     "CHECK (resource_key = 'renodx_vulkan_layer')",
@@ -16,13 +16,14 @@ const CHECKS: &[&str] = &[
     "CHECK (json_type(manifest_json) = 'object')",
     "CHECK (json_valid(root_capabilities_json))",
     "CHECK (json_type(root_capabilities_json) = 'object')",
+    "CHECK (\n        (aggregate_kind IS NULL AND aggregate_revision IS NULL AND aggregate_program IS NULL)\n        OR\n        (scope = 'game_shared' AND game_id IS NOT NULL AND length(trim(game_id)) > 0\n            AND aggregate_kind = 'shared_peer'\n            AND aggregate_revision IS NOT NULL AND aggregate_revision >= 0\n            AND typeof(aggregate_program) = 'blob'\n            AND length(aggregate_program) BETWEEN 1 AND 100663296)\n    )",
     "CHECK (created_at >= 0)",
     "CHECK (updated_at >= created_at)",
 ];
 
 #[test]
 fn observational_contract_rejects_each_physical_dimension() {
-    let canonical = create_table_sql();
+    let canonical = baseline_sql();
     let mutations = [
         (
             "primary key",
@@ -61,7 +62,7 @@ fn observational_contract_rejects_each_physical_dimension() {
 
 #[test]
 fn observational_contract_rejects_each_check_constraint() {
-    let canonical = create_table_sql();
+    let canonical = baseline_sql();
     for check in CHECKS {
         let malformed = canonical.replacen(check, "CHECK (1)", 1);
         assert_ne!(
@@ -76,7 +77,7 @@ fn observational_contract_rejects_each_check_constraint() {
 fn semantic_probe_detects_disabled_checks_and_rolls_back_every_probe_row() {
     let connection = Connection::open_in_memory().expect("in-memory catalog");
     connection
-        .execute_batch(&create_table_sql())
+        .execute_batch(&baseline_sql())
         .expect("canonical shared Vulkan table");
     connection
         .pragma_update(None, "ignore_check_constraints", true)

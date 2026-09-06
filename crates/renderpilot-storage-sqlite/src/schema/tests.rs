@@ -23,7 +23,7 @@ fn restore_released_v16_scan_state(connection: &Connection) {
         .expect("stamp v16 schema version");
 }
 
-const LEGACY_PENDING_WITHOUT_PREPARING: &str = r#"
+const LEGACY_PENDING_WITHOUT_PREPARING: &str = r"
 DROP TABLE IF EXISTS pending_file_mutations;
 CREATE TABLE pending_file_mutations (
     id             TEXT    PRIMARY KEY NOT NULL,
@@ -50,9 +50,10 @@ CREATE TABLE pending_file_mutations (
 ) STRICT;
 CREATE INDEX idx_pending_file_mutations_game_id
     ON pending_file_mutations(game_id);
-"#;
+";
 
 const REDUCE_INSTALLED_ADDONS_TO_V9: &str = "
+DROP TRIGGER IF EXISTS trg_games_restrict_peer_aggregate_delete;
 DROP TABLE pending_file_mutations;
 DROP TRIGGER trg_installed_addons_touch_updated_at;
 CREATE TABLE installed_addons_v9 AS
@@ -142,6 +143,7 @@ mod schema_contract;
 mod v14;
 mod v16;
 mod v17;
+mod v18;
 
 fn seed_v14_migration_aggregate(connection: &Connection) {
     connection

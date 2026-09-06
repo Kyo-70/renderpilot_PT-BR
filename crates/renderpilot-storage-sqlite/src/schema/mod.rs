@@ -67,6 +67,8 @@ use self::version::database_has_user_schema;
 //   16 → 17: replace weak global scan caches with owner-scoped observations and
 //             typed, fail-closed scan authority.
 //   17 → 18: add the singleton shared-Vulkan durable mutation fence.
+//   18 → 19: add typed OptiScaler state, neutral proxy-topology aggregates,
+//             and exact immutable configuration baseline custody.
 pub(super) fn pragma_column_names(
     connection: &Connection,
     table_name: &str,

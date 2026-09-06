@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS games (
     updated_at                 INTEGER NOT NULL DEFAULT (
         CAST(unixepoch('subsec') * 1000 AS INTEGER)
     ),
+    peer_aggregate_revision    INTEGER NOT NULL DEFAULT 0,
 
     CHECK (length(trim(id)) > 0),
     CHECK (length(trim(title)) > 0),
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS games (
     ),
     CHECK (json_valid(executable_candidates_json)),
     CHECK (json_type(executable_candidates_json) = 'array'),
+    CHECK (peer_aggregate_revision >= 0),
     CHECK (created_at >= 0),
     CHECK (updated_at >= created_at)
 ) STRICT;

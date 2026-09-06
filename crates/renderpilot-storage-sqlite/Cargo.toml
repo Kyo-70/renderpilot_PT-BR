@@ -18,6 +18,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dependencies]
+base64 = "0.23"
 log = "0.4"
 renderpilot-application = { path = "../renderpilot-application" }
 renderpilot-domain = { path = "../renderpilot-domain" }
@@ -26,8 +27,12 @@ serde = "1"
 serde_json = "1"
 sha2 = "0.11"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+rustix = { version = "1.1.4", features = ["fs"] }
+
 [dev-dependencies]
 renderpilot-detection = { path = "../renderpilot-detection" }
+tempfile = "3"
 
 [lib]
 path = "src/lib.rs"

@@ -75,6 +75,7 @@ impl ConnectionOptions {
 impl SqliteStorage {
     /// Opens a SQLite database file and applies required pragmas and migrations.
     pub fn open(path: impl AsRef<Path>) -> AppResult<Self> {
+        let path = path.as_ref();
         let connection = Connection::open(path)
             .map_err(|error| storage_context("failed to open sqlite database", error))?;
 
@@ -337,4 +338,38 @@ fn read_journal_mode(connection: &Connection) -> AppResult<String> {
     connection
         .pragma_query_value(None, "journal_mode", |row| row.get(0))
         .map_err(|error| storage_context("failed to read sqlite journal mode", error))
+}
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::Connection;
+
+    use super::SqliteStorage;
+
+    #[test]
+    fn clean_v19_opens_and_unrelated_malformed_v19_keeps_rebuild_policy() {
+        let temporary = tempfile::tempdir().expect("temporary catalog directory");
+        let fresh = temporary.path().join("fresh.db");
+        SqliteStorage::open(&fresh).expect("fresh v19 catalog");
+
+        let malformed = temporary.path().join("malformed.db");
+        {
+            let connection = Connection::open(&malformed).expect("malformed catalog");
+            connection
+                .execute_batch(
+                    "CREATE TABLE unrelated (id INTEGER PRIMARY KEY); PRAGMA user_version = 19;",
+                )
+                .expect("unrelated malformed v19 fixture");
+        }
+        let storage = SqliteStorage::open(&malformed)
+            .expect("unrelated malformed v19 must follow normal rebuild policy");
+        let version: i64 = storage
+            .with_connection(|connection| {
+                connection
+                    .pragma_query_value(None, "user_version", |row| row.get(0))
+                    .map_err(crate::error::storage_error)
+            })
+            .expect("rebuilt schema version");
+        assert_eq!(version, 19);
+    }
 }
