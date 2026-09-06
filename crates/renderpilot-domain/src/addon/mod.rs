@@ -21,6 +21,7 @@ pub mod installed;
 pub mod managed_file;
 pub mod optiscaler_journal;
 pub mod optiscaler_state;
+pub mod peer_transition;
 pub mod proxy_topology;
 pub mod shared_artifact;
 pub mod states;
@@ -47,6 +48,24 @@ pub use optiscaler_state::{
     OptiScalerFileReceipt, OptiScalerFileRole, OptiScalerInstallState, OptiScalerInstallStateParts,
     OptiScalerModuleRuntimeBinding, OptiScalerPrerequisiteBinding, OptiScalerReleaseFileBaseline,
     OptiScalerStateError, from_new_adoption, from_new_install, from_persisted,
+};
+pub use peer_transition::{
+    CoordinatedPeerOperation, ExactOptiConfigProjection, OptiConfigOperation,
+    OptiScalerConfigAuthority, OptiScalerConfigCapability, PeerCatalogDeletedBaseline,
+    PeerCatalogPhysicalContract, PeerCatalogRollbackClaim, PeerEndpointEvidence,
+    PeerEndpointIntent, PeerEndpointOperation, PeerEndpointRole, PeerFileImage,
+    PeerReadGuardEvidence, PeerReadGuardExpectation, PeerReadGuardRequirement, PeerReadGuardSource,
+    PeerReusedClaimMembershipContract, PeerTransitionAuthorities, PeerTransitionContext,
+    PeerTransitionContract, PeerTransitionError, PlannedGameProxyTopology, ProxyPeerRoute,
+    RENODX_DLSS_FIX_INSTALL, RENODX_DLSS_FIX_UNINSTALL, RENODX_DLSS_FIX_UPDATE, RENODX_INSTALL,
+    RENODX_INSTALL_FROM_FILE, RENODX_UNINSTALL, RenoDxDlssBeforeImage, RenoDxDlssClaim,
+    RenoDxDlssProjection, RenoDxReshadeIniAuthority, RenoDxReshadeIniFeature, managed_sidecar_path,
+    required_read_guards, required_read_guards_with_catalog,
+    required_read_guards_with_renodx_reshade_ini,
+    required_read_guards_with_renodx_reshade_ini_and_dlss,
+    required_read_guards_with_renodx_reshade_ini_and_optiscaler_config, validate_evidence,
+    validate_intents, validate_intents_with_authorities, validate_intents_with_renodx_reshade_ini,
+    validate_peer_metadata_only, validate_read_guards,
 };
 pub use proxy_topology::{
     GameProxyTopology, ProxyImplementation, ProxyLink, ProxyRootPrestate, ProxyTopologyError,
