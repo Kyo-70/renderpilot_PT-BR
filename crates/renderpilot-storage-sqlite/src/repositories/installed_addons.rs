@@ -69,7 +69,10 @@ const DELETE_SQL: &str = "DELETE FROM installed_addons WHERE game_id = :game_id"
 
 impl InstalledAddonRepository for SqliteStorage {
     fn upsert_installed_addon(&self, addon: &InstalledAddon) -> AppResult<()> {
-        self.with_transaction(|transaction| upsert_within_transaction(transaction, addon))
+        self.with_transaction(|transaction| {
+            ensure_independent_peer_mutation_allowed(transaction, addon.game_id(), addon.kind())?;
+            upsert_within_transaction(transaction, addon)
+        })
     }
 
     fn get_installed_addon(&self, game_id: &GameId) -> AppResult<Option<InstalledAddon>> {
@@ -91,11 +94,40 @@ impl InstalledAddonRepository for SqliteStorage {
     }
 
     fn delete_installed_addon(&self, game_id: &GameId, kind: AddonKind) -> AppResult<()> {
-        self.with_transaction(|transaction| delete_within_transaction(transaction, game_id, kind))
+        self.with_transaction(|transaction| {
+            ensure_independent_peer_mutation_allowed(transaction, game_id, kind)?;
+            delete_within_transaction(transaction, game_id, kind)
+        })
     }
 }
 
-pub(super) fn upsert_within_transaction(
+pub(super) fn ensure_independent_peer_mutation_allowed(
+    transaction: &Transaction<'_>,
+    game_id: &GameId,
+    _kind: AddonKind,
+) -> AppResult<()> {
+    super::peer_aggregate_reservations::ensure_no_peer_aggregate_reservation_within_transaction(
+        transaction,
+        game_id,
+    )?;
+    Ok(())
+}
+
+pub(crate) fn get_within_transaction(
+    transaction: &Transaction<'_>,
+    game_id: &GameId,
+) -> AppResult<Option<InstalledAddon>> {
+    let mut statement = transaction.prepare_cached(GET_SQL).map_err(storage_error)?;
+    statement
+        .query_row(named_params! { ":game_id": game_id.as_str() }, |row| {
+            Ok(row_to_installed_addon(row))
+        })
+        .optional()
+        .map_err(storage_error)?
+        .transpose()
+}
+
+pub(crate) fn upsert_within_transaction(
     transaction: &Transaction<'_>,
     addon: &InstalledAddon,
 ) -> AppResult<()> {
@@ -145,7 +177,7 @@ pub(super) fn upsert_within_transaction(
     Ok(())
 }
 
-pub(super) fn delete_within_transaction(
+pub(crate) fn delete_within_transaction(
     transaction: &Transaction<'_>,
     game_id: &GameId,
     kind: AddonKind,

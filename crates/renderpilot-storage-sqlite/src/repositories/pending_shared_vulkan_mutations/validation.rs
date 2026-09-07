@@ -13,7 +13,7 @@ use super::model::{
 };
 use super::queries::read_shared_row;
 
-pub(super) fn validate_prepared_shared_vulkan_mutation_commit_within_transaction(
+pub(crate) fn validate_prepared_shared_vulkan_mutation_commit_within_transaction(
     transaction: &Transaction<'_>,
     commit: &SharedVulkanMutationCommit<'_>,
 ) -> AppResult<PendingSharedVulkanMutationRow> {

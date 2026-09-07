@@ -9,7 +9,7 @@ mod restore;
 #[cfg(test)]
 mod tests;
 
-pub(super) use commit::{
+pub(crate) use commit::{
     mark_file_mutation_committed_within_transaction,
     validate_prepared_mutation_commit_within_transaction,
 };

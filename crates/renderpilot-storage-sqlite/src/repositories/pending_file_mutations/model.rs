@@ -104,7 +104,7 @@ pub(super) enum CatalogBinding {
 /// replacement is a proven no-op there, so orphan add-on cleanup can remain
 /// atomic without manufacturing a game or scan authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::repositories) enum PreparedMutationCommitBinding {
+pub(crate) enum PreparedMutationCommitBinding {
     CatalogAbsent,
     CatalogInvalidated,
 }

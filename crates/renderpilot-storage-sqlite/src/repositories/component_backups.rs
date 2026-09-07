@@ -32,6 +32,7 @@ const SELECT_BACKUPS_FOR_GAME_SQL: &str = "
     SELECT component_id, files_json, auxiliary_json
     FROM component_backups
     WHERE game_id = :game_id
+    ORDER BY component_id
 ";
 
 const SELECT_ALL_BACKUPS_SQL: &str = "
@@ -427,6 +428,37 @@ fn load_component_backup_within_transaction(
         .transpose()
 }
 
+/// Loads every rollback baseline owned by a game from the active transaction.
+/// This is intentionally transaction-scoped so a peer permit can bind all
+/// selected baselines to one SQLite snapshot before entering `Prepared`.
+pub(crate) fn component_backups_for_game_within_transaction(
+    transaction: &Transaction<'_>,
+    game_id: &GameId,
+) -> AppResult<HashMap<ComponentId, ComponentRollbackBaseline>> {
+    let mut statement = transaction
+        .prepare_cached(SELECT_BACKUPS_FOR_GAME_SQL)
+        .map_err(storage_error)?;
+    let rows = statement
+        .query_map(named_params! { ":game_id": game_id.as_str() }, |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .map_err(storage_error)?;
+
+    let mut backups = HashMap::new();
+    for row in rows {
+        let (component_id, files_json, auxiliary_json) = row.map_err(storage_error)?;
+        backups.insert(
+            mapping::component_id(component_id)?,
+            rollback_baseline(&files_json, &auxiliary_json)?,
+        );
+    }
+    Ok(backups)
+}
+
 fn rollback_baseline(
     files_json: &str,
     auxiliary_json: &str,
@@ -679,7 +711,7 @@ mod tests {
                 "expected_active_sdk_version": 619
             }
         });
-        let json = serde_json::to_string(&vec![record.clone(), record]).expect("json");
+        let json = serde_json::to_string(&[record.clone(), record]).expect("json");
         assert!(rollback_baseline("[]", &json).is_err());
     }
 

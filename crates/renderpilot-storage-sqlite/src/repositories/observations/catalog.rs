@@ -159,7 +159,7 @@ fn readiness_from_row(
     }
 }
 
-pub(in super::super) fn invalidate_game_authority_within_transaction(
+pub(crate) fn invalidate_game_authority_within_transaction(
     transaction: &Transaction<'_>,
     game_id: &GameId,
     reason: &str,

@@ -9,16 +9,58 @@ pub mod game_covers;
 mod game_mutations;
 pub mod game_ui_state;
 mod games;
-mod installed_addons;
+pub(crate) mod installed_addons;
 pub mod nvapi;
-mod observations;
+mod observation;
+pub(crate) mod observations;
 mod operations;
-mod pending_file_mutations;
-mod pending_shared_vulkan_mutations;
+mod optiscaler_states;
+pub(crate) mod peer_aggregate_reservations;
+pub(crate) mod pending_file_mutations;
+pub(crate) mod pending_shared_vulkan_mutations;
 mod profile_addon_capabilities;
+pub(crate) mod proxy_topologies;
 mod row_mapping;
 mod settings;
 mod shared_artifacts;
+pub(crate) use shared_artifacts::{delete_within_transaction, upsert_within_transaction};
+
+pub(crate) use component_backups::component_backups_for_game_within_transaction;
+pub(crate) use components::list_components_for_game_within_transaction;
+
+/// Reads the OptiScaler state inside a caller-owned transaction so aggregate
+/// preparation and commit compare all three game participants from one SQL
+/// snapshot.  The row decoder remains private to its repository module.
+pub(crate) fn get_optiscaler_state_within_transaction(
+    transaction: &Transaction<'_>,
+    game_id: &renderpilot_domain::GameId,
+) -> AppResult<Option<renderpilot_domain::OptiScalerInstallState>> {
+    optiscaler_states::get_within_aggregate_transaction(transaction, game_id)
+}
+
+/// Atomically advances the sole OptiScaler state companion admitted by an
+/// ordinary RenoDX peer permit. The caller has already bound the exact
+/// physical configuration endpoint; this is only the durable before-state
+/// compare-and-swap and successor persistence within that same transaction.
+pub(crate) fn commit_optiscaler_config_companion_within_transaction(
+    transaction: &Transaction<'_>,
+    game_id: &renderpilot_domain::GameId,
+    before: &renderpilot_domain::OptiScalerInstallState,
+    after: &renderpilot_domain::OptiScalerInstallState,
+) -> AppResult<()> {
+    if before.game_id != *game_id || after.game_id != *game_id {
+        return Err(renderpilot_application::AppError::storage_failed(
+            "OptiScaler configuration companion game differs from peer permit",
+        ));
+    }
+    if get_optiscaler_state_within_transaction(transaction, game_id)?.as_ref() != Some(before) {
+        return Err(renderpilot_application::AppError::storage_failed(
+            "OptiScaler configuration state changed before peer commit",
+        ));
+    }
+    after.validate().map_err(crate::error::invalid_row)?;
+    optiscaler_states::upsert_within_transaction(transaction, after)
+}
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -473,3 +515,60 @@ fn complete_authority_within_transaction(
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn apply_catalog_projection_within_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    game_id: &renderpilot_domain::GameId,
+    component_set: Option<&[renderpilot_domain::LibraryComponent]>,
+    baseline_mutations: &[ComponentBaselineMutation<'_>],
+) -> renderpilot_application::AppResult<()> {
+    if let Some(component_set) = component_set {
+        components::replace_components_for_game_within_transaction(
+            transaction,
+            game_id,
+            component_set,
+        )?;
+    }
+    for mutation in baseline_mutations {
+        match mutation {
+            ComponentBaselineMutation::Capture {
+                component_id,
+                baseline,
+            } => component_backups::capture_component_backup_within_transaction(
+                transaction,
+                game_id,
+                component_id,
+                baseline,
+            )?,
+            ComponentBaselineMutation::UpdateD3d12ExecutableState {
+                component_id,
+                expected_active,
+            } => component_backups::update_component_d3d12_executable_state_within_transaction(
+                transaction,
+                component_id,
+                expected_active,
+            )?,
+            ComponentBaselineMutation::UpdateExpectedActiveFiles {
+                component_id,
+                files,
+            } => component_backups::update_component_expected_active_files_within_transaction(
+                transaction,
+                component_id,
+                files,
+            )?,
+            ComponentBaselineMutation::Delete { component_id } => {
+                component_backups::delete_component_backup_within_transaction(
+                    transaction,
+                    component_id,
+                )?
+            }
+            ComponentBaselineMutation::CaptureD3d12Executable { .. } => {}
+        }
+    }
+    Ok(())
+}
+
+pub use crate::peer_runtime::{
+    PeerCommitPreparation, PeerStorageRuntime, PreparedPeerCommitPermit,
+    SharedPeerCommitPreparation,
+};

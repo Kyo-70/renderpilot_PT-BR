@@ -24,7 +24,7 @@ impl SqliteStorage {
     }
 }
 
-pub(in crate::repositories) fn mark_file_mutation_committed_within_transaction(
+pub(crate) fn mark_file_mutation_committed_within_transaction(
     transaction: &Transaction<'_>,
     id: &str,
 ) -> AppResult<()> {
@@ -51,7 +51,7 @@ pub(in crate::repositories) fn mark_file_mutation_committed_within_transaction(
 /// transaction writes its database half. This is intentionally owned here so
 /// generic observation operations never need to interpret pending mutation
 /// state.
-pub(in crate::repositories) fn validate_prepared_mutation_commit_within_transaction(
+pub(crate) fn validate_prepared_mutation_commit_within_transaction(
     transaction: &Transaction<'_>,
     game_id: &GameId,
     mutation_id: &str,

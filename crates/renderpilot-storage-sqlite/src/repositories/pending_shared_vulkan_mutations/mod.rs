@@ -25,6 +25,7 @@ pub use model::{
 pub(crate) use validation::{
     assert_no_shared_mutation_for_game_within_transaction,
     assert_no_shared_mutation_id_within_transaction,
+    validate_prepared_shared_vulkan_mutation_commit_within_transaction,
 };
 
 pub(crate) const RESOURCE_KEY: &str = crate::schema::SHARED_VULKAN_RESOURCE_KEY;

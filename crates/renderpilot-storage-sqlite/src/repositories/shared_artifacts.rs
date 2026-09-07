@@ -111,7 +111,7 @@ impl SqliteStorage {
 }
 
 /// Reusable transaction-local shared artifact upsert.
-pub(super) fn upsert_within_transaction(
+pub(crate) fn upsert_within_transaction(
     transaction: &Transaction<'_>,
     record: &SharedArtifactRecord,
 ) -> AppResult<()> {
@@ -138,7 +138,7 @@ pub(super) fn upsert_within_transaction(
 }
 
 /// Reusable transaction-local shared artifact delete.
-pub(super) fn delete_within_transaction(
+pub(crate) fn delete_within_transaction(
     transaction: &Transaction<'_>,
     kind: SharedArtifactKind,
 ) -> AppResult<()> {

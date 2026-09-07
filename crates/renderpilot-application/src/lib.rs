@@ -45,7 +45,8 @@ pub use persistence::{
 
 pub use ports::{
     ArtifactRepository, ComponentDetector, ComponentRepository, GameRepository, GameSourceProvider,
-    InstalledAddonRepository, OperationRepository, SharedArtifactRepository,
+    InstalledAddonRepository, OperationRepository, OptiScalerStateRepository,
+    ProxyTopologyRepository, SharedArtifactRepository,
 };
 pub use transition::{
     ArchiveMode, ExternalAliasRequirements, ResolvedArchiveAndRemove, ResolvedPathDisposition,

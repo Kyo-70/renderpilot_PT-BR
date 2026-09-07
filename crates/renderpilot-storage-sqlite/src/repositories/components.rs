@@ -149,6 +149,26 @@ pub(super) fn replace_components_for_game_within_transaction(
     Ok(())
 }
 
+/// Loads the complete persisted component projection for a game while an
+/// existing transaction is active.  The explicit id ordering is part of the
+/// catalog rollback preimage contract; callers must not substitute an
+/// unordered snapshot.
+pub(crate) fn list_components_for_game_within_transaction(
+    transaction: &Transaction<'_>,
+    game_id: &GameId,
+) -> AppResult<Vec<LibraryComponent>> {
+    let mut statement = transaction
+        .prepare_cached(LIST_COMPONENTS_FOR_GAME_SQL)
+        .map_err(storage_error)?;
+    let rows = statement
+        .query_map(
+            named_params! { ":game_id": game_id.as_str() },
+            component_from_row,
+        )
+        .map_err(storage_error)?;
+    super::row_mapping::collect_rows(rows)
+}
+
 fn prepare_timestamp_if_needed(
     connection: &Connection,
     rows: &ComponentSqlRows<'_>,

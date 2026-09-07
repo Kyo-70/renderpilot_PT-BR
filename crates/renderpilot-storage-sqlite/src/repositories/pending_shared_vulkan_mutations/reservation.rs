@@ -6,7 +6,7 @@ use rusqlite::named_params;
 
 use crate::{error::storage_error, sqlite_clock};
 
-use super::super::SqliteStorage;
+use super::super::{SqliteStorage, peer_aggregate_reservations};
 use super::RESOURCE_KEY;
 use super::model::{BeginSharedVulkanMutation, SharedVulkanMutationReservation};
 use super::queries::read_shared_row;
@@ -27,6 +27,12 @@ impl SqliteStorage {
     ) -> AppResult<SharedVulkanMutationReservation> {
         validate_begin(begin)?;
         self.with_immediate_transaction(|transaction| {
+            if let Some(game_id) = begin.game_id.as_ref() {
+                peer_aggregate_reservations::ensure_no_peer_aggregate_reservation_within_transaction(
+                    transaction,
+                    game_id,
+                )?;
+            }
             if let Some(row) = read_shared_row(transaction)? {
                 return Ok(SharedVulkanMutationReservation::Occupied(row));
             }
