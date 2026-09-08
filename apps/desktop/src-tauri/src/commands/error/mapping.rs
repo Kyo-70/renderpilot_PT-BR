@@ -43,6 +43,18 @@ impl CommandError {
                 Kind::SafetyContextScopeMismatch,
                 format_args!("safety context scope mismatch: expected {expected}, got {actual}"),
             ),
+            ServiceError::PeerTopologyConflict { peer_kind } => Self::with_diagnostic(
+                Kind::PeerTopologyConflict,
+                format_args!(
+                    "RenderPilot cannot safely coordinate the {} change with the current proxy chain; rescan or repair the affected add-on and retry",
+                    peer_kind.as_str()
+                ),
+            )
+            .with_reason_code(peer_kind.as_str()),
+            ServiceError::LumaRequiredByOptiScaler => Self::with_diagnostic(
+                Kind::LumaRequiredByOptiScaler,
+                "installed OptiScaler requires Luma; uninstall OptiScaler before uninstalling Luma",
+            ),
             ServiceError::GameNotFound(game_id) => {
                 Self::with_diagnostic(Kind::GameNotFound, format_args!("game not found: {game_id}"))
             }

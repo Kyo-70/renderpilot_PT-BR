@@ -65,9 +65,26 @@ pub(crate) fn validate_prepared_shared_vulkan_mutation_commit_within_transaction
                     game_id.as_str()
                 )));
             }
-            super::super::game_mutations::InstalledAddonMutation::Keep
-            | super::super::game_mutations::InstalledAddonMutation::Delete(_)
-            | super::super::game_mutations::InstalledAddonMutation::Upsert(_) => {}
+            super::super::game_mutations::InstalledAddonMutation::Upsert(addon) => {
+                super::super::installed_addons::ensure_independent_peer_mutation_allowed(
+                    transaction,
+                    game_id,
+                    addon.kind(),
+                )?;
+            }
+            super::super::game_mutations::InstalledAddonMutation::Delete(kind) => {
+                super::super::installed_addons::ensure_independent_peer_mutation_allowed(
+                    transaction,
+                    game_id,
+                    kind,
+                )?;
+            }
+            super::super::game_mutations::InstalledAddonMutation::Keep => {}
+            super::super::game_mutations::InstalledAddonMutation::OptiScaler(_) => {
+                return Err(AppError::invalid_input(
+                    "shared Vulkan mutations cannot commit an OptiScaler aggregate",
+                ));
+            }
         }
     } else if !matches!(
         commit.addon,
@@ -266,8 +283,7 @@ pub(super) fn validate_catalog_binding(
         (Some(game_id), SharedCatalogBinding::Absent) => {
             if observations::catalog_exists_within_transaction(transaction, game_id)? {
                 Err(AppError::storage_failed(format!(
-                    "shared Vulkan mutation '{}' catalog binding changed before recovery completion",
-                    id
+                    "shared Vulkan mutation '{id}' catalog binding changed before recovery completion"
                 )))
             } else {
                 Ok(())
@@ -281,14 +297,12 @@ pub(super) fn validate_catalog_binding(
                     ..
                 } if current_epoch == authority_epoch && token == id => Ok(()),
                 _ => Err(AppError::storage_failed(format!(
-                    "shared Vulkan mutation '{}' catalog authority changed before recovery completion",
-                    id
+                    "shared Vulkan mutation '{id}' catalog authority changed before recovery completion"
                 ))),
             }
         }
         _ => Err(AppError::storage_failed(format!(
-            "shared Vulkan mutation '{}' catalog binding changed before recovery completion",
-            id
+            "shared Vulkan mutation '{id}' catalog binding changed before recovery completion"
         ))),
     }
 }

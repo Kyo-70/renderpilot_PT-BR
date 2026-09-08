@@ -49,6 +49,13 @@ pub enum AppErrorKind {
     /// be needed after the stale row is invalidated.
     StaleReplacementSource,
 
+    /// A peer add-on mutation cannot be safely coordinated with the current
+    /// proxy topology for the game.
+    PeerTopologyConflict {
+        /// Peer add-on whose concrete mutation encountered the topology.
+        peer_kind: renderpilot_domain::AddonKind,
+    },
+
     /// The operation is in an invalid state for the requested transition.
     InvalidOperationState {
         /// Operation identifier (as persisted or referenced by the caller).
@@ -75,6 +82,7 @@ impl AppErrorKind {
             Self::ArtifactNotFound => "artifact_not_found",
             Self::ComponentNotFound => "component_not_found",
             Self::StaleReplacementSource => "stale_replacement_source",
+            Self::PeerTopologyConflict { .. } => "peer_topology_conflict",
             Self::InvalidOperationState { .. } => "invalid_operation_state",
         }
     }
@@ -93,6 +101,7 @@ impl AppErrorKind {
             Self::ArtifactNotFound => "artifact not found",
             Self::ComponentNotFound => "component not found",
             Self::StaleReplacementSource => "stale replacement source",
+            Self::PeerTopologyConflict { .. } => "peer topology conflict",
             Self::InvalidOperationState { .. } => "invalid operation state",
         }
     }
@@ -223,6 +232,18 @@ impl AppError {
         )
     }
 
+    /// Creates a typed peer-topology ownership conflict.
+    #[must_use]
+    pub fn peer_topology_conflict(peer_kind: renderpilot_domain::AddonKind) -> Self {
+        Self::new(
+            AppErrorKind::PeerTopologyConflict { peer_kind },
+            format!(
+                "RenderPilot cannot safely coordinate the {} change with the current proxy chain; rescan or repair the affected add-on and retry",
+                peer_kind.as_str()
+            ),
+        )
+    }
+
     /// Creates an error for when an operation is in an invalid state for a transition.
     #[must_use]
     pub fn invalid_operation_state(
@@ -298,6 +319,7 @@ impl From<renderpilot_domain::InstalledAddonInvariantError> for AppError {
 mod tests {
     use super::{AppError, AppErrorKind, invalid_operation_state_display_message};
     use crate::persistence::OperationStatus;
+    use renderpilot_domain::AddonKind;
 
     #[test]
     fn app_error_preserves_kind_code_and_message() {
@@ -355,6 +377,13 @@ mod tests {
             "stale_replacement_source"
         );
         assert_eq!(
+            AppErrorKind::PeerTopologyConflict {
+                peer_kind: AddonKind::RenoDx,
+            }
+            .code(),
+            "peer_topology_conflict"
+        );
+        assert_eq!(
             AppErrorKind::InvalidOperationState {
                 operation_id: "op".into(),
                 state: OperationStatus::Planned,
@@ -362,6 +391,20 @@ mod tests {
             .code(),
             "invalid_operation_state"
         );
+    }
+
+    #[test]
+    fn peer_topology_conflict_preserves_kind_as_typed_data() {
+        let error = AppError::peer_topology_conflict(AddonKind::Luma);
+
+        assert_eq!(
+            error.kind(),
+            &AppErrorKind::PeerTopologyConflict {
+                peer_kind: AddonKind::Luma,
+            }
+        );
+        assert_eq!(error.code(), "peer_topology_conflict");
+        assert!(error.message().contains("rescan or repair"));
     }
 
     #[test]

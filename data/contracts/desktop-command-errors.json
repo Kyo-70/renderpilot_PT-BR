@@ -138,6 +138,21 @@
       "actions": ["reload_file_safety"]
     },
     {
+      "code": "peer_topology_conflict",
+      "rustVariant": "PeerTopologyConflict",
+      "messageKey": "user_message.peer_topology_conflict",
+      "severity": "warning",
+      "actions": ["rescan_or_repair_addon"],
+      "reasonCodes": ["renodx", "luma"]
+    },
+    {
+      "code": "luma_required_by_optiscaler",
+      "rustVariant": "LumaRequiredByOptiScaler",
+      "messageKey": "user_message.luma_required_by_optiscaler",
+      "severity": "warning",
+      "actions": []
+    },
+    {
       "code": "game_not_found",
       "rustVariant": "GameNotFound",
       "messageKey": "user_message.game_not_in_catalog",
@@ -352,6 +367,10 @@
     {
       "code": "reload_file_safety",
       "messageKey": "suggested_action.reload_file_safety"
+    },
+    {
+      "code": "rescan_or_repair_addon",
+      "messageKey": "suggested_action.rescan_or_repair_addon"
     }
   ]
 }

@@ -3,8 +3,9 @@ use super::*;
 use crate::repositories::SqliteStorage;
 use renderpilot_application::{GameRepository, InstalledAddonRepository, SharedArtifactRepository};
 use renderpilot_domain::{
-    AddonKind, GameIdentity, GameInstallation, GameRuntime, InstalledAddon, Launcher, PathRef,
-    Platform, SharedArtifactKind, SharedArtifactOrigin, SharedArtifactRecord,
+    AddonKind, GameIdentity, GameInstallation, GameProxyTopology, GameRuntime, InstalledAddon,
+    Launcher, PathRef, Platform, ProxyImplementation, ProxyLink, ProxyRootPrestate, Sha256Hash,
+    SharedArtifactKind, SharedArtifactOrigin, SharedArtifactRecord,
 };
 use std::{
     fs,
@@ -31,6 +32,32 @@ fn shared_record() -> SharedArtifactRecord {
         PathRef::new("C:/ProgramData/ReShade/ReShade64.dll").expect("path"),
         SharedArtifactOrigin::RenderPilotCreated,
     )
+}
+
+fn store_active_optiscaler_topology(storage: &SqliteStorage, game_id: &renderpilot_domain::GameId) {
+    let root_slot = PathRef::new("C:/Games/Shared-Test/dxgi.dll").expect("root slot");
+    let topology = GameProxyTopology {
+        id: format!("optiscaler:{}", game_id.as_str()),
+        game_id: game_id.clone(),
+        root_slot: root_slot.clone(),
+        outer: ProxyLink {
+            implementation: ProxyImplementation::OptiScaler,
+            path: root_slot,
+            receipt: renderpilot_domain::FileReceipt::owned(
+                "test:optiscaler-outer",
+                Sha256Hash::new("a".repeat(64)).expect("hash"),
+            )
+            .expect("receipt"),
+        },
+        downstream: None,
+        downstream_origin: None,
+        root_prestate: ProxyRootPrestate::Absent,
+    };
+    storage
+        .with_transaction(|transaction| {
+            super::super::proxy_topologies::upsert_within_transaction(transaction, &topology)
+        })
+        .expect("topology");
 }
 
 fn file_backed_catalog_path(label: &str) -> PathBuf {
@@ -389,6 +416,62 @@ fn shared_commit_is_atomic_across_addon_and_artifact_rows() {
             .expect("artifact")
             .is_none()
     );
+    assert_eq!(
+        storage
+            .get_pending_shared_vulkan_mutation(&begin.id)
+            .expect("row")
+            .expect("row")
+            .state,
+        PendingSharedVulkanMutationState::Prepared
+    );
+}
+
+#[test]
+fn game_shared_peer_commit_reports_peer_topology_conflict() {
+    let storage = SqliteStorage::in_memory().expect("storage");
+    let installation = game("steam:shared-optiscaler-fence");
+    let game_id = installation.id().clone();
+    storage.upsert_game(&installation).expect("game");
+    store_active_optiscaler_topology(&storage, &game_id);
+    let begin = begin_shared(
+        "shared-optiscaler-fence",
+        SharedVulkanMutationScope::GameShared,
+        Some(game_id.clone()),
+    );
+    storage
+        .try_begin_shared_vulkan_mutation(&begin)
+        .expect("reserve");
+    storage
+        .finish_preparing_shared_vulkan_mutation(
+            &begin.id,
+            begin.scope,
+            begin.game_id.as_ref(),
+            r#"{"snapshots":[]}"#,
+        )
+        .expect("prepare");
+    let addon = InstalledAddon::new(
+        game_id.clone(),
+        AddonKind::RenoDx,
+        PathRef::new("C:/Games/Shared-Test/test.addon64").expect("path"),
+    );
+
+    let error = storage
+        .commit_shared_vulkan_mutation(SharedVulkanMutationCommit {
+            id: &begin.id,
+            scope: begin.scope,
+            game_id: begin.game_id.as_ref(),
+            addon: super::super::game_mutations::InstalledAddonMutation::Upsert(&addon),
+            shared_artifact: SharedArtifactMutation::Keep,
+        })
+        .expect_err("game-shared peer projection must be fenced");
+
+    assert_eq!(
+        error.kind(),
+        &renderpilot_application::AppErrorKind::PeerTopologyConflict {
+            peer_kind: AddonKind::RenoDx,
+        }
+    );
+    assert!(storage.get_installed_addon(&game_id).unwrap().is_none());
     assert_eq!(
         storage
             .get_pending_shared_vulkan_mutation(&begin.id)

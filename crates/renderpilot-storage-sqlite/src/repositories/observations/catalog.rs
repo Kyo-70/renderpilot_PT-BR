@@ -102,7 +102,7 @@ pub(super) fn readiness_in_connection(
     readiness_from_row(game_id, row)
 }
 
-pub(in super::super) fn readiness_within_transaction(
+pub(crate) fn readiness_within_transaction(
     transaction: &Transaction<'_>,
     game_id: &GameId,
 ) -> AppResult<CatalogReadiness> {

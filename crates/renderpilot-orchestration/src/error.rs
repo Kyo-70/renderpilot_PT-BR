@@ -168,6 +168,15 @@ pub enum ServiceError {
         /// Scope represented by the supplied permit.
         actual: crate::file_safety::SafetyScope,
     },
+    /// A peer add-on mutation cannot be safely coordinated with the game's
+    /// current proxy topology.
+    PeerTopologyConflict {
+        /// Stable peer add-on kind involved in the concrete mutation.
+        peer_kind: renderpilot_domain::AddonKind,
+    },
+    /// The installed OptiScaler variant for this game has a durable Luma
+    /// prerequisite, so removing Luma first would break that installation.
+    LumaRequiredByOptiScaler,
 }
 
 impl fmt::Display for ServiceError {
@@ -278,6 +287,13 @@ impl fmt::Display for ServiceError {
                 formatter,
                 "safety context scope mismatch: expected {expected}, got {actual}"
             ),
+            Self::PeerTopologyConflict { peer_kind } => write!(
+                formatter,
+                "RenderPilot cannot safely coordinate the {peer_kind} change with the current proxy chain; rescan or repair the affected add-on and retry"
+            ),
+            Self::LumaRequiredByOptiScaler => formatter.write_str(
+                "installed OptiScaler requires Luma; uninstall OptiScaler before uninstalling Luma",
+            ),
         }
     }
 }
@@ -350,6 +366,18 @@ impl ServiceError {
     ) -> Self {
         Self::SafetyContextScopeMismatch { expected, actual }
     }
+
+    /// Constructs the typed fail-closed peer-mutation error.
+    #[must_use]
+    pub const fn peer_topology_conflict(peer_kind: renderpilot_domain::AddonKind) -> Self {
+        Self::PeerTopologyConflict { peer_kind }
+    }
+
+    /// Constructs the stable Luma prerequisite blocker.
+    #[must_use]
+    pub const fn luma_required_by_optiscaler() -> Self {
+        Self::LumaRequiredByOptiScaler
+    }
 }
 
 impl From<AppError> for ServiceError {
@@ -363,6 +391,9 @@ impl From<AppError> for ServiceError {
         match kind {
             AppErrorKind::InvalidInput => Self::InvalidInput(message),
             AppErrorKind::StaleReplacementSource => Self::StaleReplacementSource,
+            AppErrorKind::PeerTopologyConflict { peer_kind } => {
+                Self::PeerTopologyConflict { peer_kind }
+            }
             AppErrorKind::StorageFailed => Self::StorageFailed(message),
             AppErrorKind::ProviderFailed => Self::ProviderFailed(message),
             AppErrorKind::DetectionFailed => Self::DetectionFailed(message),
@@ -393,6 +424,7 @@ mod tests {
     use std::assert_matches;
 
     use renderpilot_application::{AppError, AppErrorKind, OperationStatus};
+    use renderpilot_domain::AddonKind;
 
     use super::{InvalidInstallRootReason, ServiceError};
 
@@ -537,6 +569,12 @@ mod tests {
         assert_eq!(
             ServiceError::from(AppError::stale_replacement_source()),
             ServiceError::StaleReplacementSource,
+        );
+        assert_eq!(
+            ServiceError::from(AppError::peer_topology_conflict(AddonKind::Luma)),
+            ServiceError::PeerTopologyConflict {
+                peer_kind: AddonKind::Luma,
+            },
         );
     }
 }

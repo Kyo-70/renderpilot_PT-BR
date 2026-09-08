@@ -7,6 +7,7 @@ fn addon_status_command(kind: AddonKind, game_id: GameId) -> Command {
     match kind {
         AddonKind::RenoDx => Command::RenodxStatus { game_id },
         AddonKind::Luma => Command::LumaStatus { game_id },
+        AddonKind::OptiScaler => todo!(),
     }
 }
 
@@ -14,6 +15,7 @@ fn addon_uninstall_command(kind: AddonKind, game_id: GameId) -> Command {
     match kind {
         AddonKind::RenoDx => Command::RenodxUninstall { game_id },
         AddonKind::Luma => Command::LumaUninstall { game_id },
+        AddonKind::OptiScaler => todo!(),
     }
 }
 
@@ -21,6 +23,7 @@ fn addon_check_update_command(kind: AddonKind, game_id: GameId, deep: bool) -> C
     match kind {
         AddonKind::RenoDx => Command::RenodxCheckUpdate { game_id },
         AddonKind::Luma => Command::LumaCheckUpdate { game_id, deep },
+        AddonKind::OptiScaler => todo!(),
     }
 }
 
@@ -28,6 +31,7 @@ fn addon_check_updates_command(kind: AddonKind) -> Command {
     match kind {
         AddonKind::RenoDx => Command::RenodxCheckUpdates,
         AddonKind::Luma => Command::LumaCheckUpdates,
+        AddonKind::OptiScaler => todo!(),
     }
 }
 

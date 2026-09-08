@@ -230,9 +230,10 @@ mod test_support;
 mod tests;
 
 pub(crate) use catalog::invalidate_game_authority_within_transaction;
+pub(crate) use catalog::readiness_within_transaction;
 pub(super) use catalog::{
     assert_no_pending_file_mutations_within_transaction, catalog_exists_within_transaction,
-    readiness_within_transaction, replace_game_observations_within_transaction,
+    replace_game_observations_within_transaction,
 };
 use persistence::{
     artifact_observation_from_row, delete_artifact_observations_within_transaction,

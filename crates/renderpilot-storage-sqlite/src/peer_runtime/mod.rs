@@ -12,7 +12,7 @@ mod file_manifest_binding;
 mod manifest;
 mod metadata_aggregate;
 mod optiscaler_config;
-// mod optiscaler_journal_aggregate;
+mod optiscaler_journal_aggregate;
 mod permit;
 mod read_guards;
 mod recovery;
@@ -45,7 +45,12 @@ pub use metadata_aggregate::{
     CommittedMetadataAggregate, MetadataAggregatePreparation, MetadataAggregateTransition,
     PreparedMetadataAggregateCommitPermit,
 };
-
+pub use optiscaler_journal_aggregate::{
+    CommittedOptiScalerJournalAggregate, OptiScalerJournalAggregateBegin,
+    OptiScalerJournalAggregateCommit, PendingFileMutationRecoveryCandidate,
+    PreparedOptiScalerJournalAggregate, PreparingOptiScalerJournalAggregate,
+    RecoveringOptiScalerJournalAggregate,
+};
 pub use permit::{
     PeerCommitPreparation, PeerStorageRuntime, PreparedPeerCommitPermit,
     SharedPeerCommitPreparation,

@@ -255,5 +255,6 @@ const fn addon_kind_name(kind: AddonKind) -> &'static str {
     match kind {
         AddonKind::Luma => "Luma",
         AddonKind::RenoDx => "RenoDX",
+        AddonKind::OptiScaler => "OptiScaler",
     }
 }

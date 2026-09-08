@@ -126,6 +126,19 @@ pub(super) fn upsert_within_transaction(
     Ok(())
 }
 
+pub(super) fn delete_within_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    game_id: &GameId,
+) -> AppResult<()> {
+    transaction
+        .execute(
+            "DELETE FROM optiscaler_install_states WHERE game_id=?1",
+            [game_id.as_str()],
+        )
+        .map_err(storage_error)?;
+    Ok(())
+}
+
 fn raw_state_from_row(row: &Row<'_>) -> rusqlite::Result<RawOptiScalerInstallState> {
     Ok(RawOptiScalerInstallState {
         game_id: row.get(0)?,

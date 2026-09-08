@@ -43,6 +43,9 @@ impl ManagedCleanupPlan {
                         context, guard, game_id,
                     )
                 }
+                ManagedInverseAction::UninstallAddon(AddonKind::OptiScaler) => Err(
+                    ServiceError::invalid_input("OptiScaler must use its dedicated cleanup action"),
+                ),
                 ManagedInverseAction::RestoreNvapi => {
                     crate::nvapi::ops::restore_game_baselines(context, guard, game_id.as_str())
                 }

@@ -28,7 +28,19 @@ pub(in crate::repositories) fn recovery_file_paths(
             game_id.as_str(),
             &mut values,
         )?;
+        collect_text_rows(
+            connection,
+            "SELECT target_exe_path FROM optiscaler_install_states WHERE game_id = :game_id
+             UNION ALL SELECT target_dir FROM optiscaler_install_states WHERE game_id = :game_id",
+            game_id.as_str(),
+            &mut values,
+        )?;
         for sql in [
+            "SELECT modules_json FROM optiscaler_install_states WHERE game_id = :game_id
+             UNION ALL SELECT release_files_json FROM optiscaler_install_states WHERE game_id = :game_id
+             UNION ALL SELECT runtime_bindings_json FROM optiscaler_install_states WHERE game_id = :game_id
+             UNION ALL SELECT directory_receipts_json FROM optiscaler_install_states WHERE game_id = :game_id
+             UNION ALL SELECT topology_json FROM game_proxy_topologies WHERE game_id = :game_id",
             "SELECT files_json FROM component_backups WHERE game_id = :game_id
              UNION ALL SELECT auxiliary_json FROM component_backups WHERE game_id = :game_id",
             "SELECT files_json FROM library_artifacts WHERE source_game_id = :game_id

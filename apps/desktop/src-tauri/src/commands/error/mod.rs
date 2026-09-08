@@ -212,6 +212,22 @@ mod tests {
     }
 
     #[test]
+    fn peer_topology_conflict_carries_only_the_allowlisted_peer_kind() {
+        let error = CommandError::from(ApiError::Service(ServiceError::peer_topology_conflict(
+            renderpilot_orchestration::domain::AddonKind::RenoDx,
+        )));
+        let value = serde_json::to_value(error).expect("serialize CommandError");
+
+        assert_eq!(
+            value,
+            json!({
+                "code": "peer_topology_conflict",
+                "reasonCode": "renodx",
+            })
+        );
+    }
+
+    #[test]
     fn recovery_bundle_is_structured_without_technical_details() {
         let error = CommandError::from(ApiError::Service(ServiceError::ManagedCleanupAmbiguous {
             game_id: "private-game".into(),

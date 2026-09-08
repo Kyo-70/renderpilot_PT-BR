@@ -1,412 +1,597 @@
-use super::super::SqliteStorage;
-use super::*;
-use crate::error::storage_error;
-use renderpilot_application::GameRepository;
 use renderpilot_domain::{
-    GameId, GameIdentity, GameInstallation, GameRuntime, Launcher, PathRef, Platform,
+    CleanupState, ControlNamespaceBinding, CreateDirectoryEffect, CreateDirectoryState,
+    DurableObservation, Endpoint, ExpectedAfter, MaterializationState, NamespaceCapability,
+    OperationEffect, OperationEndpoint, OperationRecord, OptiScalerJournal, Preimage,
+    PrivateArtifactSlots, PrivateWorkspaceBinding, RemoveDirectoryEffect, RemoveDirectoryState,
+    Sha256Hash, WriteEffect, WriteState,
 };
 
-fn store_game(storage: &SqliteStorage, game_id: GameId) {
-    let identity = GameIdentity::new(game_id, "Test Game", Launcher::Steam).expect("identity");
-    let game = GameInstallation::new(
-        identity,
-        Platform::Windows,
-        GameRuntime::NativeWindows,
-        PathRef::new("C:/Games/Test").expect("path"),
-    );
-    storage.upsert_game(&game).expect("store game");
+use super::commit::{
+    validate_optiscaler_journal_for_begin, validate_optiscaler_journal_for_cas,
+    validate_optiscaler_journal_for_prepared,
+};
+
+fn capability() -> NamespaceCapability {
+    NamespaceCapability::new("a".repeat(64)).expect("capability")
 }
 
-#[test]
-fn prepared_row_round_trips_and_commits() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let row = PendingFileMutationRow {
-        id: "tx-1".to_owned(),
-        game_id: GameId::new("steam:1").expect("id"),
-        feature: renderpilot_domain::mutation_features::CATALOG_SWAP.to_owned(),
-        subject_id: Some("component:1".to_owned()),
-        state: PendingFileMutationState::Prepared,
-        manifest_json: r#"{"snapshots":[]}"#.to_owned(),
+fn digest(hex: char) -> Sha256Hash {
+    Sha256Hash::new(hex.to_string().repeat(64)).expect("digest")
+}
+
+fn journal() -> OptiScalerJournal {
+    let capability = capability();
+    let endpoint = OperationEndpoint::new(
+        Endpoint::Single,
+        "game/dxgi.dll",
+        Preimage::Initial {
+            observation: DurableObservation::Absent,
+            receipt: None,
+            owned_basis: None,
+        },
+        ExpectedAfter::Pending,
+    )
+    .expect("endpoint");
+    let operation = OperationRecord::new(
+        0,
+        Vec::new(),
+        Some(0),
+        PrivateArtifactSlots::new(
+            DurableObservation::Absent,
+            DurableObservation::Absent,
+            DurableObservation::Absent,
+        )
+        .expect("slots"),
+        OperationEffect::Write(
+            WriteEffect::new(endpoint, WriteState::Planned).expect("write effect"),
+        ),
+    )
+    .expect("operation");
+    OptiScalerJournal::new(
+        vec!["game".to_owned()],
+        ControlNamespaceBinding::new(
+            format!("game/control-abc-{}", capability.as_str()),
+            None,
+            capability.clone(),
+        )
+        .expect("control namespace"),
+        vec![
+            PrivateWorkspaceBinding::new(
+                0,
+                0,
+                format!(
+                    "game/.renderpilot-optiscaler-workspace-abc-0-{}",
+                    capability.as_str()
+                ),
+                None,
+                capability,
+            )
+            .expect("workspace"),
+        ],
+        vec![operation],
+    )
+    .expect("journal")
+}
+
+fn rollback_terminal_journal() -> OptiScalerJournal {
+    let mut journal = journal();
+    if let OperationEffect::Write(effect) = journal.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::Preserved;
+    }
+    journal
+        .control_namespace_mut()
+        .set_identity("control-identity")
+        .expect("control identity");
+    journal.private_workspaces_mut()[0]
+        .set_identity("participant-identity")
+        .expect("workspace identity");
+    journal.set_materialization(MaterializationState::Ready);
+    journal.set_cleanup(CleanupState::Complete);
+    journal
+}
+
+fn created_directory_journal() -> OptiScalerJournal {
+    let mut journal = journal();
+    let directory = DurableObservation::Directory {
+        identity: "directory-after".to_owned(),
     };
-
-    store_game(&storage, row.game_id.clone());
-
-    storage.prepare_file_mutation(&row).expect("prepare");
-    assert_eq!(
-        storage.get_pending_file_mutation("tx-1").expect("get"),
-        Some(row)
+    let endpoint = OperationEndpoint::new(
+        Endpoint::Single,
+        "game/created",
+        Preimage::Initial {
+            observation: DurableObservation::Absent,
+            receipt: None,
+            owned_basis: None,
+        },
+        ExpectedAfter::Known(directory.clone()),
+    )
+    .expect("directory endpoint");
+    *journal.operations_mut()[0].effect_mut() = OperationEffect::CreateDirectory(
+        CreateDirectoryEffect::new(endpoint, CreateDirectoryState::Applied { live: directory })
+            .expect("directory effect"),
     );
-
-    storage
-        .mark_file_mutation_committed("tx-1")
-        .expect("commit");
-    assert_eq!(
-        storage
-            .get_pending_file_mutation("tx-1")
-            .expect("get")
-            .expect("row")
-            .state,
-        PendingFileMutationState::Committed
-    );
+    journal
 }
 
 #[test]
-fn preparing_row_publishes_its_manifest_before_commit() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let mut row = PendingFileMutationRow {
-        id: "tx-preparing".to_owned(),
-        game_id: GameId::new("steam:2").expect("id"),
-        feature: renderpilot_domain::mutation_features::CATALOG_SWAP.to_owned(),
-        subject_id: None,
-        state: PendingFileMutationState::Preparing,
-        manifest_json:
-            r#"{"format_version":1,"roots":[],"transaction_dir":"unused","snapshots":[]}"#
-                .to_owned(),
-    };
-
-    store_game(&storage, row.game_id.clone());
-
-    storage
-        .begin_file_mutation_preparation(&BeginFileMutationPreparation {
-            id: row.id.clone(),
-            game_id: row.game_id.clone(),
-            feature: row.feature.clone(),
-            subject_id: row.subject_id.clone(),
-            initial_manifest_json: row.manifest_json.clone(),
-        })
-        .expect("reserve");
-    assert_eq!(
-        storage
-            .get_pending_file_mutation(&row.id)
-            .expect("read")
-            .expect("row")
-            .state,
-        PendingFileMutationState::Preparing,
-        "begin always writes literal Preparing"
-    );
-    row.manifest_json =
-        r#"{"format_version":1,"roots":["C:/game"],"transaction_dir":"C:/tx","snapshots":[]}"#
-            .to_owned();
-    storage
-        .finish_preparing_file_mutation(&row.id, &row.manifest_json)
-        .expect("publish");
-
-    let stored = storage
-        .get_pending_file_mutation(&row.id)
-        .expect("read")
-        .expect("row");
-    assert_eq!(stored.state, PendingFileMutationState::Prepared);
-    assert_eq!(stored.manifest_json, row.manifest_json);
-    assert_eq!(
-        storage.catalog_readiness(&row.game_id).expect("readiness"),
-        super::super::observations::CatalogReadiness::Invalidated {
-            authority_epoch: 1,
-            reason: "prepared_file_mutation".to_owned(),
-            mutation_token: Some(row.id),
-        }
-    );
+fn begin_accepts_only_the_unmaterialized_shared_journal() {
+    let json = serde_json::to_string(&journal()).expect("json");
+    validate_optiscaler_journal_for_begin(&json).expect("begin journal");
+    let mut value = serde_json::from_str::<serde_json::Value>(&json).expect("value");
+    value["unexpected"] = serde_json::json!(true);
+    assert!(validate_optiscaler_journal_for_begin(&value.to_string()).is_err());
 }
 
 #[test]
-fn illegal_state_transitions_are_rejected() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let row = PendingFileMutationRow {
-        id: "tx-illegal".to_owned(),
-        game_id: GameId::new("steam:3").expect("id"),
-        feature: renderpilot_domain::mutation_features::CATALOG_SWAP.to_owned(),
-        subject_id: None,
-        state: PendingFileMutationState::Preparing,
-        manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-    };
-    store_game(&storage, row.game_id.clone());
-    storage.prepare_file_mutation(&row).expect("reserve");
-
-    storage
-        .mark_file_mutation_committed("tx-illegal")
-        .expect_err("cannot commit from preparing");
-    assert_eq!(
-        storage
-            .get_pending_file_mutation("tx-illegal")
-            .expect("get")
-            .expect("row")
-            .state,
-        PendingFileMutationState::Preparing
-    );
-
-    storage
-        .finish_preparing_file_mutation("tx-illegal", r#"{"snapshots":[]}"#)
-        .expect("preparing -> prepared");
-    storage
-        .finish_preparing_file_mutation("tx-illegal", r#"{"snapshots":[]}"#)
-        .expect_err("cannot finish preparing twice");
-    storage
-        .mark_file_mutation_committed("tx-illegal")
-        .expect("prepared -> committed");
-    storage
-        .mark_file_mutation_committed("tx-illegal")
-        .expect_err("cannot commit twice");
-    assert_eq!(
-        storage
-            .get_pending_file_mutation("tx-illegal")
-            .expect("get")
-            .expect("row")
-            .state,
-        PendingFileMutationState::Committed
-    );
-}
-
-#[test]
-fn resolution_fence_is_idempotent_and_repairs_wrong_authority_once() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let game_id = GameId::new("steam:fence").expect("id");
-    store_game(&storage, game_id.clone());
-    storage
-        .begin_file_mutation_preparation(&BeginFileMutationPreparation {
-            id: "tx-fence".to_owned(),
-            game_id: game_id.clone(),
-            feature: "test".to_owned(),
-            subject_id: None,
-            initial_manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-        })
-        .expect("begin");
-    storage
-        .finish_preparing_file_mutation("tx-fence", r#"{"snapshots":[]}"#)
-        .expect("finish");
-
-    let _first = storage
-        .fence_prepared_file_mutation_resolution(&game_id, "tx-fence")
-        .expect("matching fence");
-    let _second = storage
-        .fence_prepared_file_mutation_resolution(&game_id, "tx-fence")
-        .expect("idempotent matching fence");
-    assert_eq!(
-        storage
-            .catalog_readiness(&game_id)
-            .expect("readiness")
-            .authority_epoch(),
-        1
-    );
-
-    storage
-        .with_connection(|connection| {
-            connection
-                .execute(
-                    "UPDATE catalog_scan_authority SET mutation_token = 'wrong' WHERE game_id = ?1",
-                    [game_id.as_str()],
-                )
-                .map_err(storage_error)?;
-            Ok(())
-        })
-        .expect("corrupt authority fixture");
-    let _repair = storage
-        .fence_prepared_file_mutation_resolution(&game_id, "tx-fence")
-        .expect("repair fence");
-    let _repeat = storage
-        .fence_prepared_file_mutation_resolution(&game_id, "tx-fence")
-        .expect("repaired fence is idempotent");
-    assert_eq!(
-        storage.catalog_readiness(&game_id).expect("readiness"),
-        super::super::observations::CatalogReadiness::Invalidated {
-            authority_epoch: 2,
-            reason: "recovery".to_owned(),
-            mutation_token: Some("tx-fence".to_owned()),
-        }
-    );
-}
-
-#[test]
-fn resolution_fence_rejects_missing_or_wrong_game_authority() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let game_id = GameId::new("steam:fence-missing").expect("id");
-    store_game(&storage, game_id.clone());
-    storage
-        .fence_prepared_file_mutation_resolution(&game_id, "missing")
-        .expect_err("missing prepared row must stop");
-
-    let row = PendingFileMutationRow {
-        id: "tx-other-game".to_owned(),
-        game_id: GameId::new("steam:other-game").expect("other id"),
-        feature: "test".to_owned(),
-        subject_id: None,
-        state: PendingFileMutationState::Prepared,
-        manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-    };
-    storage.prepare_file_mutation(&row).expect("fixture row");
-    storage
-        .fence_prepared_file_mutation_resolution(&game_id, &row.id)
-        .expect_err("wrong game must stop before any authority write");
-}
-
-#[test]
-fn pre_catalog_finish_and_fence_preserve_total_absence() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let game_id = GameId::new("steam:pre-catalog-fence").expect("id");
-    storage
-        .begin_file_mutation_preparation(&BeginFileMutationPreparation {
-            id: "tx-pre-catalog".to_owned(),
-            game_id: game_id.clone(),
-            feature: "test".to_owned(),
-            subject_id: None,
-            initial_manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-        })
-        .expect("begin without catalog");
-    storage
-        .finish_preparing_file_mutation("tx-pre-catalog", r#"{"snapshots":[]}"#)
-        .expect("finish without catalog");
-
-    let fence = storage
-        .fence_prepared_file_mutation_resolution(&game_id, "tx-pre-catalog")
-        .expect("fence without catalog");
-    storage
-        .complete_prepared_file_mutation_restored(fence)
-        .expect("complete without catalog");
+fn prepared_validation_requires_materialized_applied_program() {
+    let mut journal = journal();
+    journal
+        .control_namespace_mut()
+        .set_identity("control")
+        .expect("control identity");
+    journal.private_workspaces_mut()[0]
+        .set_identity("participant")
+        .expect("workspace identity");
+    journal.set_materialization(MaterializationState::Ready);
     assert!(
-        storage.catalog_readiness(&game_id).is_err(),
-        "both catalog rows must remain absent for a pre-catalog mutation"
+        validate_optiscaler_journal_for_prepared(&serde_json::to_string(&journal).expect("json"))
+            .is_err()
     );
 }
 
 #[test]
-fn cleanup_only_resolution_removes_the_row_and_keeps_catalog_invalidated() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let game_id = GameId::new("steam:cleanup-only-resolution").expect("id");
-    store_game(&storage, game_id.clone());
-    storage
-        .begin_file_mutation_preparation(&BeginFileMutationPreparation {
-            id: "tx-cleanup-only".to_owned(),
-            game_id: game_id.clone(),
-            feature: "test".to_owned(),
-            subject_id: None,
-            initial_manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-        })
-        .expect("begin");
-    storage
-        .finish_preparing_file_mutation("tx-cleanup-only", r#"{"snapshots":[]}"#)
-        .expect("finish");
-
-    let fence = storage
-        .fence_prepared_file_mutation_resolution(&game_id, "tx-cleanup-only")
-        .expect("fence");
-    storage
-        .complete_prepared_file_mutation_without_restore(fence)
-        .expect("complete cleanup-only");
-
+fn prepared_cas_rejects_json_without_a_legal_state_edge() {
+    let current = journal();
+    let next = current.clone();
     assert!(
-        storage
-            .get_pending_file_mutation("tx-cleanup-only")
-            .expect("row lookup")
-            .is_none()
-    );
-    assert_eq!(
-        storage.catalog_readiness(&game_id).expect("readiness"),
-        super::super::observations::CatalogReadiness::Invalidated {
-            authority_epoch: 1,
-            reason: "prepared_file_mutation".to_owned(),
-            mutation_token: Some("tx-cleanup-only".to_owned()),
-        }
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("json"),
+            &serde_json::to_string(&next).expect("json"),
+            "prepared",
+        )
+        .is_err()
     );
 }
 
 #[test]
-fn mixed_catalog_binding_stops_preparation_before_state_change() {
-    let storage = SqliteStorage::in_memory().expect("storage");
-    let present_game = GameId::new("steam:mixed-game").expect("id");
-    store_game(&storage, present_game.clone());
-    storage
-        .with_connection(|connection| {
-            connection
-                .execute(
-                    "DELETE FROM catalog_scan_authority WHERE game_id = ?1",
-                    [present_game.as_str()],
-                )
-                .map_err(storage_error)?;
-            Ok(())
-        })
-        .expect("remove authority fixture");
-    storage
-        .begin_file_mutation_preparation(&BeginFileMutationPreparation {
-            id: "tx-mixed-game".to_owned(),
-            game_id: present_game,
-            feature: "test".to_owned(),
-            subject_id: None,
-            initial_manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-        })
-        .expect("begin");
-    storage
-        .finish_preparing_file_mutation("tx-mixed-game", r#"{"snapshots":[]}"#)
-        .expect_err("game without authority is corruption");
-    assert_eq!(
-        storage
-            .get_pending_file_mutation("tx-mixed-game")
-            .expect("row")
-            .expect("reserved row")
-            .state,
-        PendingFileMutationState::Preparing
+fn rollback_abort_adopts_only_authorized_exact_write_slots() {
+    let mut stage_intent = journal();
+    if let OperationEffect::Write(effect) = stage_intent.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::StageIntent {
+            target_digest: digest('a'),
+        };
+    }
+    let mut stage_preserved = stage_intent.clone();
+    if let OperationEffect::Write(effect) = stage_preserved.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::Preserved;
+    }
+    *stage_preserved.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::File {
+        identity: "partial-stage".to_owned(),
+        digest: digest('b'),
+    };
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&stage_intent).expect("stage intent json"),
+        &serde_json::to_string(&stage_preserved).expect("stage preserved json"),
+        "preparing",
+    )
+    .expect("stage abort may retain a third digest");
+
+    let mut capture_intent = journal();
+    if let OperationEffect::Write(effect) = capture_intent.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::CaptureIntent {
+            stage: DurableObservation::File {
+                identity: "recorded-stage".to_owned(),
+                digest: digest('a'),
+            },
+        };
+    }
+    *capture_intent.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::File {
+        identity: "recorded-stage".to_owned(),
+        digest: digest('a'),
+    };
+    let mut capture_preserved = capture_intent.clone();
+    if let OperationEffect::Write(effect) = capture_preserved.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::Preserved;
+    }
+    *capture_preserved.operations_mut()[0]
+        .slots_mut()
+        .custody_mut() = DurableObservation::File {
+        identity: "partial-custody".to_owned(),
+        digest: digest('c'),
+    };
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&capture_intent).expect("capture intent json"),
+        &serde_json::to_string(&capture_preserved).expect("capture preserved json"),
+        "preparing",
+    )
+    .expect("capture abort may retain a partial exact custody file");
+}
+
+#[test]
+fn rollback_abort_rejects_wrong_types_and_unrelated_slots() {
+    let mut current = journal();
+    if let OperationEffect::Write(effect) = current.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::StageIntent {
+            target_digest: digest('a'),
+        };
+    }
+    let mut wrong_type = current.clone();
+    if let OperationEffect::Write(effect) = wrong_type.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::Preserved;
+    }
+    *wrong_type.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::Directory {
+        identity: "not-a-file".to_owned(),
+    };
+    assert!(
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("current json"),
+            &serde_json::to_string(&wrong_type).expect("wrong type json"),
+            "preparing",
+        )
+        .is_err()
     );
 
-    let absent_game = GameId::new("steam:mixed-authority").expect("id");
-    storage
-        .begin_file_mutation_preparation(&BeginFileMutationPreparation {
-            id: "tx-mixed-authority".to_owned(),
-            game_id: absent_game.clone(),
-            feature: "test".to_owned(),
-            subject_id: None,
-            initial_manifest_json: r#"{"snapshots":[]}"#.to_owned(),
-        })
-        .expect("begin");
-    storage
-        .with_connection(|connection| {
-            connection
-                .execute_batch("PRAGMA foreign_keys = OFF")
-                .map_err(storage_error)?;
-            let insert = connection.execute(
-                "INSERT INTO catalog_scan_authority
-                        (game_id, readiness, authority_epoch, invalidation_reason,
-                         mutation_token, completed_at, updated_at)
-                     VALUES (?1, 'never_completed', 0, NULL, NULL, NULL, 0)",
-                [absent_game.as_str()],
-            );
-            connection
-                .execute_batch("PRAGMA foreign_keys = ON")
-                .map_err(storage_error)?;
-            insert.map_err(storage_error)?;
-            Ok(())
-        })
-        .expect("insert authority-only corruption fixture");
-    storage
-        .finish_preparing_file_mutation("tx-mixed-authority", r#"{"snapshots":[]}"#)
-        .expect_err("authority without game is corruption");
-    assert_eq!(
-        storage
-            .get_pending_file_mutation("tx-mixed-authority")
-            .expect("row")
-            .expect("reserved row")
-            .state,
-        PendingFileMutationState::Preparing
+    let mut unrelated = current.clone();
+    if let OperationEffect::Write(effect) = unrelated.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = WriteState::Preserved;
+    }
+    *unrelated.operations_mut()[0].slots_mut().custody_mut() = DurableObservation::File {
+        identity: "unrelated".to_owned(),
+        digest: digest('d'),
+    };
+    assert!(
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("current json"),
+            &serde_json::to_string(&unrelated).expect("unrelated json"),
+            "preparing",
+        )
+        .is_err()
     );
 }
 
 #[test]
-fn rust_state_strings_match_sql_check_constraint() {
-    // Keep in sync with CHECK (state IN (...)) in schema/ddl/pending_file_mutations.
-    let allowed = ["preparing", "prepared", "committed"];
-    for state in [
-        PendingFileMutationState::Preparing,
-        PendingFileMutationState::Prepared,
-        PendingFileMutationState::Committed,
-    ] {
+fn rollback_abort_adopts_one_exact_create_directory_stage_only() {
+    let mut current = journal();
+    let endpoint = OperationEndpoint::new(
+        Endpoint::Single,
+        "game/private-dir",
+        Preimage::Initial {
+            observation: DurableObservation::Absent,
+            receipt: None,
+            owned_basis: None,
+        },
+        ExpectedAfter::Pending,
+    )
+    .expect("directory endpoint");
+    *current.operations_mut()[0].effect_mut() = OperationEffect::CreateDirectory(
+        CreateDirectoryEffect::new(endpoint, CreateDirectoryState::StageIntent)
+            .expect("directory stage intent"),
+    );
+
+    let mut preserved = current.clone();
+    if let OperationEffect::CreateDirectory(effect) = preserved.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = CreateDirectoryState::Preserved;
+    }
+    *preserved.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::Directory {
+        identity: "partial-directory-stage".to_owned(),
+    };
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&current).expect("stage intent json"),
+        &serde_json::to_string(&preserved).expect("preserved json"),
+        "preparing",
+    )
+    .expect("rollback may adopt one exact directory stage");
+
+    let mut wrong_type = preserved.clone();
+    *wrong_type.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::File {
+        identity: "not-a-directory".to_owned(),
+        digest: digest('a'),
+    };
+    assert!(
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("stage intent json"),
+            &serde_json::to_string(&wrong_type).expect("wrong type json"),
+            "preparing",
+        )
+        .is_err()
+    );
+
+    let mut custody = preserved;
+    *custody.operations_mut()[0].slots_mut().custody_mut() = DurableObservation::Directory {
+        identity: "unauthorized-custody".to_owned(),
+    };
+    assert!(
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("stage intent json"),
+            &serde_json::to_string(&custody).expect("custody json"),
+            "preparing",
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn post_commit_directory_removal_has_only_exact_intent_and_applied_edges() {
+    let directory = DurableObservation::Directory {
+        identity: "post-commit-directory".to_owned(),
+    };
+    let capability = capability();
+    let endpoint = OperationEndpoint::new(
+        Endpoint::Single,
+        "game/private-dir",
+        Preimage::Initial {
+            observation: directory.clone(),
+            receipt: None,
+            owned_basis: None,
+        },
+        ExpectedAfter::Pending,
+    )
+    .expect("directory endpoint");
+    let operation = OperationRecord::new(
+        0,
+        Vec::new(),
+        None,
+        PrivateArtifactSlots::new(
+            DurableObservation::Absent,
+            DurableObservation::Absent,
+            DurableObservation::Absent,
+        )
+        .expect("slots"),
+        OperationEffect::PostCommitRemoveDirectory(
+            RemoveDirectoryEffect::new(
+                endpoint,
+                RemoveDirectoryState::Planned {
+                    directory: directory.clone(),
+                },
+            )
+            .expect("planned directory removal"),
+        ),
+    )
+    .expect("postcommit operation");
+    let mut planned = OptiScalerJournal::new(
+        vec!["game".to_owned()],
+        ControlNamespaceBinding::new(
+            format!("game/control-postcommit-{}", capability.as_str()),
+            None,
+            capability,
+        )
+        .expect("control namespace"),
+        Vec::new(),
+        vec![operation],
+    )
+    .expect("postcommit journal");
+    planned
+        .control_namespace_mut()
+        .set_identity("control-identity")
+        .expect("control identity");
+    planned.set_materialization(MaterializationState::Ready);
+
+    let mut intent = planned.clone();
+    if let OperationEffect::PostCommitRemoveDirectory(effect) =
+        intent.operations_mut()[0].effect_mut()
+    {
+        *effect.state_mut() = RemoveDirectoryState::RemoveIntent {
+            directory: directory.clone(),
+            live: directory.clone(),
+        };
+    }
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&planned).expect("planned json"),
+        &serde_json::to_string(&intent).expect("intent json"),
+        "committed",
+    )
+    .expect("remove intent edge");
+
+    let mut applied = intent.clone();
+    if let OperationEffect::PostCommitRemoveDirectory(effect) =
+        applied.operations_mut()[0].effect_mut()
+    {
+        effect
+            .endpoint_mut()
+            .set_expected_after(ExpectedAfter::Known(DurableObservation::Absent));
+        *effect.state_mut() = RemoveDirectoryState::Applied { directory };
+    }
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&intent).expect("intent json"),
+        &serde_json::to_string(&applied).expect("applied json"),
+        "committed",
+    )
+    .expect("remove applied edge");
+}
+
+#[test]
+fn directory_discard_states_never_use_the_private_discard_slot() {
+    let current = created_directory_journal();
+    let mut discard_intent = current.clone();
+    if let OperationEffect::CreateDirectory(effect) =
+        discard_intent.operations_mut()[0].effect_mut()
+    {
+        *effect.state_mut() = CreateDirectoryState::DiscardIntent {
+            directory: DurableObservation::Directory {
+                identity: "directory-after".to_owned(),
+            },
+        };
+    }
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&current).expect("applied json"),
+        &serde_json::to_string(&discard_intent).expect("discard intent json"),
+        "preparing",
+    )
+    .expect("directory discard intent without a private discard slot");
+
+    let mut occupied = discard_intent.clone();
+    *occupied.operations_mut()[0].slots_mut().discard_mut() = DurableObservation::Directory {
+        identity: "must-not-be-recorded".to_owned(),
+    };
+    assert!(
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("applied json"),
+            &serde_json::to_string(&occupied).expect("occupied discard json"),
+            "preparing",
+        )
+        .is_err()
+    );
+
+    let mut discarded = discard_intent.clone();
+    if let OperationEffect::CreateDirectory(effect) = discarded.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = CreateDirectoryState::PostimageDiscarded {
+            discard: DurableObservation::Directory {
+                identity: "directory-after".to_owned(),
+            },
+        };
+    }
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&discard_intent).expect("discard intent json"),
+        &serde_json::to_string(&discarded).expect("postimage discarded json"),
+        "preparing",
+    )
+    .expect("historical directory discard token does not occupy a slot");
+}
+
+#[test]
+fn applied_verify_can_reverse_with_unchanged_exact_observation() {
+    let observed = DurableObservation::File {
+        identity: "verify".to_owned(),
+        digest: digest('e'),
+    };
+    let endpoint = OperationEndpoint::new(
+        Endpoint::Single,
+        "game/dxgi.dll",
+        Preimage::Initial {
+            observation: observed.clone(),
+            receipt: None,
+            owned_basis: None,
+        },
+        ExpectedAfter::Known(observed.clone()),
+    )
+    .expect("verify endpoint");
+    let operation = OperationRecord::new(
+        0,
+        Vec::new(),
+        None,
+        PrivateArtifactSlots::new(
+            DurableObservation::Absent,
+            DurableObservation::Absent,
+            DurableObservation::Absent,
+        )
+        .expect("slots"),
+        OperationEffect::Verify(
+            renderpilot_domain::VerifyEffect::new(
+                endpoint,
+                renderpilot_domain::VerifyState::Applied { observed },
+            )
+            .expect("verify effect"),
+        ),
+    )
+    .expect("operation");
+    let current = OptiScalerJournal::new(
+        vec!["game".to_owned()],
+        ControlNamespaceBinding::new(
+            format!("game/control-abc-{}", capability().as_str()),
+            None,
+            capability(),
+        )
+        .expect("control namespace"),
+        Vec::new(),
+        vec![operation],
+    )
+    .expect("journal");
+    let mut next = current.clone();
+    if let OperationEffect::Verify(effect) = next.operations_mut()[0].effect_mut() {
+        *effect.state_mut() = renderpilot_domain::VerifyState::Preserved;
+    }
+    validate_optiscaler_journal_for_cas(
+        &serde_json::to_string(&current).expect("current verify json"),
+        &serde_json::to_string(&next).expect("next verify json"),
+        "preparing",
+    )
+    .expect("verify reverse edge");
+}
+
+#[test]
+fn rollback_cleanup_is_gated_and_monotonic_for_preparing_and_prepared_rows() {
+    for row_state in ["preparing", "prepared"] {
+        let mut current = rollback_terminal_journal();
+        current.set_cleanup(CleanupState::Inactive);
+        *current.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::File {
+            identity: "stage-cleanup".to_owned(),
+            digest: digest('f'),
+        };
+        let mut next = current.clone();
+        next.set_cleanup(CleanupState::ArtifactRemoveIntent {
+            operation_id: 0,
+            artifact: renderpilot_domain::ArtifactSlot::Stage,
+            expected: DurableObservation::File {
+                identity: "stage-cleanup".to_owned(),
+                digest: digest('f'),
+            },
+        });
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&current).expect("inactive json"),
+            &serde_json::to_string(&next).expect("artifact intent json"),
+            row_state,
+        )
+        .expect("artifact cleanup intent");
+
+        let mut cleared = next.clone();
+        cleared.set_cleanup(CleanupState::Inactive);
+        *cleared.operations_mut()[0].slots_mut().stage_mut() = DurableObservation::Absent;
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&next).expect("artifact intent json"),
+            &serde_json::to_string(&cleared).expect("artifact clear json"),
+            row_state,
+        )
+        .expect("artifact cleanup clear");
+
+        let mut workspace = cleared.clone();
+        workspace.set_cleanup(CleanupState::WorkspaceRemoveIntent {
+            workspace_id: 0,
+            expected_identity: "participant-identity".to_owned(),
+        });
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&cleared).expect("inactive json"),
+            &serde_json::to_string(&workspace).expect("workspace intent json"),
+            row_state,
+        )
+        .expect("workspace cleanup starts at max workspace id");
+
+        let mut control = workspace.clone();
+        control.set_cleanup(CleanupState::ControlRemoveIntent {
+            expected_identity: "control-identity".to_owned(),
+        });
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&workspace).expect("workspace intent json"),
+            &serde_json::to_string(&control).expect("control intent json"),
+            row_state,
+        )
+        .expect("control cleanup follows workspace zero");
+
+        let mut complete = control.clone();
+        complete.set_cleanup(CleanupState::Complete);
+        validate_optiscaler_journal_for_cas(
+            &serde_json::to_string(&control).expect("control intent json"),
+            &serde_json::to_string(&complete).expect("complete json"),
+            row_state,
+        )
+        .expect("cleanup complete");
+
+        let current_json = serde_json::to_string(&current).expect("inactive cleanup json");
+        let mut premature = current;
+        premature.set_cleanup(CleanupState::ArtifactRemoveIntent {
+            operation_id: 0,
+            artifact: renderpilot_domain::ArtifactSlot::Stage,
+            expected: DurableObservation::File {
+                identity: "wrong".to_owned(),
+                digest: digest('f'),
+            },
+        });
         assert!(
-            allowed.contains(&state.as_str()),
-            "state {:?} missing from SQL CHECK set",
-            state
-        );
-        assert_eq!(
-            state
-                .as_str()
-                .parse::<PendingFileMutationState>()
-                .expect("round-trip"),
-            state
+            validate_optiscaler_journal_for_cas(
+                &current_json,
+                &serde_json::to_string(&premature).expect("premature json"),
+                row_state,
+            )
+            .is_err()
         );
     }
-    assert!("done".parse::<PendingFileMutationState>().is_err());
 }

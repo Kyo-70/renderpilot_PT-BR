@@ -29,9 +29,9 @@ pub(super) fn validate_begin_preparation(begin: &BeginFileMutationPreparation) -
         ));
     }
     if is_optiscaler_feature(&begin.feature) {
-        return Err(AppError::storage_failed(
-            "OptiScaler file mutation features require transactional CAS engine",
-        ));
+        return super::super::commit::validate_optiscaler_journal_for_begin(
+            &begin.initial_manifest_json,
+        );
     }
     let manifest: serde_json::Value =
         serde_json::from_str(&begin.initial_manifest_json).map_err(|error| {
@@ -74,9 +74,7 @@ pub(super) fn validate_prepared_manifest_for_feature(
             | renderpilot_domain::mutation_features::OPTISCALER_RELOCATE
             | renderpilot_domain::mutation_features::OPTISCALER_UNINSTALL
     ) {
-        return Err(AppError::storage_failed(
-            "OptiScaler file mutation features require transactional CAS engine",
-        ));
+        return super::super::commit::validate_optiscaler_journal_for_prepared(manifest_json);
     }
     let manifest: serde_json::Value = serde_json::from_str(manifest_json).map_err(|error| {
         AppError::storage_failed(format!("invalid pending file mutation manifest: {error}"))

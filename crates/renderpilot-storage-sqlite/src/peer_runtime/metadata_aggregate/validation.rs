@@ -281,7 +281,7 @@ fn require_topology<'a>(
 }
 
 fn reject_unpersistable_peer(kind: AddonKind) -> AppResult<()> {
-    if kind.as_str() == "optiscaler" {
+    if kind == AddonKind::OptiScaler {
         return Err(AppError::invalid_input(
             "metadata aggregate cannot persist an OptiScaler peer row",
         ));

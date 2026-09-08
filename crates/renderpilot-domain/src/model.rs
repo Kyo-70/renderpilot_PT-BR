@@ -518,6 +518,8 @@ stable_enum! {
         /// Luma Framework: DirectX 11 ReShade add-on for upscaling, HDR, and
         /// shader replacement.
         Luma = "luma",
+        /// OptiScaler: upscaling, frame-generation, and feature bridge runtime.
+        OptiScaler = "optiscaler",
     }
 }
 

@@ -23,10 +23,15 @@ pub(crate) mod proxy_topologies;
 mod row_mapping;
 mod settings;
 mod shared_artifacts;
-pub(crate) use shared_artifacts::{delete_within_transaction, upsert_within_transaction};
 
 pub(crate) use component_backups::component_backups_for_game_within_transaction;
 pub(crate) use components::list_components_for_game_within_transaction;
+pub(crate) use game_mutations::apply_catalog_projection_within_transaction;
+pub(crate) use game_mutations::{
+    apply_optiscaler_transition_within_transaction,
+    validate_optiscaler_transition_within_transaction,
+};
+pub(crate) use shared_artifacts::{delete_within_transaction, upsert_within_transaction};
 
 /// Reads the OptiScaler state inside a caller-owned transaction so aggregate
 /// preparation and commit compare all three game participants from one SQL
@@ -62,6 +67,52 @@ pub(crate) fn commit_optiscaler_config_companion_within_transaction(
     optiscaler_states::upsert_within_transaction(transaction, after)
 }
 
+/// Validates the unmaterialized OptiScaler journal at its aggregate begin
+/// boundary using the repository's canonical journal validator.
+pub(crate) fn validate_optiscaler_journal_for_begin(journal_json: &str) -> AppResult<()> {
+    pending_file_mutations::validate_optiscaler_journal_for_begin(journal_json)
+}
+
+/// Validates the complete OptiScaler journal required before its Prepared
+/// aggregate reservation can be handed to the native phase.
+pub(crate) fn validate_optiscaler_journal_for_prepared(journal_json: &str) -> AppResult<()> {
+    pending_file_mutations::validate_optiscaler_journal_for_prepared(journal_json)
+}
+
+/// Parses a selected OptiScaler journal through the canonical pending-row
+/// validator and returns its typed value for restart recovery.
+pub(crate) fn parse_optiscaler_journal_for_recovery(
+    journal_json: &str,
+    row_state: &str,
+) -> AppResult<renderpilot_domain::OptiScalerJournal> {
+    pending_file_mutations::parse_optiscaler_journal_for_recovery(journal_json, row_state)
+}
+
+/// Validates one journal compare-and-swap through the canonical pending-row
+/// journal validator. Aggregate-specific callers add their own row,
+/// reservation, and generation fences around this narrow domain seam.
+pub(crate) fn validate_optiscaler_journal_for_cas(
+    current_json: &str,
+    next_json: &str,
+    row_state: &str,
+) -> AppResult<()> {
+    pending_file_mutations::validate_optiscaler_journal_for_cas(current_json, next_json, row_state)
+}
+
+/// Validates the exact terminal state for a rollback-owned OptiScaler journal.
+pub(crate) fn validate_optiscaler_journal_for_rollback_terminal(
+    journal_json: &str,
+) -> AppResult<()> {
+    pending_file_mutations::validate_optiscaler_journal_for_rollback_terminal(journal_json)
+}
+
+/// Validates the exact terminal state for a committed OptiScaler journal.
+pub(crate) fn validate_optiscaler_journal_for_committed_terminal(
+    journal_json: &str,
+) -> AppResult<()> {
+    pending_file_mutations::validate_optiscaler_journal_for_committed_terminal(journal_json)
+}
+
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -72,11 +123,19 @@ use rusqlite::{Connection, Params, Transaction};
 
 use crate::error::storage_error;
 
+pub use crate::peer_runtime::{
+    PeerCommitPreparation, PeerStorageRuntime, PreparedPeerCommitPermit,
+    SharedPeerCommitPreparation,
+};
 pub use consolidation::{
     ComponentRekey, ConsolidatedScanWriteReport, ConsolidationConflictSummary, ConsolidationPlan,
     ConsolidationReport, ConsolidationSource,
 };
-pub use game_mutations::{ComponentBaselineMutation, GameMutationCommit, InstalledAddonMutation};
+pub use game_mutations::{
+    ComponentBaselineMutation, GameMutationCommit, InstalledAddonMutation,
+    OptiScalerAggregateMutation, OptiScalerAuxiliaryPreservation, OptiScalerPeerMutation,
+    OptiScalerRetainedClaim,
+};
 pub use observations::{
     AuthorityCas, CatalogReadiness, CatalogReadyProjection, ObservationOwner, StoredFileObservation,
 };
@@ -514,61 +573,6 @@ fn complete_authority_within_transaction(
 }
 
 #[cfg(test)]
+mod optiscaler_config_tests;
+#[cfg(test)]
 mod tests;
-
-pub(crate) fn apply_catalog_projection_within_transaction(
-    transaction: &rusqlite::Transaction<'_>,
-    game_id: &renderpilot_domain::GameId,
-    component_set: Option<&[renderpilot_domain::LibraryComponent]>,
-    baseline_mutations: &[ComponentBaselineMutation<'_>],
-) -> renderpilot_application::AppResult<()> {
-    if let Some(component_set) = component_set {
-        components::replace_components_for_game_within_transaction(
-            transaction,
-            game_id,
-            component_set,
-        )?;
-    }
-    for mutation in baseline_mutations {
-        match mutation {
-            ComponentBaselineMutation::Capture {
-                component_id,
-                baseline,
-            } => component_backups::capture_component_backup_within_transaction(
-                transaction,
-                game_id,
-                component_id,
-                baseline,
-            )?,
-            ComponentBaselineMutation::UpdateD3d12ExecutableState {
-                component_id,
-                expected_active,
-            } => component_backups::update_component_d3d12_executable_state_within_transaction(
-                transaction,
-                component_id,
-                expected_active,
-            )?,
-            ComponentBaselineMutation::UpdateExpectedActiveFiles {
-                component_id,
-                files,
-            } => component_backups::update_component_expected_active_files_within_transaction(
-                transaction,
-                component_id,
-                files,
-            )?,
-            ComponentBaselineMutation::Delete { component_id } => {
-                component_backups::delete_component_backup_within_transaction(
-                    transaction,
-                    component_id,
-                )?
-            }
-            ComponentBaselineMutation::CaptureD3d12Executable { .. } => {}
-        }
-    }
-    Ok(())
-}
-
-pub use crate::peer_runtime::{
-    PeerCommitPreparation, PeerStorageRuntime, PreparedPeerCommitPermit,
-    SharedPeerCommitPreparation,
-};

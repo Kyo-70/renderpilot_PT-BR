@@ -13,11 +13,14 @@ mod sqlite_clock;
 
 pub use peer_runtime::{
     AggregateAfter, AggregateBefore, AggregateGeneration, CommittedAggregate,
-    CommittedMetadataAggregate, GameAggregateMutation, MetadataAggregatePreparation,
-    MetadataAggregateTransition, PeerRecoveryAncestor, PeerRecoveryEndpoint,
-    PeerRecoveryExecutionClass, PeerRecoveryImage, PeerRecoveryProgram, PlannedAggregateAfter,
-    PreparedMetadataAggregateCommitPermit, validate_file_peer_program_manifest,
-    validate_file_peer_program_manifest_with_renodx_dlss,
+    CommittedMetadataAggregate, CommittedOptiScalerJournalAggregate, GameAggregateMutation,
+    MetadataAggregatePreparation, MetadataAggregateTransition, OptiScalerJournalAggregateBegin,
+    OptiScalerJournalAggregateCommit, PeerRecoveryAncestor, PeerRecoveryEndpoint,
+    PeerRecoveryExecutionClass, PeerRecoveryImage, PeerRecoveryProgram,
+    PendingFileMutationRecoveryCandidate, PlannedAggregateAfter,
+    PreparedMetadataAggregateCommitPermit, PreparedOptiScalerJournalAggregate,
+    PreparingOptiScalerJournalAggregate, RecoveringOptiScalerJournalAggregate,
+    validate_file_peer_program_manifest, validate_file_peer_program_manifest_with_renodx_dlss,
     validate_file_peer_program_manifest_with_renodx_optiscaler_config,
     validate_file_peer_program_manifest_with_renodx_reshade_ini, validate_peer_program_manifest,
     validate_shared_peer_program_manifest, validate_shared_peer_recovery_program,
@@ -32,11 +35,13 @@ pub use repositories::{
     CatalogReadyProjection, ComponentBaselineMutation, ComponentRekey,
     ConditionalSharedArtifactWrite, ConsolidatedScanWriteReport, ConsolidationConflictSummary,
     ConsolidationPlan, ConsolidationReport, ConsolidationSource, GameMutationCommit,
-    InstalledAddonMutation, ObservationOwner, PendingFileMutationRow, PendingFileMutationState,
-    PendingSharedVulkanMutationRow, PendingSharedVulkanMutationState,
-    PreparedMutationResolutionFence, PreparedSharedVulkanMutationResolutionFence,
-    SharedArtifactMutation, SharedVulkanMutationCommit, SharedVulkanMutationReservation,
-    SharedVulkanMutationScope, StoredFileObservation,
+    InstalledAddonMutation, ObservationOwner, OptiScalerAggregateMutation,
+    OptiScalerAuxiliaryPreservation, OptiScalerPeerMutation, OptiScalerRetainedClaim,
+    PendingFileMutationRow, PendingFileMutationState, PendingSharedVulkanMutationRow,
+    PendingSharedVulkanMutationState, PreparedMutationResolutionFence,
+    PreparedSharedVulkanMutationResolutionFence, SharedArtifactMutation,
+    SharedVulkanMutationCommit, SharedVulkanMutationReservation, SharedVulkanMutationScope,
+    StoredFileObservation,
 };
 pub use repositories::{CompleteScanWriteUnit, ScanWriteReport, SqliteStorage};
 pub use repositories::{

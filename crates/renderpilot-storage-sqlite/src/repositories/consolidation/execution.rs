@@ -1,13 +1,16 @@
 //! Transactional execution of an already inspected consolidation plan.
 
 use renderpilot_application::{AppError, AppResult};
+use renderpilot_domain::{GameId, GameProxyTopology, OptiScalerInstallState};
 use rusqlite::{Connection, OptionalExtension, Transaction, named_params};
 
 use super::{
     ConsolidationConflictSummary, ConsolidationPlan, ConsolidationReport, ConsolidationSource,
-    policy::inspect_conflicts, validation::validate_plan,
+    policy::{OptiScalerAggregate, canonical_rebase, inspect_conflicts, load_optiscaler_aggregate},
+    validation::validate_plan,
 };
 use crate::error::storage_error;
+use crate::{mapping, sqlite_clock};
 
 pub(in crate::repositories) fn ensure_conflicts_unchanged(
     connection: &Connection,
@@ -63,7 +66,7 @@ pub(in crate::repositories) fn apply(
             "installed_addons",
             destination,
             source_id,
-            r#"
+            r"
                 INSERT INTO installed_addons (
                     game_id, kind, addon_file, addon_version, created_files_json,
                     backed_up_files_json, managed_files_json, tracked_sources_json,
@@ -74,7 +77,7 @@ pub(in crate::repositories) fn apply(
                        host_kind, reshade_channel, registered_exe_path, created_at, updated_at
                   FROM installed_addons WHERE game_id = :source
                 ON CONFLICT(game_id) DO NOTHING
-            "#,
+            ",
         )?;
 
         move_cover(transaction, destination, source_id, &mut report)?;
@@ -83,18 +86,19 @@ pub(in crate::repositories) fn apply(
             "nvapi_executable_overrides",
             destination,
             source_id,
-            r#"
+            r"
                 INSERT INTO nvapi_executable_overrides (
                     game_id, selected_path, selected_basename, updated_at
                 )
                 SELECT :destination, selected_path, selected_basename, updated_at
                   FROM nvapi_executable_overrides WHERE game_id = :source
                 ON CONFLICT(game_id) DO NOTHING
-            "#,
+            ",
         )?;
         move_nvapi_baselines(transaction, destination, source_id)?;
         merge_ui_state(transaction, destination, source_id)?;
         move_profile_capabilities(transaction, destination, source_id)?;
+        move_optiscaler_aggregate(transaction, &plan.destination_game_id, source)?;
 
         transaction
             .execute(
@@ -106,6 +110,143 @@ pub(in crate::repositories) fn apply(
     }
 
     Ok(report)
+}
+
+pub(super) fn move_optiscaler_aggregate(
+    transaction: &Transaction<'_>,
+    destination: &GameId,
+    source: &ConsolidationSource,
+) -> AppResult<()> {
+    let destination_aggregate = load_optiscaler_aggregate(transaction, destination)?;
+    let source_aggregate = load_optiscaler_aggregate(transaction, &source.source_game_id)?;
+    let invalid_reason = match (&destination_aggregate, &source_aggregate) {
+        (OptiScalerAggregate::InvalidPartial { reason }, _)
+        | (_, OptiScalerAggregate::InvalidPartial { reason }) => Some(reason.as_str()),
+        _ => None,
+    };
+    if let Some(reason) = invalid_reason {
+        return Err(AppError::storage_failed(format!(
+            "cannot consolidate OptiScaler aggregate: {reason}"
+        )));
+    }
+
+    let OptiScalerAggregate::Complete { state, topology } = source_aggregate else {
+        return Ok(());
+    };
+    match destination_aggregate {
+        OptiScalerAggregate::Absent => {
+            let (state, topology) = canonical_rebase(&state, &topology, destination);
+            insert_optiscaler_topology(transaction, &topology)?;
+            insert_optiscaler_state(transaction, &state)?;
+        }
+        OptiScalerAggregate::Complete {
+            state: destination_state,
+            topology: destination_topology,
+        } => {
+            if !super::policy::equivalent_after_rebase(
+                &OptiScalerAggregate::Complete {
+                    state: destination_state,
+                    topology: destination_topology,
+                },
+                &OptiScalerAggregate::Complete { state, topology },
+                destination,
+            )? {
+                return Err(AppError::storage_failed(
+                    "cannot consolidate differing complete OptiScaler aggregates",
+                ));
+            }
+        }
+        OptiScalerAggregate::InvalidPartial { .. } => {
+            unreachable!("invalid OptiScaler aggregates are rejected before mutation")
+        }
+    }
+    transaction
+        .execute(
+            "DELETE FROM optiscaler_install_states WHERE game_id = :source",
+            named_params! { ":source": source.source_game_id.as_str() },
+        )
+        .map_err(storage_error)?;
+    transaction
+        .execute(
+            "DELETE FROM game_proxy_topologies WHERE game_id = :source",
+            named_params! { ":source": source.source_game_id.as_str() },
+        )
+        .map_err(storage_error)?;
+    Ok(())
+}
+
+fn insert_optiscaler_topology(
+    transaction: &Transaction<'_>,
+    topology: &GameProxyTopology,
+) -> AppResult<()> {
+    let now = sqlite_clock::now_ms(transaction)?;
+    transaction
+        .execute(
+            "INSERT INTO game_proxy_topologies (
+                game_id, id, topology_json, created_at, updated_at
+            ) VALUES (:game_id, :id, :topology_json, :created_at, :updated_at)",
+            named_params! {
+                ":game_id": topology.game_id.as_str(),
+                ":id": topology.id,
+                ":topology_json": mapping::serialize_json(topology)?,
+                ":created_at": now,
+                ":updated_at": now,
+            },
+        )
+        .map_err(storage_error)?;
+    Ok(())
+}
+
+fn insert_optiscaler_state(
+    transaction: &Transaction<'_>,
+    state: &OptiScalerInstallState,
+) -> AppResult<()> {
+    let configuration_baseline_json =
+        super::super::optiscaler_states::codec::encode(state.configuration_baseline())?;
+    let now = sqlite_clock::now_ms(transaction)?;
+    let created_at = state.created_at.unwrap_or(now);
+    let updated_at = state.updated_at.unwrap_or(created_at.max(now));
+    transaction
+        .execute(
+            "INSERT INTO optiscaler_install_states (
+                game_id, release_id, manifest_revision, archive_sha256, source,
+                target_exe_path, target_dir, modules_json, release_files_json,
+                runtime_bindings_json, directory_receipts_json, proxy_topology_id,
+                config_schema, config_base_release, adoption_state, prerequisite_binding,
+                created_at, updated_at,
+                configuration_baseline_json
+            ) VALUES (
+                :game_id, :release_id, :manifest_revision, :archive_sha256, :source,
+                :target_exe_path, :target_dir, :modules_json, :release_files_json,
+                :runtime_bindings_json, :directory_receipts_json, :proxy_topology_id,
+                :config_schema, :config_base_release, :adoption_state, :prerequisite_binding,
+                :created_at, :updated_at,
+                :configuration_baseline_json
+            )",
+            named_params! {
+                ":game_id": state.game_id.as_str(),
+                ":release_id": state.release_id,
+                ":manifest_revision": state.manifest_revision,
+                ":archive_sha256": state.archive_sha256.as_ref().map(renderpilot_domain::Sha256Hash::as_str),
+                ":source": state.source,
+                ":target_exe_path": state.target_exe_path.as_str(),
+                ":target_dir": state.target_dir.as_str(),
+                ":modules_json": mapping::serialize_json(&state.modules)?,
+                ":release_files_json": mapping::serialize_json(&state.release_files)?,
+                ":runtime_bindings_json": mapping::serialize_json(&state.runtime_bindings)?,
+                ":directory_receipts_json": mapping::serialize_json(&state.directory_receipts)?,
+                ":proxy_topology_id": state.proxy_topology_id,
+                ":config_schema": state.config_schema,
+                ":config_base_release": state.config_base_release,
+                ":adoption_state": state.adoption_state.as_str(),
+                ":prerequisite_binding": state.prerequisite_binding.as_str(),
+                ":created_at": created_at,
+                ":updated_at": updated_at,
+                ":configuration_baseline_json": configuration_baseline_json,
+            },
+        )
+        .map_err(storage_error)?;
+    Ok(())
 }
 
 pub(in crate::repositories) fn verify_foreign_keys(transaction: &Transaction<'_>) -> AppResult<()> {
@@ -280,7 +421,7 @@ fn move_component_backups(
     for rekey in &source.component_rekeys {
         transaction
             .execute(
-                r#"
+                r"
                     INSERT INTO component_backups (
                         component_id, game_id, files_json, auxiliary_json,
                         created_at, updated_at
@@ -290,7 +431,7 @@ fn move_component_backups(
                       FROM component_backups
                      WHERE game_id = :source AND component_id = :source_component
                     ON CONFLICT(component_id) DO NOTHING
-                "#,
+                ",
                 named_params! {
                     ":destination_component": rekey.destination_component_id,
                     ":destination": destination,
@@ -358,10 +499,11 @@ fn move_cover(
         .optional()
         .map_err(storage_error)?;
 
-    if let (Some(destination_cover), Some(source_cover)) = (&destination_cover, &source_cover)
+    if let (Some(destination_cover), Some(source_cover)) =
+        (destination_cover.as_deref(), source_cover)
         && destination_cover != source_cover
     {
-        report.discarded_cover_file_names.push(source_cover.clone());
+        report.discarded_cover_file_names.push(source_cover);
     }
 
     move_singleton_destination_wins(
@@ -369,12 +511,12 @@ fn move_cover(
         "game_covers",
         destination,
         source,
-        r#"
+        r"
             INSERT INTO game_covers (game_id, file_name, updated_at)
             SELECT :destination, file_name, updated_at
               FROM game_covers WHERE game_id = :source
             ON CONFLICT(game_id) DO NOTHING
-        "#,
+        ",
     )
 }
 
@@ -385,7 +527,7 @@ fn move_nvapi_baselines(
 ) -> AppResult<()> {
     transaction
         .execute(
-            r#"
+            r"
                 INSERT INTO nvapi_setting_baselines (
                     game_id, setting_key, baseline_dword,
                     baseline_was_predefined, predefined_dword,
@@ -396,7 +538,7 @@ fn move_nvapi_baselines(
                        captured_exe, captured_at
                   FROM nvapi_setting_baselines WHERE game_id = :source
                 ON CONFLICT(game_id, setting_key) DO NOTHING
-            "#,
+            ",
             named_params! { ":destination": destination, ":source": source },
         )
         .map_err(storage_error)?;
@@ -412,7 +554,7 @@ fn move_nvapi_baselines(
 fn merge_ui_state(transaction: &Transaction<'_>, destination: &str, source: &str) -> AppResult<()> {
     transaction
         .execute(
-            r#"
+            r"
                 INSERT INTO game_ui_state (game_id, is_favorite, is_hidden, updated_at)
                 SELECT :destination, is_favorite, is_hidden, updated_at
                   FROM game_ui_state WHERE game_id = :source
@@ -420,7 +562,7 @@ fn merge_ui_state(transaction: &Transaction<'_>, destination: &str, source: &str
                     is_favorite = max(game_ui_state.is_favorite, excluded.is_favorite),
                     is_hidden = max(game_ui_state.is_hidden, excluded.is_hidden),
                     updated_at = max(game_ui_state.updated_at, excluded.updated_at)
-            "#,
+            ",
             named_params! { ":destination": destination, ":source": source },
         )
         .map_err(storage_error)?;
@@ -440,14 +582,14 @@ fn move_profile_capabilities(
 ) -> AppResult<()> {
     transaction
         .execute(
-            r#"
+            r"
                 INSERT INTO profile_addon_capabilities (
                     game_id, addon_kind, source_revision, updated_at
                 )
                 SELECT :destination, addon_kind, source_revision, updated_at
                   FROM profile_addon_capabilities WHERE game_id = :source
                 ON CONFLICT(game_id, addon_kind) DO NOTHING
-            "#,
+            ",
             named_params! { ":destination": destination, ":source": source },
         )
         .map_err(storage_error)?;

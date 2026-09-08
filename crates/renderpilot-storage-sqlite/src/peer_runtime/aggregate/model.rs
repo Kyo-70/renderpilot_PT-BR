@@ -109,6 +109,18 @@ impl AggregateBefore {
     }
 }
 
+fn same_optional<T>(
+    left: Option<&T>,
+    right: Option<&T>,
+    equivalent: impl FnOnce(&T, &T) -> bool,
+) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(left), Some(right)) => equivalent(left, right),
+        _ => false,
+    }
+}
+
 /// Validated participant image planned for the next aggregate generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedAggregateAfter {
@@ -205,6 +217,20 @@ impl AggregateAfter {
     #[must_use]
     pub fn peer(&self) -> Option<&InstalledAddon> {
         self.peer.as_ref()
+    }
+
+    /// Compares the exact persisted participant image while ignoring only the
+    /// database-managed timestamps of participant rows.
+    #[must_use]
+    pub(crate) fn persistence_equivalent(&self, other: &Self) -> bool {
+        self.game_id == other.game_id
+            && same_optional(self.state.as_ref(), other.state.as_ref(), |left, right| {
+                left.eq_ignoring_persistence_timestamps(right)
+            })
+            && self.topology == other.topology
+            && same_optional(self.peer.as_ref(), other.peer.as_ref(), |left, right| {
+                left.eq_ignoring_persistence_timestamps(right)
+            })
     }
 }
 

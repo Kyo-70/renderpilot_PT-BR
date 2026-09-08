@@ -16,9 +16,10 @@ use renderpilot_domain::{
 use rusqlite::{OptionalExtension, Row, Transaction, named_params};
 
 use crate::error::{invalid_row, storage_error};
+use crate::repositories::observation::RowObservation;
 use crate::{mapping, sqlite_clock};
 
-use super::SqliteStorage;
+use super::{SqliteStorage, peer_aggregate_reservations};
 
 const EXISTING_KIND_SQL: &str = "SELECT kind FROM installed_addons WHERE game_id = :game_id";
 
@@ -77,20 +78,14 @@ impl InstalledAddonRepository for SqliteStorage {
 
     fn get_installed_addon(&self, game_id: &GameId) -> AppResult<Option<InstalledAddon>> {
         self.with_connection(|connection| {
-            connection
-                .prepare_cached(GET_SQL)
-                .map_err(storage_error)?
-                .query_row(named_params! { ":game_id": game_id.as_str() }, |row| {
-                    Ok(row_to_installed_addon(row))
-                })
-                .optional()
-                .map_err(storage_error)?
-                .transpose()
+            observe_on_connection(connection, game_id)?.into_optional()
         })
     }
 
     fn list_installed_addons(&self) -> AppResult<Vec<InstalledAddon>> {
-        self.query_list(LIST_SQL, [], |row| Ok(row_to_installed_addon(row)))
+        self.query_list(LIST_SQL, [], |row| {
+            Ok(decode_installed_addon(raw_installed_addon_from_row(row)?))
+        })
     }
 
     fn delete_installed_addon(&self, game_id: &GameId, kind: AddonKind) -> AppResult<()> {
@@ -101,15 +96,23 @@ impl InstalledAddonRepository for SqliteStorage {
     }
 }
 
+/// Public peer receipt writes cannot participate in OptiScaler's closed
+/// topology aggregate. Internal exact aggregate commits intentionally call the
+/// within-transaction helpers directly after validating their full transition.
 pub(super) fn ensure_independent_peer_mutation_allowed(
     transaction: &Transaction<'_>,
     game_id: &GameId,
-    _kind: AddonKind,
+    kind: AddonKind,
 ) -> AppResult<()> {
-    super::peer_aggregate_reservations::ensure_no_peer_aggregate_reservation_within_transaction(
+    peer_aggregate_reservations::ensure_no_peer_aggregate_reservation_within_transaction(
         transaction,
         game_id,
     )?;
+    if matches!(kind, AddonKind::RenoDx | AddonKind::Luma)
+        && super::proxy_topologies::get_within_transaction(transaction, game_id)?.is_some()
+    {
+        return Err(AppError::peer_topology_conflict(kind));
+    }
     Ok(())
 }
 
@@ -117,20 +120,33 @@ pub(crate) fn get_within_transaction(
     transaction: &Transaction<'_>,
     game_id: &GameId,
 ) -> AppResult<Option<InstalledAddon>> {
-    let mut statement = transaction.prepare_cached(GET_SQL).map_err(storage_error)?;
-    statement
-        .query_row(named_params! { ":game_id": game_id.as_str() }, |row| {
-            Ok(row_to_installed_addon(row))
-        })
-        .optional()
-        .map_err(storage_error)?
-        .transpose()
+    observe_within_transaction(transaction, game_id)?.into_optional()
+}
+
+pub(crate) fn observe_within_transaction(
+    transaction: &Transaction<'_>,
+    game_id: &GameId,
+) -> AppResult<RowObservation<InstalledAddon>> {
+    observe_raw(
+        transaction
+            .query_row(
+                GET_SQL,
+                named_params! { ":game_id": game_id.as_str() },
+                raw_installed_addon_from_row,
+            )
+            .optional(),
+    )
 }
 
 pub(crate) fn upsert_within_transaction(
     transaction: &Transaction<'_>,
     addon: &InstalledAddon,
 ) -> AppResult<()> {
+    if addon.kind() == AddonKind::OptiScaler {
+        return Err(AppError::invalid_input(
+            "OptiScaler lifecycle state must be committed through its aggregate repository",
+        ));
+    }
     let existing_kind: Option<String> = transaction
         .prepare_cached(EXISTING_KIND_SQL)
         .map_err(storage_error)?
@@ -182,6 +198,11 @@ pub(crate) fn delete_within_transaction(
     game_id: &GameId,
     kind: AddonKind,
 ) -> AppResult<()> {
+    if kind == AddonKind::OptiScaler {
+        return Err(AppError::invalid_input(
+            "OptiScaler lifecycle state must be removed through its aggregate repository",
+        ));
+    }
     let existing_kind: Option<String> = transaction
         .prepare_cached(EXISTING_KIND_SQL)
         .map_err(storage_error)?
@@ -196,8 +217,7 @@ pub(crate) fn delete_within_transaction(
     {
         return Err(AppError::invalid_input(format!(
             "refusing to delete a '{existing_kind}' install record as a \
-             '{expected_kind}' one for {}; uninstall it with the correct kind",
-            game_id
+             '{expected_kind}' one for {game_id}; uninstall it with the correct kind"
         )));
     }
 
@@ -211,56 +231,99 @@ pub(crate) fn delete_within_transaction(
     Ok(())
 }
 
-/// Maps a result row (selected by [`GET_SQL`]/[`LIST_SQL`]) to an [`InstalledAddon`].
-///
-/// Columns are read by name so the mapping cannot silently drift if the column
-/// order in the queries ever changes. The outer `rusqlite::Result` carries
-/// column-extraction errors; the inner `AppResult` carries domain
-/// parsing/validation errors.
-fn row_to_installed_addon(row: &Row<'_>) -> AppResult<InstalledAddon> {
-    let game_id = GameId::new(row.get::<_, String>("game_id").map_err(storage_error)?)
-        .map_err(invalid_row)?;
-    let kind: AddonKind =
-        mapping::enum_from_text(&row.get::<_, String>("kind").map_err(storage_error)?)?;
-    let addon_file = PathRef::new(row.get::<_, String>("addon_file").map_err(storage_error)?)
-        .map_err(invalid_row)?;
-    let addon_version: Option<String> = row.get("addon_version").map_err(storage_error)?;
-    let created_files: Vec<PathRef> = mapping::deserialize_json(
-        &row.get::<_, String>("created_files_json")
-            .map_err(storage_error)?,
-    )?;
-    let backed_up_files: Vec<PathRef> = mapping::deserialize_json(
-        &row.get::<_, String>("backed_up_files_json")
-            .map_err(storage_error)?,
-    )?;
-    let managed_files: Vec<ManagedAddonFile> = mapping::deserialize_json(
-        &row.get::<_, String>("managed_files_json")
-            .map_err(storage_error)?,
-    )?;
-    let tracked_sources: Vec<TrackedSource> = mapping::deserialize_json(
-        &row.get::<_, String>("tracked_sources_json")
-            .map_err(storage_error)?,
-    )?;
-    let host_kind = row
-        .get::<_, Option<String>>("host_kind")
-        .map_err(storage_error)?
+fn observe_on_connection(
+    connection: &rusqlite::Connection,
+    game_id: &GameId,
+) -> AppResult<RowObservation<InstalledAddon>> {
+    let mut statement = connection.prepare_cached(GET_SQL).map_err(storage_error)?;
+    observe_raw(
+        statement
+            .query_row(
+                named_params! { ":game_id": game_id.as_str() },
+                raw_installed_addon_from_row,
+            )
+            .optional(),
+    )
+}
+
+fn observe_raw(
+    result: rusqlite::Result<Option<RawInstalledAddon>>,
+) -> AppResult<RowObservation<InstalledAddon>> {
+    match result.map_err(storage_error)? {
+        None => Ok(RowObservation::Missing),
+        Some(raw) => Ok(match decode_installed_addon(raw) {
+            Ok(addon) => RowObservation::Present(addon),
+            Err(error) => RowObservation::Invalid(error),
+        }),
+    }
+}
+
+#[derive(Debug)]
+struct RawInstalledAddon {
+    game_id: String,
+    kind: String,
+    addon_file: String,
+    addon_version: Option<String>,
+    created_files_json: String,
+    backed_up_files_json: String,
+    managed_files_json: String,
+    tracked_sources_json: String,
+    host_kind: Option<String>,
+    reshade_channel: Option<String>,
+    registered_exe_path: Option<String>,
+    created_at: i64,
+    updated_at: i64,
+}
+
+fn raw_installed_addon_from_row(row: &Row<'_>) -> rusqlite::Result<RawInstalledAddon> {
+    Ok(RawInstalledAddon {
+        game_id: row.get("game_id")?,
+        kind: row.get("kind")?,
+        addon_file: row.get("addon_file")?,
+        addon_version: row.get("addon_version")?,
+        created_files_json: row.get("created_files_json")?,
+        backed_up_files_json: row.get("backed_up_files_json")?,
+        managed_files_json: row.get("managed_files_json")?,
+        tracked_sources_json: row.get("tracked_sources_json")?,
+        host_kind: row.get("host_kind")?,
+        reshade_channel: row.get("reshade_channel")?,
+        registered_exe_path: row.get("registered_exe_path")?,
+        created_at: row.get("created_at")?,
+        updated_at: row.get("updated_at")?,
+    })
+}
+
+/// Decodes an extracted row into an [`InstalledAddon`]. All SQLite column
+/// extraction happens in [`raw_installed_addon_from_row`], so errors here are
+/// typed row corruption rather than operational query failures.
+fn decode_installed_addon(raw: RawInstalledAddon) -> AppResult<InstalledAddon> {
+    let game_id = GameId::new(raw.game_id).map_err(invalid_row)?;
+    let kind: AddonKind = mapping::enum_from_text(&raw.kind)?;
+    if kind == AddonKind::OptiScaler {
+        return Err(invalid_row(
+            "OptiScaler lifecycle state must not be stored in installed_addons",
+        ));
+    }
+    let addon_file = PathRef::new(raw.addon_file).map_err(invalid_row)?;
+    let created_files: Vec<PathRef> = mapping::deserialize_json(&raw.created_files_json)?;
+    let backed_up_files: Vec<PathRef> = mapping::deserialize_json(&raw.backed_up_files_json)?;
+    let managed_files: Vec<ManagedAddonFile> = mapping::deserialize_json(&raw.managed_files_json)?;
+    let tracked_sources: Vec<TrackedSource> = mapping::deserialize_json(&raw.tracked_sources_json)?;
+    let host_kind = raw
+        .host_kind
         .map(|value| mapping::enum_from_text::<InstalledAddonHostKind>(&value))
         .transpose()?;
-    let reshade_channel: Option<String> = row.get("reshade_channel").map_err(storage_error)?;
-    let registered_exe_path: Option<PathRef> = row
-        .get::<_, Option<String>>("registered_exe_path")
-        .map_err(storage_error)?
+    let registered_exe_path: Option<PathRef> = raw
+        .registered_exe_path
         .map(PathRef::new)
         .transpose()
         .map_err(invalid_row)?;
-    let created_at: i64 = row.get("created_at").map_err(storage_error)?;
-    let updated_at: i64 = row.get("updated_at").map_err(storage_error)?;
 
     let mut record = InstalledAddon::from_parts_with_managed(InstalledAddonParts {
         game_id,
         kind,
         addon_file,
-        addon_version,
+        addon_version: raw.addon_version,
         created_files,
         backed_up_files,
         managed_files,
@@ -268,12 +331,12 @@ fn row_to_installed_addon(row: &Row<'_>) -> AppResult<InstalledAddon> {
     })
     .map_err(invalid_row)?
     .ok_or_else(|| invalid_row("created_files must contain addon_file"))?
-    .with_timestamps(Some(created_at), Some(updated_at));
+    .with_timestamps(Some(raw.created_at), Some(raw.updated_at));
 
     if let Some(host_kind) = host_kind {
         record = record.with_host_kind(host_kind);
     }
-    if let Some(channel) = reshade_channel {
+    if let Some(channel) = raw.reshade_channel {
         record = record.with_reshade_channel(channel);
     }
     if let Some(path) = registered_exe_path {
@@ -286,6 +349,11 @@ fn row_to_installed_addon(row: &Row<'_>) -> AppResult<InstalledAddon> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use renderpilot_application::GameRepository;
+    use renderpilot_domain::{
+        GameIdentity, GameInstallation, GameProxyTopology, GameRuntime, Launcher, Platform,
+        ProxyImplementation, ProxyLink, ProxyRootPrestate, Sha256Hash,
+    };
 
     fn game_id() -> GameId {
         GameId::new("steam:1091500").expect("id")
@@ -319,6 +387,47 @@ mod tests {
             None,
             "host-digest",
         ))
+    }
+
+    fn active_optiscaler_topology() -> GameProxyTopology {
+        let root = path("C:/Games/CP2077/dxgi.dll");
+        GameProxyTopology {
+            id: "optiscaler:steam:1091500".to_owned(),
+            game_id: game_id(),
+            root_slot: root.clone(),
+            outer: ProxyLink {
+                implementation: ProxyImplementation::OptiScaler,
+                path: root,
+                receipt: renderpilot_domain::FileReceipt::owned(
+                    "test:optiscaler-outer",
+                    Sha256Hash::new("a".repeat(64)).expect("hash"),
+                )
+                .expect("receipt"),
+            },
+            downstream: None,
+            downstream_origin: None,
+            root_prestate: ProxyRootPrestate::Absent,
+        }
+    }
+
+    fn store_active_optiscaler_topology(storage: &SqliteStorage) {
+        storage
+            .upsert_game(&GameInstallation::new(
+                GameIdentity::new(game_id(), "Cyberpunk 2077", Launcher::Steam).expect("identity"),
+                Platform::Windows,
+                GameRuntime::NativeWindows,
+                path("C:/Games/CP2077"),
+            ))
+            .expect("game");
+        let topology = active_optiscaler_topology();
+        storage
+            .with_transaction(|transaction| {
+                crate::repositories::proxy_topologies::upsert_within_transaction(
+                    transaction,
+                    &topology,
+                )
+            })
+            .expect("topology");
     }
 
     #[test]
@@ -490,6 +599,45 @@ mod tests {
     }
 
     #[test]
+    fn public_peer_upsert_reports_peer_topology_conflict() {
+        let storage = SqliteStorage::in_memory().expect("storage");
+        store_active_optiscaler_topology(&storage);
+
+        let error = storage
+            .upsert_installed_addon(&recorded_host_addon())
+            .expect_err("public peer upsert must be fenced");
+
+        assert_eq!(
+            error.kind(),
+            &renderpilot_application::AppErrorKind::PeerTopologyConflict {
+                peer_kind: AddonKind::RenoDx,
+            }
+        );
+        assert!(storage.get_installed_addon(&game_id()).unwrap().is_none());
+    }
+
+    #[test]
+    fn public_peer_delete_reports_peer_topology_conflict() {
+        let storage = SqliteStorage::in_memory().expect("storage");
+        storage
+            .upsert_installed_addon(&recorded_host_addon())
+            .expect("seed peer");
+        store_active_optiscaler_topology(&storage);
+
+        let error = storage
+            .delete_installed_addon(&game_id(), AddonKind::RenoDx)
+            .expect_err("public peer delete must be fenced");
+
+        assert_eq!(
+            error.kind(),
+            &renderpilot_application::AppErrorKind::PeerTopologyConflict {
+                peer_kind: AddonKind::RenoDx,
+            }
+        );
+        assert!(storage.get_installed_addon(&game_id()).unwrap().is_some());
+    }
+
+    #[test]
     fn delete_with_wrong_kind_is_rejected() {
         let storage = SqliteStorage::in_memory().expect("storage");
         storage
@@ -592,5 +740,59 @@ mod tests {
             .expect("get")
             .expect("present");
         assert_eq!(loaded.kind(), AddonKind::Luma);
+    }
+
+    fn raw_addon(addon: &InstalledAddon) -> RawInstalledAddon {
+        RawInstalledAddon {
+            game_id: addon.game_id().as_str().to_owned(),
+            kind: mapping::enum_to_text(&addon.kind()).expect("kind"),
+            addon_file: addon.addon_file().as_str().to_owned(),
+            addon_version: addon.addon_version().map(str::to_owned),
+            created_files_json: mapping::serialize_json(addon.created_files()).expect("created"),
+            backed_up_files_json: mapping::serialize_json(addon.backed_up_files())
+                .expect("backed up"),
+            managed_files_json: mapping::serialize_json(addon.managed_files()).expect("managed"),
+            tracked_sources_json: mapping::serialize_json(addon.tracked_sources())
+                .expect("sources"),
+            host_kind: addon
+                .host_kind()
+                .map(|kind| mapping::enum_to_text(&kind).expect("host kind")),
+            reshade_channel: addon.reshade_channel().map(str::to_owned),
+            registered_exe_path: addon
+                .registered_exe_path()
+                .map(|path| path.as_str().to_owned()),
+            created_at: addon.installed_at().unwrap_or(1),
+            updated_at: addon.updated_at().unwrap_or(1),
+        }
+    }
+
+    #[test]
+    fn addon_observation_distinguishes_missing_invalid_and_sql_outcomes() {
+        assert!(matches!(
+            observe_raw(Ok(None)).expect("missing row"),
+            RowObservation::Missing
+        ));
+
+        let addon = recorded_host_addon();
+        assert!(matches!(
+            observe_raw(Ok(Some(raw_addon(&addon)))).expect("valid row"),
+            RowObservation::Present(_)
+        ));
+
+        let mut malformed = raw_addon(&addon);
+        malformed.managed_files_json = "{".to_owned();
+        assert!(matches!(
+            observe_raw(Ok(Some(malformed))).expect("malformed json"),
+            RowObservation::Invalid(_)
+        ));
+
+        let mut invalid_domain = raw_addon(&addon);
+        invalid_domain.created_files_json = "[]".to_owned();
+        assert!(matches!(
+            observe_raw(Ok(Some(invalid_domain))).expect("domain invariant"),
+            RowObservation::Invalid(_)
+        ));
+
+        assert!(observe_raw(Err(rusqlite::Error::InvalidQuery)).is_err());
     }
 }

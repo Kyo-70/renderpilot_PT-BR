@@ -57,7 +57,7 @@ impl SqliteStorage {
         })
     }
 
-    /// Atomically replaces exactly one manifest-derived capability kind.
+    /// Atomically replaces exactly one profile-derived capability kind.
     pub fn replace_profile_addon_capabilities(
         &self,
         kind: AddonKind,
