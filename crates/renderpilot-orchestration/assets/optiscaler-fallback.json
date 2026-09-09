@@ -1,0 +1,722 @@
+{
+  "schema_version": 1,
+  "revision": "2026-09-09.1",
+  "current_release": "v0.9.4",
+  "releases": [
+    {
+      "id": "v0.9.0",
+      "source": {
+        "provider": "github_release",
+        "repository": "optiscaler/OptiScaler",
+        "tag": "v0.9.0",
+        "asset": "Optiscaler_0.9.0-final.20260401._AF.7z"
+      },
+      "archive_sha256": "a988ce2c0a86bba58a6313659d1ed2ab78f994dbdfab246394a2e4293ac68010",
+      "archive_size": 53353132,
+      "config_schema": 1,
+      "members": [
+        {
+          "archive_path": "OptiScaler.dll",
+          "target": "$proxy",
+          "sha256": "64b818976dadcae26caa8a80f2ec023c15a0e1b59100fc806740c9ddfbefcbd7",
+          "size": 24933168,
+          "module": "core",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "OptiScaler.ini",
+          "target": "OptiScaler.ini",
+          "sha256": "cfd085e19f00a9f69fa7c3ff42317f09441ca7867a01ca0d9916d1d334a044d9",
+          "size": 43805,
+          "module": "core"
+        },
+        {
+          "archive_path": "amd_fidelityfx_dx12.dll",
+          "target": "amd_fidelityfx_dx12.dll",
+          "sha256": "d98c027fbd4cc074a1c48574eecd58ded2bc9e4cb6bfc5c28d6595ab5037d371",
+          "size": 25864,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_framegeneration_dx12.dll",
+          "target": "amd_fidelityfx_framegeneration_dx12.dll",
+          "sha256": "8deaf970b84dac8f761fefa546e73517e02b34a6bb05a590a74e7faea03baa4a",
+          "size": 38246160,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_upscaler_dx12.dll",
+          "target": "amd_fidelityfx_upscaler_dx12.dll",
+          "sha256": "ec7ed3ca674e288240e6f04b986342aece47454c41d9b0959449e82e22bd7f6d",
+          "size": 15605520,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_vk.dll",
+          "target": "amd_fidelityfx_vk.dll",
+          "sha256": "a1624cc4238fef046f30c4d80ce3f47be63fc5f5373f49e3ee9edb9960f54c78",
+          "size": 9332432,
+          "module": "ffx_vulkan",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "D3D12_Optiscaler/D3D12Core.dll",
+          "target": "D3D12_Optiscaler/D3D12Core.dll",
+          "sha256": "07d286c306f8117321422affd9e6388c12d0fb4be1c7fc689d9e899324feeb24",
+          "size": 3351064,
+          "module": "agility",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.dll",
+          "target": "fakenvapi.dll",
+          "sha256": "92cec26cde3393d0a284eb8fb87b26f0d712fe34dd51f6c0b1596a3380ce38b5",
+          "size": 414208,
+          "module": "fakenvapi",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.ini",
+          "target": "fakenvapi.ini",
+          "sha256": "a4bfa3ec7b4badd93ae5e1ad74a582238082d871f54f38f68e7d9fb6384ce772",
+          "size": 466,
+          "module": "fakenvapi"
+        },
+        {
+          "archive_path": "dlssg_to_fsr3_amd_is_better.dll",
+          "target": "dlssg_to_fsr3_amd_is_better.dll",
+          "sha256": "806020c0444f7841a3a9f661295c16fc482e981e0666d0b9624bf6ccd19c4b5e",
+          "size": 3038208,
+          "module": "nvngx_fsr3_bridge",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxell.dll",
+          "target": "libxell.dll",
+          "sha256": "61aeeab7fdcfb6d1742f86c14c68c663d759607d01a6132645c857291eaebb86",
+          "size": 411504,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess.dll",
+          "target": "libxess.dll",
+          "sha256": "251659dd84a3e84de67c886a4186e01f3eca49b00641906fe38bb6b807e5d5b7",
+          "size": 77795704,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_dx11.dll",
+          "target": "libxess_dx11.dll",
+          "sha256": "c7cfe86f0c9d94e4fb3696d3cd5035e2bbb6a8b1b0572f8b7395a4cdfd0c625e",
+          "size": 156016,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_fg.dll",
+          "target": "libxess_fg.dll",
+          "sha256": "9d074c7cb931d450875373372da832304b82a2dcac51cb17df44b49f00e2961c",
+          "size": 22955384,
+          "module": "xess",
+          "pe_x64": true
+        }
+      ]
+    },
+    {
+      "id": "v0.9.1",
+      "source": {
+        "provider": "github_release",
+        "repository": "optiscaler/OptiScaler",
+        "tag": "v0.9.1",
+        "asset": "Optiscaler_0.9.1-final.20260427._DSB.7z"
+      },
+      "archive_sha256": "56d1a18e3a32d978c0134844e803ba8cf04134226cfcdb8283f68d180836fab0",
+      "archive_size": 53342538,
+      "config_schema": 1,
+      "members": [
+        {
+          "archive_path": "OptiScaler.dll",
+          "target": "$proxy",
+          "sha256": "7d225b8d4d882b1d91e3a17e93b017c038b126462ff00fac0baf788f046822a8",
+          "size": 25036080,
+          "module": "core",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "OptiScaler.ini",
+          "target": "OptiScaler.ini",
+          "sha256": "b0665bba3deb621e2e9d0a64b44c5c1bd066f7d632eba604054e9a9a39849fce",
+          "size": 45155,
+          "module": "core"
+        },
+        {
+          "archive_path": "amd_fidelityfx_dx12.dll",
+          "target": "amd_fidelityfx_dx12.dll",
+          "sha256": "d98c027fbd4cc074a1c48574eecd58ded2bc9e4cb6bfc5c28d6595ab5037d371",
+          "size": 25864,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_framegeneration_dx12.dll",
+          "target": "amd_fidelityfx_framegeneration_dx12.dll",
+          "sha256": "8deaf970b84dac8f761fefa546e73517e02b34a6bb05a590a74e7faea03baa4a",
+          "size": 38246160,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_upscaler_dx12.dll",
+          "target": "amd_fidelityfx_upscaler_dx12.dll",
+          "sha256": "ec7ed3ca674e288240e6f04b986342aece47454c41d9b0959449e82e22bd7f6d",
+          "size": 15605520,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_vk.dll",
+          "target": "amd_fidelityfx_vk.dll",
+          "sha256": "a1624cc4238fef046f30c4d80ce3f47be63fc5f5373f49e3ee9edb9960f54c78",
+          "size": 9332432,
+          "module": "ffx_vulkan",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "D3D12_Optiscaler/D3D12Core.dll",
+          "target": "D3D12_Optiscaler/D3D12Core.dll",
+          "sha256": "07d286c306f8117321422affd9e6388c12d0fb4be1c7fc689d9e899324feeb24",
+          "size": 3351064,
+          "module": "agility",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.dll",
+          "target": "fakenvapi.dll",
+          "sha256": "373e73dc06e2d66e90083fde3bc99ef5c1ed0bef98d1f7eda56c8b073269c3f1",
+          "size": 415232,
+          "module": "fakenvapi",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.ini",
+          "target": "fakenvapi.ini",
+          "sha256": "a4bfa3ec7b4badd93ae5e1ad74a582238082d871f54f38f68e7d9fb6384ce772",
+          "size": 466,
+          "module": "fakenvapi"
+        },
+        {
+          "archive_path": "dlssg_to_fsr3_amd_is_better.dll",
+          "target": "dlssg_to_fsr3_amd_is_better.dll",
+          "sha256": "806020c0444f7841a3a9f661295c16fc482e981e0666d0b9624bf6ccd19c4b5e",
+          "size": 3038208,
+          "module": "nvngx_fsr3_bridge",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxell.dll",
+          "target": "libxell.dll",
+          "sha256": "61aeeab7fdcfb6d1742f86c14c68c663d759607d01a6132645c857291eaebb86",
+          "size": 411504,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess.dll",
+          "target": "libxess.dll",
+          "sha256": "251659dd84a3e84de67c886a4186e01f3eca49b00641906fe38bb6b807e5d5b7",
+          "size": 77795704,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_dx11.dll",
+          "target": "libxess_dx11.dll",
+          "sha256": "c7cfe86f0c9d94e4fb3696d3cd5035e2bbb6a8b1b0572f8b7395a4cdfd0c625e",
+          "size": 156016,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_fg.dll",
+          "target": "libxess_fg.dll",
+          "sha256": "ec5e0c65e075570c6ede72618bb666d0be0c2e10b2ea9762c0fe8cb8e375ab27",
+          "size": 22957432,
+          "module": "xess",
+          "pe_x64": true
+        }
+      ]
+    },
+    {
+      "id": "v0.9.2",
+      "source": {
+        "provider": "github_release",
+        "repository": "optiscaler/OptiScaler",
+        "tag": "v0.9.2",
+        "asset": "Optiscaler_0.9.2a-final.20260517._Reup.7z"
+      },
+      "archive_sha256": "6426a16085f6128c810e0de58947029664439afd0567b6a286c0e3ef784a92a1",
+      "archive_size": 53388454,
+      "config_schema": 1,
+      "members": [
+        {
+          "archive_path": "OptiScaler.dll",
+          "target": "$proxy",
+          "sha256": "62022e09a6679b12485da569f857220132155bfd2375fe01b4f232e306a76da6",
+          "size": 25217840,
+          "module": "core",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "OptiScaler.ini",
+          "target": "OptiScaler.ini",
+          "sha256": "c676faf6ee2c4e1e35b474fc017fe0aa90a30da08530b02b02f980175a4850ae",
+          "size": 46397,
+          "module": "core"
+        },
+        {
+          "archive_path": "amd_fidelityfx_dx12.dll",
+          "target": "amd_fidelityfx_dx12.dll",
+          "sha256": "d98c027fbd4cc074a1c48574eecd58ded2bc9e4cb6bfc5c28d6595ab5037d371",
+          "size": 25864,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_framegeneration_dx12.dll",
+          "target": "amd_fidelityfx_framegeneration_dx12.dll",
+          "sha256": "8deaf970b84dac8f761fefa546e73517e02b34a6bb05a590a74e7faea03baa4a",
+          "size": 38246160,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_upscaler_dx12.dll",
+          "target": "amd_fidelityfx_upscaler_dx12.dll",
+          "sha256": "ec7ed3ca674e288240e6f04b986342aece47454c41d9b0959449e82e22bd7f6d",
+          "size": 15605520,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_vk.dll",
+          "target": "amd_fidelityfx_vk.dll",
+          "sha256": "a1624cc4238fef046f30c4d80ce3f47be63fc5f5373f49e3ee9edb9960f54c78",
+          "size": 9332432,
+          "module": "ffx_vulkan",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "D3D12_Optiscaler/D3D12Core.dll",
+          "target": "D3D12_Optiscaler/D3D12Core.dll",
+          "sha256": "07d286c306f8117321422affd9e6388c12d0fb4be1c7fc689d9e899324feeb24",
+          "size": 3351064,
+          "module": "agility",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.dll",
+          "target": "fakenvapi.dll",
+          "sha256": "373e73dc06e2d66e90083fde3bc99ef5c1ed0bef98d1f7eda56c8b073269c3f1",
+          "size": 415232,
+          "module": "fakenvapi",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.ini",
+          "target": "fakenvapi.ini",
+          "sha256": "a4bfa3ec7b4badd93ae5e1ad74a582238082d871f54f38f68e7d9fb6384ce772",
+          "size": 466,
+          "module": "fakenvapi"
+        },
+        {
+          "archive_path": "dlssg_to_fsr3_amd_is_better.dll",
+          "target": "dlssg_to_fsr3_amd_is_better.dll",
+          "sha256": "806020c0444f7841a3a9f661295c16fc482e981e0666d0b9624bf6ccd19c4b5e",
+          "size": 3038208,
+          "module": "nvngx_fsr3_bridge",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxell.dll",
+          "target": "libxell.dll",
+          "sha256": "61aeeab7fdcfb6d1742f86c14c68c663d759607d01a6132645c857291eaebb86",
+          "size": 411504,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess.dll",
+          "target": "libxess.dll",
+          "sha256": "251659dd84a3e84de67c886a4186e01f3eca49b00641906fe38bb6b807e5d5b7",
+          "size": 77795704,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_dx11.dll",
+          "target": "libxess_dx11.dll",
+          "sha256": "c7cfe86f0c9d94e4fb3696d3cd5035e2bbb6a8b1b0572f8b7395a4cdfd0c625e",
+          "size": 156016,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_fg.dll",
+          "target": "libxess_fg.dll",
+          "sha256": "ec5e0c65e075570c6ede72618bb666d0be0c2e10b2ea9762c0fe8cb8e375ab27",
+          "size": 22957432,
+          "module": "xess",
+          "pe_x64": true
+        }
+      ]
+    },
+    {
+      "id": "v0.9.3",
+      "source": {
+        "provider": "github_release",
+        "repository": "optiscaler/OptiScaler",
+        "tag": "v0.9.3",
+        "asset": "Optiscaler_0.9.3-final.20260618.7z"
+      },
+      "archive_sha256": "e3ac655d60ec11b471ac8cc5f4d3758e4bce9151c86caa339d8f0700c00282e3",
+      "archive_size": 53356866,
+      "config_schema": 1,
+      "members": [
+        {
+          "archive_path": "OptiScaler.dll",
+          "target": "$proxy",
+          "sha256": "2369120927264bb2b120e7fb0940cb0b3242dc788417ab92fb99953555016511",
+          "size": 25356592,
+          "module": "core",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "OptiScaler.ini",
+          "target": "OptiScaler.ini",
+          "sha256": "ae062683054c9d1f1e1c2c5658cf863012c6c6c4b50771edc9987f36b44547ec",
+          "size": 47360,
+          "module": "core"
+        },
+        {
+          "archive_path": "amd_fidelityfx_dx12.dll",
+          "target": "amd_fidelityfx_dx12.dll",
+          "sha256": "d98c027fbd4cc074a1c48574eecd58ded2bc9e4cb6bfc5c28d6595ab5037d371",
+          "size": 25864,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_framegeneration_dx12.dll",
+          "target": "amd_fidelityfx_framegeneration_dx12.dll",
+          "sha256": "8deaf970b84dac8f761fefa546e73517e02b34a6bb05a590a74e7faea03baa4a",
+          "size": 38246160,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_upscaler_dx12.dll",
+          "target": "amd_fidelityfx_upscaler_dx12.dll",
+          "sha256": "ec7ed3ca674e288240e6f04b986342aece47454c41d9b0959449e82e22bd7f6d",
+          "size": 15605520,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_vk.dll",
+          "target": "amd_fidelityfx_vk.dll",
+          "sha256": "a1624cc4238fef046f30c4d80ce3f47be63fc5f5373f49e3ee9edb9960f54c78",
+          "size": 9332432,
+          "module": "ffx_vulkan",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "D3D12_Optiscaler/D3D12Core.dll",
+          "target": "D3D12_Optiscaler/D3D12Core.dll",
+          "sha256": "07d286c306f8117321422affd9e6388c12d0fb4be1c7fc689d9e899324feeb24",
+          "size": 3351064,
+          "module": "agility",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.dll",
+          "target": "fakenvapi.dll",
+          "sha256": "373e73dc06e2d66e90083fde3bc99ef5c1ed0bef98d1f7eda56c8b073269c3f1",
+          "size": 415232,
+          "module": "fakenvapi",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.ini",
+          "target": "fakenvapi.ini",
+          "sha256": "a4bfa3ec7b4badd93ae5e1ad74a582238082d871f54f38f68e7d9fb6384ce772",
+          "size": 466,
+          "module": "fakenvapi"
+        },
+        {
+          "archive_path": "dlssg_to_fsr3_amd_is_better.dll",
+          "target": "dlssg_to_fsr3_amd_is_better.dll",
+          "sha256": "806020c0444f7841a3a9f661295c16fc482e981e0666d0b9624bf6ccd19c4b5e",
+          "size": 3038208,
+          "module": "nvngx_fsr3_bridge",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxell.dll",
+          "target": "libxell.dll",
+          "sha256": "61aeeab7fdcfb6d1742f86c14c68c663d759607d01a6132645c857291eaebb86",
+          "size": 411504,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess.dll",
+          "target": "libxess.dll",
+          "sha256": "251659dd84a3e84de67c886a4186e01f3eca49b00641906fe38bb6b807e5d5b7",
+          "size": 77795704,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_dx11.dll",
+          "target": "libxess_dx11.dll",
+          "sha256": "c7cfe86f0c9d94e4fb3696d3cd5035e2bbb6a8b1b0572f8b7395a4cdfd0c625e",
+          "size": 156016,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_fg.dll",
+          "target": "libxess_fg.dll",
+          "sha256": "ec5e0c65e075570c6ede72618bb666d0be0c2e10b2ea9762c0fe8cb8e375ab27",
+          "size": 22957432,
+          "module": "xess",
+          "pe_x64": true
+        }
+      ]
+    },
+    {
+      "id": "v0.9.4",
+      "source": {
+        "provider": "github_release",
+        "repository": "optiscaler/OptiScaler",
+        "tag": "v0.9.4",
+        "asset": "Optiscaler_0.9.4-final.20260718._MM.7z"
+      },
+      "archive_sha256": "575cb4df866116093df75af607e37fd70e10f5163e0f23fd5c804142e80ef0ad",
+      "archive_size": 55016448,
+      "config_schema": 3,
+      "members": [
+        {
+          "archive_path": "OptiScaler.dll",
+          "target": "$proxy",
+          "sha256": "fbfb6676b829dad7e020fb830586a16aa0ec6add78016db48ef12e2ae1803231",
+          "size": 25379632,
+          "module": "core",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "OptiScaler.ini",
+          "target": "OptiScaler.ini",
+          "sha256": "6d7ed07e2e9df3d611b6f59047716bcbc0b67834296b8e4414816189b1233aa7",
+          "size": 47477,
+          "module": "core"
+        },
+        {
+          "archive_path": "amd_fidelityfx_dx12.dll",
+          "target": "amd_fidelityfx_dx12.dll",
+          "sha256": "e2d85aa05a9bd9ed8b38935fdf5199372cca6f74c12015143bb6f945ee1608aa",
+          "size": 26376,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_framegeneration_dx12.dll",
+          "target": "amd_fidelityfx_framegeneration_dx12.dll",
+          "sha256": "02297beedd285e822d3a64f314cf00faf378dcec0edc47ff0c4dd71b3a8c2f18",
+          "size": 40085776,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_upscaler_dx12.dll",
+          "target": "amd_fidelityfx_upscaler_dx12.dll",
+          "sha256": "d0dcccc74a43c44ba435b7a369b456e0970d8a4464e4bd683119b374f2c9fb46",
+          "size": 28761864,
+          "module": "ffx_dx12",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "amd_fidelityfx_vk.dll",
+          "target": "amd_fidelityfx_vk.dll",
+          "sha256": "a1624cc4238fef046f30c4d80ce3f47be63fc5f5373f49e3ee9edb9960f54c78",
+          "size": 9332432,
+          "module": "ffx_vulkan",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "D3D12_Optiscaler/D3D12Core.dll",
+          "target": "D3D12_Optiscaler/D3D12Core.dll",
+          "sha256": "07d286c306f8117321422affd9e6388c12d0fb4be1c7fc689d9e899324feeb24",
+          "size": 3351064,
+          "module": "agility",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.dll",
+          "target": "fakenvapi.dll",
+          "sha256": "373e73dc06e2d66e90083fde3bc99ef5c1ed0bef98d1f7eda56c8b073269c3f1",
+          "size": 415232,
+          "module": "fakenvapi",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "fakenvapi.ini",
+          "target": "fakenvapi.ini",
+          "sha256": "a4bfa3ec7b4badd93ae5e1ad74a582238082d871f54f38f68e7d9fb6384ce772",
+          "size": 466,
+          "module": "fakenvapi"
+        },
+        {
+          "archive_path": "dlssg_to_fsr3_amd_is_better.dll",
+          "target": "dlssg_to_fsr3_amd_is_better.dll",
+          "sha256": "806020c0444f7841a3a9f661295c16fc482e981e0666d0b9624bf6ccd19c4b5e",
+          "size": 3038208,
+          "module": "nvngx_fsr3_bridge",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxell.dll",
+          "target": "libxell.dll",
+          "sha256": "61aeeab7fdcfb6d1742f86c14c68c663d759607d01a6132645c857291eaebb86",
+          "size": 411504,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess.dll",
+          "target": "libxess.dll",
+          "sha256": "251659dd84a3e84de67c886a4186e01f3eca49b00641906fe38bb6b807e5d5b7",
+          "size": 77795704,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_dx11.dll",
+          "target": "libxess_dx11.dll",
+          "sha256": "c7cfe86f0c9d94e4fb3696d3cd5035e2bbb6a8b1b0572f8b7395a4cdfd0c625e",
+          "size": 156016,
+          "module": "xess",
+          "pe_x64": true
+        },
+        {
+          "archive_path": "libxess_fg.dll",
+          "target": "libxess_fg.dll",
+          "sha256": "ec5e0c65e075570c6ede72618bb666d0be0c2e10b2ea9762c0fe8cb8e375ab27",
+          "size": 22957432,
+          "module": "xess",
+          "pe_x64": true
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "core",
+      "optional": false,
+      "bundled_by_default": true,
+      "description": "OptiScaler proxy and configuration"
+    },
+    {
+      "id": "ffx_dx12",
+      "optional": true,
+      "bundled_by_default": true,
+      "requires": ["core"],
+      "description": "Bundled FidelityFX DX12 runtime"
+    },
+    {
+      "id": "ffx_vulkan",
+      "optional": true,
+      "bundled_by_default": true,
+      "requires": ["core"],
+      "description": "Bundled FidelityFX Vulkan runtime"
+    },
+    {
+      "id": "agility",
+      "optional": true,
+      "bundled_by_default": true,
+      "requires": ["core"],
+      "description": "D3D12 Agility runtime"
+    },
+    {
+      "id": "fakenvapi",
+      "optional": true,
+      "bundled_by_default": true,
+      "requires": ["core"],
+      "description": "Bundled FakeNVAPI 1.4.1 runtime"
+    },
+    {
+      "id": "nvngx_fsr3_bridge",
+      "optional": true,
+      "bundled_by_default": true,
+      "requires": ["core", "fakenvapi"],
+      "description": "Pinned Nukem NVNGX-to-FSR3 bridge"
+    },
+    {
+      "id": "xess",
+      "optional": true,
+      "bundled_by_default": true,
+      "requires": ["core"],
+      "description": "XeSS, XeFG and XeLL runtimes"
+    },
+    {
+      "id": "optipatcher",
+      "optional": true,
+      "bundled_by_default": false,
+      "requires": ["core"],
+      "artifact": {
+        "id": "v0.41",
+        "source": {
+          "provider": "github_release",
+          "repository": "optiscaler/OptiPatcher",
+          "tag": "v0.41",
+          "asset": "OptiPatcher_v0.41.asi"
+        },
+        "sha256": "fb12735bfcc0d47f534f2206d57ec34129dc3d22b6405a1c2ef86745ab48b2eb",
+        "size": 95232,
+        "target": "plugins/OptiPatcher.asi",
+        "pe_x64": true
+      },
+      "description": "Pinned official OptiPatcher module for supported AMD/Intel systems"
+    },
+    {
+      "id": "nvidia_sr",
+      "optional": true,
+      "bundled_by_default": false,
+      "requires": ["core"],
+      "description": "NVIDIA DLSS Super Resolution for NVIDIA systems when the game exposes only FSR/XeSS input"
+    }
+  ],
+  "config_migrations": [
+    {
+      "from_schema": 1,
+      "to_schema": 3,
+      "from_section": "FSR",
+      "from_key": "Fsr4Model",
+      "to_section": "FSR",
+      "to_key": "Fsr4Preset"
+    },
+    {
+      "from_schema": 3,
+      "to_schema": 1,
+      "from_section": "FSR",
+      "from_key": "Fsr4Preset",
+      "to_section": "FSR",
+      "to_key": "Fsr4Model"
+    }
+  ]
+}
