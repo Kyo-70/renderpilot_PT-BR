@@ -47,13 +47,18 @@ impl RetryableFileMutationV2 {
         if feature.trim().is_empty() {
             return Err(crate::failed("feature must not be empty"));
         }
+        super::super::ensure_feature_allowed_with_proxy_topology(
+            context,
+            guard.game_id(),
+            feature,
+        )?;
 
         let id = ulid::Ulid::generate().to_string();
         let transaction_dir = context.file_mutation_root().join(&id);
         let roots: Vec<String> = scope
-            .roots
+            .roots()
             .iter()
-            .map(|root| root.to_string_lossy().into_owned())
+            .map(|root| root.to_string_lossy().replace('\\', "/"))
             .collect();
         let initial = ManifestV2 {
             format_version: FORMAT_VERSION,
@@ -215,7 +220,9 @@ impl RetryableFileMutationV2 {
         if let Err(error) =
             super::super::remove_dir_if_exists(Path::new(&self.manifest.transaction_dir))
         {
-            log::warn!("rolled-back v2 transaction left orphan cleanup: {error}");
+            log::warn!(
+                "rolled-back v2 transaction retained its directory; it is not auto-cleaned: {error}"
+            );
         }
         Ok(())
     }

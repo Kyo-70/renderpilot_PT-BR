@@ -17,6 +17,8 @@
 //! normalized `PathRef`-style `/` strings; this one accepts OS paths.
 
 mod names;
+#[cfg(windows)]
+mod windows;
 
 pub(crate) use names::is_safe_file_name;
 
@@ -32,12 +34,31 @@ pub(crate) fn normalized_key(path: &Path) -> String {
     renderpilot_domain::normalized_path_key(&path.to_string_lossy())
 }
 
+/// Canonicalizes an existing path and returns the stable native spelling used
+/// by filesystem authority records.
+///
+/// Windows may return an equivalent DOS 8.3 alias from
+/// [`std::fs::canonicalize`]. Expand those aliases before the path crosses an
+/// orchestration or storage boundary so roots and their descendants cannot be
+/// represented by different names for the same directory.
+pub(crate) fn canonicalize_existing(path: &Path) -> std::io::Result<PathBuf> {
+    let canonical = std::fs::canonicalize(path)?;
+    #[cfg(windows)]
+    {
+        windows::expand_short_names(&canonical)
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(canonical)
+    }
+}
+
 /// Best-effort canonicalization: resolves symlinks and `.`/`..` when the path
 /// exists on disk, falls back to the input path otherwise. Returns a usable
 /// [`PathBuf`], not a comparison key -- for equality use [`same_path`].
 #[must_use]
 pub(crate) fn canonicalize_best_effort(path: &Path) -> PathBuf {
-    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+    canonicalize_existing(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 /// Path equality after best-effort canonicalization, so `.`/relative forms and
@@ -46,8 +67,8 @@ pub(crate) fn canonicalize_best_effort(path: &Path) -> PathBuf {
 /// case variants and slash styles still compare equal.
 #[must_use]
 pub(crate) fn same_path(left: &Path, right: &Path) -> bool {
-    match (left.canonicalize(), right.canonicalize()) {
-        (Ok(left), Ok(right)) => left == right,
+    match (canonicalize_existing(left), canonicalize_existing(right)) {
+        (Ok(left), Ok(right)) => normalized_key(&left) == normalized_key(&right),
         _ => normalized_key(left) == normalized_key(right),
     }
 }
@@ -75,10 +96,10 @@ pub(crate) fn is_within(path: &Path, root: &Path) -> bool {
 ///
 /// Use when a path must be canonicalized before its target is created (a live
 /// file about to be overwritten, a sidecar that does not exist yet). For a path
-/// that already exists this is equivalent to [`std::fs::canonicalize`].
+/// that already exists this is equivalent to [`canonicalize_existing`].
 pub(crate) fn canonical_candidate(path: &Path) -> std::io::Result<PathBuf> {
     if path.exists() {
-        return std::fs::canonicalize(path);
+        return canonicalize_existing(path);
     }
     let mut ancestor = path;
     while !ancestor.exists() {
@@ -93,7 +114,7 @@ pub(crate) fn canonical_candidate(path: &Path) -> std::io::Result<PathBuf> {
             ancestor.display()
         ))
     })?;
-    std::fs::canonicalize(ancestor).map(|canonical| canonical.join(suffix))
+    canonicalize_existing(ancestor).map(|canonical| canonical.join(suffix))
 }
 
 #[cfg(test)]

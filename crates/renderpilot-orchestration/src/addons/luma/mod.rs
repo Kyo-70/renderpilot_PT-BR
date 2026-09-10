@@ -23,6 +23,7 @@
 //! and the install engine live in common `addons::*` modules both tools depend
 //! on instead; cross-cutting mutation policy remains outside either add-on.
 
+pub(crate) mod dependency;
 mod dgvoodoo;
 mod dlss;
 /// DTOs
@@ -34,6 +35,7 @@ pub(crate) mod install;
 pub mod manifest_store;
 pub(crate) mod matcher;
 pub(crate) mod mutation_targets;
+pub(crate) mod peer;
 pub(crate) mod reconciliation;
 mod source;
 pub(crate) mod tool;
@@ -104,6 +106,88 @@ mod tests {
         assert!(!manifest.titles[0].profile.is_engine());
         assert!(manifest.titles[1].profile.is_engine());
         assert_eq!(manifest.titles[1].launch_args, vec!["-nod3d9ex".to_owned()]);
+        assert!(manifest.titles[1].guidance.is_empty());
+    }
+
+    #[test]
+    fn normalizes_historical_launch_argument_guidance_into_launch_args() {
+        let legacy = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
+            r#""guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-nod3d9ex" }]"#,
+        );
+
+        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
+        assert_eq!(manifest.titles[1].launch_args, vec!["-nod3d9ex".to_owned()]);
+        assert!(manifest.titles[1].guidance.is_empty());
+    }
+
+    #[test]
+    fn rejects_historical_launch_argument_guidance_with_blank_id() {
+        let legacy = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
+            r#""guidance": [{ "id": " ", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-nod3d9ex" }]"#,
+        );
+
+        let error = parse_manifest(legacy.as_bytes()).expect_err("blank id must be rejected");
+        assert!(error.to_string().contains("non-blank id"));
+    }
+
+    #[test]
+    fn rejects_historical_launch_argument_guidance_with_blank_fallback_text() {
+        let legacy = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
+            r#""guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "\t", "code": "-nod3d9ex" }]"#,
+        );
+
+        let error =
+            parse_manifest(legacy.as_bytes()).expect_err("blank fallback text must be rejected");
+        assert!(error.to_string().contains("non-blank fallback_text"));
+    }
+
+    #[test]
+    fn canonicalizes_only_standalone_historical_dx11_aliases() {
+        let legacy = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
+            r#""requirements": { "launch_arguments": ["-DX11"] },
+                "guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": " -dx11 " }]"#,
+        );
+
+        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
+        assert_eq!(manifest.titles[1].launch_args, vec!["-dx11".to_owned()]);
+    }
+
+    #[test]
+    fn compound_historical_dx11_argument_supersedes_a_standalone_requirement() {
+        let legacy = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
+            r#""requirements": { "launch_arguments": ["-dx11"] },
+                "guidance": [{ "id": "luma.song-of-nunu.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-oss=Steam -dx11" }]"#,
+        );
+
+        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
+        assert_eq!(
+            manifest.titles[1].launch_args,
+            vec!["-oss=Steam -dx11".to_owned()]
+        );
+    }
+
+    #[test]
+    fn preserves_unrelated_historical_arguments_when_a_compound_dx11_argument_is_present() {
+        let legacy = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
+            r#""requirements": { "launch_arguments": ["--foo=-dx11", "-DX11", "-bar"] },
+                "guidance": [{ "id": "luma.song-of-nunu.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-oss=Steam -dx11" }]"#,
+        );
+
+        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
+        assert_eq!(
+            manifest.titles[1].launch_args,
+            vec![
+                "--foo=-dx11".to_owned(),
+                "-bar".to_owned(),
+                "-oss=Steam -dx11".to_owned(),
+            ]
+        );
     }
 
     #[test]

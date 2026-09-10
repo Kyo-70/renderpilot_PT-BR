@@ -2,7 +2,10 @@
 
 use std::path::PathBuf;
 
-use renderpilot_domain::AddonKind;
+use renderpilot_domain::{AddonKind, Sha256Hash};
+use sha2::Digest;
+
+use crate::peer_mutation_executor::{EndpointPostcondition, ExactEndpointProgram, PeerRouteError};
 
 /// A named INI section and the `key=value` pairs to set in it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,6 +199,55 @@ pub struct InstallOptions {
     /// When `true` (default), the engine writes and clears its own crash-safety
     /// sentinel in `game_dir`. When `false`, an outer orchestrator owns the sentinel.
     pub manage_sentinel: bool,
+}
+
+/// Exact payloads paired with a prepared peer endpoint program.  The vector is
+/// ordered identically to the program; no path is inferred from a directory.
+#[derive(Debug, Clone)]
+pub(crate) struct PeerMutationPlan {
+    program: ExactEndpointProgram,
+    payloads: Vec<Option<Vec<u8>>>,
+}
+
+impl PeerMutationPlan {
+    pub(crate) fn new(
+        program: ExactEndpointProgram,
+        payloads: Vec<Option<Vec<u8>>>,
+    ) -> Result<Self, PeerRouteError> {
+        if payloads.len() != program.endpoints().len() {
+            return Err(PeerRouteError::EvidenceCardinality {
+                expected: program.endpoints().len(),
+                actual: payloads.len(),
+            });
+        }
+        for (endpoint, payload) in program.endpoints().iter().zip(payloads.iter()) {
+            match (endpoint.after(), payload) {
+                (EndpointPostcondition::File(expected), Some(bytes)) => {
+                    let actual = Sha256Hash::new(hex::encode(sha2::Sha256::digest(bytes)))
+                        .map_err(|error| PeerRouteError::InvalidPath(error.to_string()))?;
+                    if &actual != expected {
+                        return Err(PeerRouteError::PlannedDigestMismatch);
+                    }
+                }
+                (EndpointPostcondition::File(_), None) => {
+                    return Err(PeerRouteError::MissingPayload(endpoint.path().clone()));
+                }
+                (EndpointPostcondition::Absent, Some(_)) => {
+                    return Err(PeerRouteError::UnexpectedPayload(endpoint.path().clone()));
+                }
+                (EndpointPostcondition::Absent, None) => {}
+            }
+        }
+        Ok(Self { program, payloads })
+    }
+
+    pub(crate) fn program(&self) -> &ExactEndpointProgram {
+        &self.program
+    }
+
+    pub(crate) fn payloads(&self) -> &[Option<Vec<u8>>] {
+        &self.payloads
+    }
 }
 
 impl Default for InstallOptions {

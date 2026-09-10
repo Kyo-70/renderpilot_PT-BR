@@ -58,16 +58,13 @@ pub(crate) fn is_lowercase_sha256_hex(value: &str) -> bool {
 }
 
 /// Validates a match rule's `value` against the shape its `kind` requires
-/// (hash, positive integer id, non-blank id). `title_id` only names the title
-/// in the error message.
+/// (positive integer, canonical Xbox StoreId, or non-blank external id).
+/// `title_id` only names the title in the error message.
 pub(crate) fn validate_match_rule_value(
     title_id: &str,
     rule: &MatchRule,
 ) -> Result<(), ServiceError> {
     match rule.kind {
-        MatchKind::ExeSha256 if !is_lowercase_sha256_hex(&rule.value) => Err(failed(format!(
-            "title `{title_id}` ExeSha256 rule value must be lowercase hex SHA-256"
-        ))),
         MatchKind::SteamAppid if !rule.value.parse::<u64>().is_ok_and(|appid| appid > 0) => {
             Err(failed(format!(
                 "title `{title_id}` SteamAppid rule value must be a positive integer"
@@ -79,8 +76,20 @@ pub(crate) fn validate_match_rule_value(
                 rule.kind
             )))
         }
+        MatchKind::XboxStoreId if !is_canonical_xbox_store_id(&rule.value) => Err(failed(format!(
+            "title `{title_id}` XboxStoreId rule value must be a 12-character uppercase ASCII alphanumeric StoreId"
+        ))),
         _ => Ok(()),
     }
+}
+
+/// Whether `value` is the canonical 12-character Microsoft Store product id
+/// emitted by registered Xbox package discovery.
+fn is_canonical_xbox_store_id(value: &str) -> bool {
+    value.len() == 12
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
 }
 
 /// Validates a slice of match rules: every rule must have a positive tier, a
@@ -182,14 +191,22 @@ mod tests {
             value: value.to_owned(),
             tier: 100,
         };
-        assert!(
-            validate_match_rule_value("t", &rule(MatchKind::ExeSha256, &"a".repeat(64))).is_ok()
-        );
-        assert!(validate_match_rule_value("t", &rule(MatchKind::ExeSha256, "not-a-hash")).is_err());
         assert!(validate_match_rule_value("t", &rule(MatchKind::SteamAppid, "100")).is_ok());
         assert!(validate_match_rule_value("t", &rule(MatchKind::SteamAppid, "0")).is_err());
         assert!(validate_match_rule_value("t", &rule(MatchKind::EpicId, "abc")).is_ok());
         assert!(validate_match_rule_value("t", &rule(MatchKind::EpicId, "")).is_err());
+        assert!(
+            validate_match_rule_value("t", &rule(MatchKind::XboxStoreId, "9MW53ZKZH168")).is_ok()
+        );
+        assert!(
+            validate_match_rule_value("t", &rule(MatchKind::XboxStoreId, "9mw53zkzh168")).is_err()
+        );
+        assert!(
+            validate_match_rule_value("t", &rule(MatchKind::XboxStoreId, "9MW53ZKZH16")).is_err()
+        );
+        assert!(
+            validate_match_rule_value("t", &rule(MatchKind::XboxStoreId, "9MW53ZKZH16-")).is_err()
+        );
     }
 
     #[test]

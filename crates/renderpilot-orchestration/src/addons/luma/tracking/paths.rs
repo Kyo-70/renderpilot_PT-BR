@@ -39,7 +39,7 @@ pub(crate) fn is_host_adjacent_non_payload(path: &Path) -> bool {
 /// for managed dependencies (dgVoodoo) that must not be deleted as "removed"
 /// payload.
 #[must_use]
-pub(crate) fn payload_owned_paths(
+pub(crate) fn payload_managed_paths(
     record: &InstalledAddon,
     extra_excluded: &[PathBuf],
 ) -> Vec<PathBuf> {
@@ -104,7 +104,7 @@ pub(crate) fn owned_dependency_paths(record: &InstalledAddon) -> Vec<PathBuf> {
 /// Payload membership excluding managed dependency wrappers (intact-check surface).
 #[must_use]
 fn payload_tracked_paths(record: &InstalledAddon) -> Vec<PathBuf> {
-    payload_owned_paths(record, &owned_dependency_paths(record))
+    payload_managed_paths(record, &owned_dependency_paths(record))
 }
 
 /// Cheap on-disk invariant for a Luma payload: the main `.addon` and every other

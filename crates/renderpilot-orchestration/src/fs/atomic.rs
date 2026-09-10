@@ -49,7 +49,7 @@ use windows::prepare_windows_no_replace;
 
 /// Result of attempting one durable publication without replacing an existing
 /// destination entry.
-pub(super) enum NoReplaceWrite {
+pub(crate) enum NoReplaceWrite {
     Published,
     Occupied,
 }
@@ -178,7 +178,7 @@ pub(super) fn prepare_file_atomically_no_replace(
 /// Writes and flushes a same-directory temporary file, then atomically
 /// publishes it only if `path` is still unoccupied. The temporary file is
 /// always owned by this call and is the only pathname this primitive removes.
-pub(super) fn write_file_atomically_no_replace(
+pub(crate) fn write_file_atomically_no_replace(
     path: &Path,
     bytes: &[u8],
 ) -> Result<NoReplaceWrite, ServiceError> {

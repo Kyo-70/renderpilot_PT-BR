@@ -1,7 +1,7 @@
-use renderpilot_application::InstalledAddonRepository;
+use renderpilot_application::{GameRepository, InstalledAddonRepository};
 use renderpilot_domain::{
-    AddonKind, GameId, InstalledAddon, InstalledAddonHostKind, PathRef, TrackedSource,
-    TrackedSourceRole,
+    AddonKind, GameId, GameIdentity, GameInstallation, GameRuntime, InstalledAddon,
+    InstalledAddonHostKind, Launcher, PathRef, Platform, TrackedSource, TrackedSourceRole,
 };
 use tempfile::tempdir;
 
@@ -50,6 +50,15 @@ fn non_advisory_payload(etag: Option<&str>, digest: &str) -> TrackedSource {
 }
 
 fn seed_payload_record(context: &Context, etag: &str, digest: &str) {
+    context
+        .storage()
+        .upsert_game(&GameInstallation::new(
+            GameIdentity::new(game_id(), "Luma tracking", Launcher::Manual).expect("identity"),
+            Platform::Windows,
+            GameRuntime::NativeWindows,
+            path(r"C:\Games\Test"),
+        ))
+        .expect("seed game");
     let record = InstalledAddon::from_parts(
         game_id(),
         AddonKind::Luma,
@@ -249,7 +258,7 @@ fn payload_owned_paths_excludes_host_proxy_and_reshade_ini() {
     )
     .expect("record");
 
-    let payload = payload_owned_paths(&record, &[]);
+    let payload = payload_managed_paths(&record, &[]);
     assert_eq!(payload.len(), 2);
     assert!(payload.iter().any(|p| p.ends_with("Luma-Test.addon")));
     assert!(payload.iter().any(|p| p.ends_with("A.hlsl")));

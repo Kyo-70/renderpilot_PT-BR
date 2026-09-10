@@ -1,8 +1,10 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use renderpilot_application::{InstalledAddonRepository, find_replacement_candidates_indexed};
+use renderpilot_application::{
+    InstalledAddonRepository, OptiScalerStateRepository, find_replacement_candidates_indexed,
+};
 use renderpilot_domain::{GameId, InstalledAddon, LibraryComponent, LibraryTechnology};
 
 use crate::ServiceError;
@@ -70,6 +72,11 @@ pub(super) fn build_snapshot(
         .filter(crate::addons::tool::record_is_active)
         .map(|addon| (addon.game_id().clone(), addon))
         .collect();
+    let optiscaler_installed_game_ids: HashSet<GameId> = storage
+        .list_optiscaler_install_states()?
+        .into_iter()
+        .map(|state| state.game_id)
+        .collect();
     let profile_capabilities =
         crate::addons::capabilities::DurableProfileCapabilities::load(context)?;
     let universe = load_replacement_universe(context)?;
@@ -112,6 +119,7 @@ pub(super) fn build_snapshot(
         let ui_state = ui_states.get(game.id().as_str());
         let profile = profile_capabilities.capabilities_for(game.id());
         let installed_kind = installed_records.get(game.id()).map(InstalledAddon::kind);
+        let optiscaler_installed = optiscaler_installed_game_ids.contains(game.id());
         let (operation_count, last_operation_status) = operations_by_game
             .remove(game.id())
             .map(|(count, latest)| (count, latest.map(|(_, status)| status)))
@@ -126,7 +134,11 @@ pub(super) fn build_snapshot(
             last_operation_status,
             is_favorite: ui_state.is_some_and(|state| state.is_favorite),
             is_hidden: ui_state.is_some_and(|state| state.is_hidden),
-            addon_capabilities: merge_addon_capabilities(&profile, installed_kind),
+            addon_capabilities: merge_addon_capabilities(
+                &profile,
+                installed_kind,
+                optiscaler_installed,
+            ),
             title_search_key: game.identity().title().to_lowercase(),
             library_tags: metrics.library_tags,
             component_count: metrics.component_count,

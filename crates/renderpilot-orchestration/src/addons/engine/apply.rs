@@ -8,6 +8,9 @@ use super::helpers;
 use super::{Action, InstallChanges};
 use crate::ServiceError;
 
+mod peer;
+pub(crate) use peer::{PeerMutationPreflight, apply_peer_mutation, preflight_peer_mutation};
+
 pub(crate) fn apply_ops(
     game_dir: &Path,
     ops: &[super::FileOp],
@@ -223,7 +226,10 @@ pub(crate) fn ensure_parent_dirs(
 
     for dir in missing.into_iter().rev() {
         fs::create_dir(&dir).map_err(|error| errors::io("create directory", &dir, &error))?;
-        changes.actions.push(Action::CreatedDir(dir));
+        changes.actions.push(Action::CreatedDir {
+            path: dir,
+            identity: None,
+        });
     }
     Ok(())
 }

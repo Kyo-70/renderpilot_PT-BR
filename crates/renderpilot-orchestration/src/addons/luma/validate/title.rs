@@ -68,10 +68,7 @@ fn validate_guidance(title: &LumaTitle) -> Result<(), ServiceError> {
     for guidance in &title.guidance {
         ensure_not_blank("guidance id", &guidance.id)?;
         ensure_not_blank("guidance fallback_text", &guidance.fallback_text)?;
-        let needs_code = matches!(
-            guidance.kind,
-            LumaGuidanceKind::EngineIni | LumaGuidanceKind::LaunchArgument
-        );
+        let needs_code = guidance.kind == LumaGuidanceKind::EngineIni;
         if needs_code != guidance.code.is_some() {
             return Err(errors::failed(format!(
                 "title `{}` guidance `{}` {} include code",

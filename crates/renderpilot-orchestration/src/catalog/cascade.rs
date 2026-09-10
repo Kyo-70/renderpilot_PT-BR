@@ -12,7 +12,7 @@ use renderpilot_application::{
 };
 use renderpilot_domain::{
     ComponentFile, ComponentId, ComponentRollbackBaseline, GameId, LibraryComponent,
-    component_version_report, fsr,
+    PeerCatalogDeletedBaseline, PeerCatalogRollbackClaim, component_version_report,
 };
 use renderpilot_storage_sqlite::SqliteStorage;
 
@@ -28,14 +28,69 @@ pub(crate) struct ValidatedRollbackPlan {
     rollback_baseline: ComponentRollbackBaseline,
 }
 
-/// Named result of [`cascade_for_owned_paths`].
+/// Named result of [`cascade_for_managed_paths`].
+#[derive(Debug)]
 pub(crate) struct CascadeResult {
     pub(crate) rollback_specs: Vec<ValidatedRollbackPlan>,
+    catalog_claim: Option<PeerCatalogRollbackClaim>,
     pub(crate) next_components: Vec<LibraryComponent>,
     pub(crate) mutation_paths: Vec<PathBuf>,
 }
 
+impl CascadeResult {
+    #[cfg(test)]
+    pub(crate) fn empty_for_test() -> Self {
+        Self {
+            rollback_specs: Vec::new(),
+            catalog_claim: None,
+            next_components: Vec::new(),
+            mutation_paths: Vec::new(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_parts_for_test(
+        rollback_specs: Vec<ValidatedRollbackPlan>,
+        catalog_claim: Option<PeerCatalogRollbackClaim>,
+        next_components: Vec<LibraryComponent>,
+    ) -> Self {
+        Self {
+            mutation_paths: cascade_mutation_paths(&rollback_specs),
+            rollback_specs,
+            catalog_claim,
+            next_components,
+        }
+    }
+
+    /// Returns the exact durable catalog rollback claim, when this cascade
+    /// selected one or more persisted component baselines.
+    pub(crate) fn catalog_claim(&self) -> Option<&PeerCatalogRollbackClaim> {
+        self.catalog_claim.as_ref()
+    }
+}
+
 impl ValidatedRollbackPlan {
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        component: LibraryComponent,
+        rollback_baseline: ComponentRollbackBaseline,
+    ) -> Self {
+        Self {
+            component,
+            rollback_baseline,
+        }
+    }
+
+    /// Returns the selected active component file projection.
+    pub(crate) fn current_files(&self) -> &[ComponentFile] {
+        self.component.files()
+    }
+
+    /// Returns the selected immutable rollback file projection.
+    pub(crate) fn baseline_files(&self) -> &[ComponentFile] {
+        self.rollback_baseline.files()
+    }
+
     pub(crate) fn component_id(&self) -> &ComponentId {
         self.component.id()
     }
@@ -45,24 +100,36 @@ impl ValidatedRollbackPlan {
         self.component
             .files()
             .iter()
-            .chain(self.rollback_baseline.files())
+            .chain(self.baseline_files())
             .any(|file| crate::paths::normalized_key(Path::new(file.path().as_str())) == path)
-    }
-
-    fn files(&self) -> &[ComponentFile] {
-        self.rollback_baseline.files()
     }
 }
 
-/// Selects whole component bundles when any active member intersects an owned path.
-pub(crate) fn cascade_rollback_specs(
+struct SelectedCascade {
+    rollback_specs: Vec<ValidatedRollbackPlan>,
+    catalog_claim: Option<PeerCatalogRollbackClaim>,
+    next_components: Vec<LibraryComponent>,
+}
+
+/// Reads the persisted catalog projection once and derives both the durable
+/// claim and the filesystem-facing rollback specs from that same snapshot.
+///
+/// The rollback specs deliberately retain freshly validated filesystem images;
+/// those observations are never used to build the durable claim.
+fn select_cascade(
     storage: &SqliteStorage,
     game_id: &GameId,
     owned_paths: &[PathBuf],
-) -> AppResult<Vec<ValidatedRollbackPlan>> {
+) -> AppResult<SelectedCascade> {
+    let persisted_components = storage.list_components_for_game(game_id)?;
     if owned_paths.is_empty() {
-        return Ok(Vec::new());
+        return Ok(SelectedCascade {
+            rollback_specs: Vec::new(),
+            catalog_claim: None,
+            next_components: persisted_components,
+        });
     }
+
     let game_root = crate::catalog::game_root_for_mutation(
         storage,
         game_id,
@@ -77,15 +144,21 @@ pub(crate) fn cascade_rollback_specs(
         .iter()
         .map(|path| crate::paths::normalized_key(path))
         .collect();
+    let mut persisted_baselines = storage.component_backups_for_game(game_id)?;
     let mut specs = Vec::new();
-    for component in storage.list_components_for_game(game_id)? {
-        let Some(baseline) =
-            crate::coordinated_files::load_component_backup_availability(storage, &component)?
-                .into_available()
-        else {
+    let mut deleted_baselines = Vec::new();
+    for persisted_component in &persisted_components {
+        let Some(recorded_baseline) = persisted_baselines.remove(persisted_component.id()) else {
             continue;
         };
-        let intersects = component
+        let Some(baseline) = crate::coordinated_files::classify_component_backup(
+            Some(recorded_baseline.clone()),
+            persisted_component.files(),
+        )
+        .into_available() else {
+            continue;
+        };
+        let intersects = persisted_component
             .files()
             .iter()
             .chain(baseline.files())
@@ -95,18 +168,20 @@ pub(crate) fn cascade_rollback_specs(
             if baseline.d3d12_executable().is_some() {
                 return Err(AppError::invalid_input(format!(
                     "component {} has auxiliary rollback state; fully roll it back before an add-on can consume its managed files",
-                    component.id().as_str()
+                    persisted_component.id().as_str()
                 )));
             }
-            let component =
-                crate::coordinated_files::current_component_snapshot(&component, &managed_files)
-                    .map_err(|error| {
-                        AppError::invalid_input(format!(
-                            "cannot validate active component {} for cascade rollback: {error}",
-                            component.id().as_str()
-                        ))
-                    })?
-                    .into_component();
+            let component = crate::coordinated_files::current_component_snapshot(
+                persisted_component,
+                &managed_files,
+            )
+            .map_err(|error| {
+                AppError::invalid_input(format!(
+                    "cannot validate active component {} for cascade rollback: {error}",
+                    persisted_component.id().as_str()
+                ))
+            })?
+            .into_component();
             let resolved_files = crate::coordinated_files::resolve_component_baseline(
                 &game_root,
                 component.technology(),
@@ -121,44 +196,42 @@ pub(crate) fn cascade_rollback_specs(
                 ))
             })?;
             let rollback_baseline = ComponentRollbackBaseline::new(resolved_files);
+            deleted_baselines.push(PeerCatalogDeletedBaseline::new(
+                persisted_component.id().clone(),
+                recorded_baseline,
+            ));
             specs.push(ValidatedRollbackPlan {
                 component,
                 rollback_baseline,
             });
         }
     }
-    Ok(specs)
-}
 
-pub(crate) fn cascade_next_components(
-    storage: &SqliteStorage,
-    game_id: &GameId,
-    specs: &[ValidatedRollbackPlan],
-) -> AppResult<Vec<LibraryComponent>> {
-    let mut components = storage.list_components_for_game(game_id)?;
-    for spec in specs {
-        if spec.files().is_empty() {
-            components.retain(|component| component.id() != spec.component.id());
-            continue;
-        }
-        let mut restored = spec.files().to_vec();
-        fsr::sort_representative_first(&mut restored);
-        let rebuilt = spec.component.rebuild_with_files(restored);
-        if let Some(component) = components
-            .iter_mut()
-            .find(|component| component.id() == rebuilt.id())
-        {
-            *component = rebuilt;
-        }
+    if deleted_baselines.is_empty() {
+        return Ok(SelectedCascade {
+            rollback_specs: specs,
+            catalog_claim: None,
+            next_components: persisted_components,
+        });
     }
-    Ok(components)
+
+    let catalog_claim = PeerCatalogRollbackClaim::new(persisted_components, deleted_baselines)
+        .map_err(|error| {
+            AppError::invalid_input(format!("cannot build catalog cascade claim: {error}"))
+        })?;
+    let next_components = catalog_claim.after_components().to_vec();
+    Ok(SelectedCascade {
+        rollback_specs: specs,
+        catalog_claim: Some(catalog_claim),
+        next_components,
+    })
 }
 
 pub(crate) fn cascade_mutation_paths(specs: &[ValidatedRollbackPlan]) -> Vec<PathBuf> {
     crate::catalog::execute::mutation_paths_from_component_files(
         specs
             .iter()
-            .flat_map(|spec| spec.component.files().iter().chain(spec.files())),
+            .flat_map(|spec| spec.current_files().iter().chain(spec.baseline_files())),
     )
 }
 
@@ -172,24 +245,24 @@ pub(crate) fn cascade_mutation_paths(specs: &[ValidatedRollbackPlan]) -> Vec<Pat
 ///   [`crate::addons::luma::dlss::cascade_for_disappearing_owned`]
 /// - mutation-path snapshotting may intentionally use a wider owned set than
 ///   the apply-time cascade plan
-pub(crate) fn cascade_for_owned_paths(
+pub(crate) fn cascade_for_managed_paths(
     storage: &SqliteStorage,
     game_id: &GameId,
     owned_paths: &[PathBuf],
 ) -> AppResult<CascadeResult> {
-    let rollback_specs = cascade_rollback_specs(storage, game_id, owned_paths)?;
-    let next_components = cascade_next_components(storage, game_id, &rollback_specs)?;
-    let mutation_paths = cascade_mutation_paths(&rollback_specs);
+    let selected = select_cascade(storage, game_id, owned_paths)?;
+    let mutation_paths = cascade_mutation_paths(&selected.rollback_specs);
     Ok(CascadeResult {
-        rollback_specs,
-        next_components,
+        rollback_specs: selected.rollback_specs,
+        catalog_claim: selected.catalog_claim,
+        next_components: selected.next_components,
         mutation_paths,
     })
 }
 
 pub(crate) fn apply_cascade_rollback_fs(specs: &[ValidatedRollbackPlan]) -> AppResult<()> {
     for spec in specs {
-        revert_to_baseline_fs(spec.component.files(), spec.files())?;
+        revert_to_baseline_fs(spec.current_files(), spec.baseline_files())?;
     }
     Ok(())
 }
@@ -218,99 +291,18 @@ pub(crate) fn record_cascade_rollback_journal(
 }
 
 fn cascade_rollback_to_version(spec: &ValidatedRollbackPlan) -> String {
-    component_version_report(spec.files(), spec.component.technology())
+    component_version_report(spec.baseline_files(), spec.component.technology())
         .known_version()
         .map(|version| version.as_str().to_owned())
         .unwrap_or_else(|| ROLLBACK_TARGET_LABEL.to_owned())
 }
 
 fn cascade_rollback_journal_items(spec: &ValidatedRollbackPlan) -> Vec<JournalEntryItem<'_>> {
-    spec.files()
+    spec.baseline_files()
         .iter()
         .map(|file| JournalEntryItem::component_file(file.path(), None))
         .collect()
 }
 
 #[cfg(test)]
-mod tests {
-    use renderpilot_application::{ComponentRepository, GameRepository};
-    use renderpilot_domain::{
-        ComponentFile, ComponentId, ComponentKind, ComponentRollbackBaseline,
-        D3d12ExecutableBaseline, D3d12ExecutableIdentity, GameId, GameIdentity, GameInstallation,
-        GameRuntime, Launcher, LibraryComponent, LibraryTechnology, PathRef, Platform,
-        Swappability,
-    };
-    use renderpilot_storage_sqlite::SqliteStorage;
-
-    use super::cascade_rollback_specs;
-
-    #[test]
-    fn cascade_never_consumes_a_component_with_auxiliary_rollback_state() {
-        let root = tempfile::tempdir().expect("root");
-        let runtime = root.path().join("D3D12Core.dll");
-        let executable = root.path().join("game.exe");
-        std::fs::write(&runtime, b"original runtime").expect("runtime");
-        std::fs::write(&executable, b"original executable").expect("executable");
-
-        let game = GameInstallation::new(
-            GameIdentity::new(
-                GameId::new("manual:cascade-d3d12").expect("game id"),
-                "Cascade D3D12",
-                Launcher::Manual,
-            )
-            .expect("identity"),
-            Platform::Windows,
-            GameRuntime::NativeWindows,
-            path_ref(root.path()),
-        )
-        .with_executable_candidate(path_ref(&executable));
-        let component_id = ComponentId::new("component:cascade-d3d12").expect("component id");
-        let runtime_file = ComponentFile::new(path_ref(&runtime))
-            .with_sha256(renderpilot_detection::sha256_file(&runtime).expect("runtime hash"));
-        let component = LibraryComponent::new(
-            component_id.clone(),
-            game.id().clone(),
-            ComponentKind::NativeLibrary,
-            LibraryTechnology::D3D12Agility,
-            Swappability::Swappable,
-        )
-        .with_file(runtime_file.clone());
-        let executable_hash =
-            renderpilot_detection::sha256_file(&executable).expect("executable hash");
-        let baseline = ComponentRollbackBaseline::new(vec![runtime_file]).with_d3d12_executable(
-            D3d12ExecutableBaseline::new(
-                path_ref(&executable),
-                D3d12ExecutableIdentity::new(606, executable_hash.clone()),
-                D3d12ExecutableIdentity::new(606, executable_hash),
-            ),
-        );
-
-        let storage = SqliteStorage::in_memory().expect("storage");
-        storage.upsert_game(&game).expect("game");
-        storage
-            .replace_components_for_game(game.id(), std::slice::from_ref(&component))
-            .expect("component");
-        storage
-            .recover_component_rollback_baseline(game.id(), &component_id, &baseline)
-            .expect("baseline");
-
-        let error = cascade_rollback_specs(&storage, game.id(), &[runtime])
-            .expect_err("cascade must not discard auxiliary state");
-        assert!(
-            error.message().contains("fully roll it back"),
-            "unexpected error: {error}"
-        );
-        assert_eq!(
-            storage
-                .get_component_backup(&component_id)
-                .expect("query")
-                .as_ref(),
-            Some(&baseline),
-            "rejected cascade must preserve the complete aggregate"
-        );
-    }
-
-    fn path_ref(path: &std::path::Path) -> PathRef {
-        PathRef::new(path.to_string_lossy().into_owned()).expect("path")
-    }
-}
+mod tests;

@@ -318,7 +318,7 @@ fn rollback_orphaned_component_locked(
             drop(executable_guard.take());
             result
         },
-        |_| {},
+        |()| {},
         || {},
     )
 }

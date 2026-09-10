@@ -39,7 +39,7 @@ impl CatalogMessage {
 
 /// Private v1 wire counterpart. Runtime and DTO code only sees
 /// [`CatalogMessage`].
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct WireCatalogMessage {
     pub(crate) id: String,

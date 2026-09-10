@@ -27,6 +27,16 @@ impl CatalogPathClaim {
         self.baseline.as_ref()
     }
 
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        active_hashes: Vec<Sha256Hash>,
+        baseline: Option<ManagedFileBaseline>,
+    ) -> Self {
+        Self {
+            active_hashes,
+            baseline,
+        }
+    }
 }
 
 /// Returns the managed-file bindings of an optional installed-addon record,

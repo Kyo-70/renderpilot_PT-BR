@@ -110,6 +110,11 @@ jobs:
         # Clippy above still denies Rust warnings for every test target.
         env:
           CARGO_BUILD_WARNINGS: ${{ runner.os == 'Windows' && 'warn' || 'deny' }}
+          # Windows hosted runners expose the system temp directory through a
+          # DOS 8.3 alias. Use the runner-owned long path so temporary test
+          # fixtures and canonical filesystem paths share one spelling.
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
 
       # Nextest does not run Rust documentation tests, so preserve them as a
       # separate Cargo gate on every supported CI platform.

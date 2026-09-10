@@ -5,6 +5,7 @@ use crate::Context;
 use crate::ServiceError;
 
 use crate::addons::availability_pipeline::{self, AvailabilityPreflight};
+use crate::addons::engine;
 use crate::addons::matching::MatchFacts;
 use crate::addons::renodx::dto::availability::*;
 use crate::addons::renodx::game_context::analyze_and_resolve;
@@ -78,7 +79,7 @@ fn build_report(
         blocked,
         analysis,
         resolution,
-        roots: _,
+        roots: install_roots,
     } = preflight;
     let _game = game;
     let host_report =
@@ -88,6 +89,9 @@ fn build_report(
         .as_ref()
         .map(tracking::install_state_from_record)
         .unwrap_or(RenoDxInstallState::NotInstalled);
+    let install_torn = install_roots
+        .as_ref()
+        .is_some_and(|roots| engine::is_install_torn(roots.sentinel_dir(), AddonKind::RenoDx));
 
     // The manual file-install escape hatch would let a user bypass the
     // exclusivity block by hand-installing RenoDX anyway; withhold it too. Must
@@ -142,6 +146,7 @@ fn build_report(
         actions: host_report.actions,
         reshade_stable_supported: reshade_sources.supports_channel(ReshadeChannel::Stable),
         renodx_addon: host_report.addon,
+        install_torn,
         outcome,
         manual_install,
         vulkan_layer: vulkan::layer_report(),

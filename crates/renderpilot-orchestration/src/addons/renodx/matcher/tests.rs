@@ -31,7 +31,6 @@ fn facts() -> MatchFacts {
         launcher: Launcher::Steam,
         external_id: Some("1091500".to_owned()),
         exe_file_name: Some("Cyberpunk2077.exe".to_owned()),
-        exe_sha256: None,
         engine: None,
         graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
     }

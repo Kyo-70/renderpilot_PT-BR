@@ -160,7 +160,7 @@ pub(crate) fn run_uninstall_workset(
                 paths,
             },
             |mutation_id| apply_and_commit(Some(mutation_id)),
-            |_| on_committed(),
+            |()| on_committed(),
             || {},
         ),
         DurableWorkset::MetadataOnly => {
@@ -195,7 +195,7 @@ pub(crate) fn finish_sentinel_mutation(
         .commit_or_rollback(
             context.storage(),
             || result,
-            |_| {
+            |()| {
                 if let Some(sentinel) = sentinel.borrow_mut().take() {
                     sentinel.finish_committed();
                 }

@@ -9,6 +9,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::addons::ini::Ini;
+
 use super::paths::{resolve_config_path, resolve_paths, split_ini_list};
 use crate::paths::same_path;
 
@@ -54,7 +56,7 @@ pub(crate) fn assess_reshade_content(
     let paths = resolve_paths(game_dir, None);
     let ini = match paths.ini_path.as_deref() {
         Some(path) => match fs::read_to_string(path) {
-            Ok(text) => Some(crate::addons::ini::Ini::parse(&text)),
+            Ok(text) => Some(Ini::parse(&text)),
             Err(error) => {
                 log::debug!(
                     "ReShade content scan: failed to read `{}`: {error}",
@@ -66,6 +68,27 @@ pub(crate) fn assess_reshade_content(
         None => None,
     };
 
+    assess_reshade_content_with_paths(game_dir, &paths, ini.as_ref(), allowed_addon_names)
+}
+
+/// Classifies content using paths and the already parsed configuration held by
+/// a strict snapshot. This performs only the remaining filesystem observations;
+/// it never discovers, reads, or reparses `ReShade.ini`.
+pub(crate) fn assess_reshade_content_from_snapshot(
+    game_dir: &Path,
+    paths: &super::paths::ReshadePaths,
+    ini: Option<&Ini>,
+    allowed_addon_names: &[&str],
+) -> ReshadeContent {
+    assess_reshade_content_with_paths(game_dir, paths, ini, allowed_addon_names)
+}
+
+fn assess_reshade_content_with_paths(
+    game_dir: &Path,
+    paths: &super::paths::ReshadePaths,
+    ini: Option<&Ini>,
+    allowed_addon_names: &[&str],
+) -> ReshadeContent {
     let mut roots = standard_effect_roots(game_dir);
     if !same_path(game_dir, &paths.effective_base_path) {
         roots.extend(standard_effect_roots(&paths.effective_base_path));

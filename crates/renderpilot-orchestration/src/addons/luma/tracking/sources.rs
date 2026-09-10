@@ -1,15 +1,12 @@
 use renderpilot_domain::{AddonKind, InstalledAddon, TrackedSource, TrackedSourceRole};
 
-use renderpilot_application::InstalledAddonRepository;
-
 use crate::Context;
 use crate::addons::luma::fetch::types::LumaPayload;
 use crate::addons::records::{self, source_with_role};
 use crate::addons::tracking;
 use crate::game_mutation_lock;
+use crate::game_mutation_lock::GameMutationGuard;
 use crate::net::{HttpValidators, head_validators};
-
-use super::rebuild;
 
 /// Non-HTTP sentinel stored in `last_modified` when a deep advisory check found
 /// Available but the ZIP response carried no ETag/Last-Modified. Dual-uses the
@@ -171,10 +168,11 @@ pub(crate) fn payload_needs_provenance_bind(record: &InstalledAddon) -> bool {
 /// validated ZIP, promote the stored AddonPayload source to real ZIP provenance
 /// so later passive probes use HEAD/ETag without re-downloading.
 ///
-/// Passive probes reach here only when elevated for DB-loss recovery. Failures
+/// Passive probes reach here only when elevated for metadata refresh. Failures
 /// are logged and ignored — callers already returned `Current`. Holds the
-/// per-game `game_mutation_lock` while reloading and upserting. Skips
-/// `recover_pending` (DB-only, not a file mutation).
+/// per-game `game_mutation_lock` while reloading and committing through the
+/// guard-bound metadata facade. Unresolved durable rows remain storage CAS
+/// blockers; this path does not perform hidden recovery.
 ///
 /// `still_current` re-validates the reloaded advisory source against `payload`.
 pub(crate) async fn try_promote_advisory_payload(
@@ -184,7 +182,7 @@ pub(crate) async fn try_promote_advisory_payload(
     payload: &LumaPayload,
     still_current: impl FnOnce(&TrackedSource, &LumaPayload) -> bool,
 ) {
-    let _guard = game_mutation_lock::lock(game_id).await;
+    let guard = game_mutation_lock::lock(game_id).await;
     let Some(current) = reload_advisory_payload(context, game_id, advisory_digest) else {
         return;
     };
@@ -200,6 +198,7 @@ pub(crate) async fn try_promote_advisory_payload(
     persist_rebuilt(
         context,
         game_id,
+        &guard,
         &current,
         sources,
         resolved_addon_version(&current, payload),
@@ -215,7 +214,7 @@ pub(crate) async fn try_mark_advisory_payload_checked(
     advisory_digest: &str,
     payload: &LumaPayload,
 ) {
-    let _guard = game_mutation_lock::lock(game_id).await;
+    let guard = game_mutation_lock::lock(game_id).await;
     let Some(current) = reload_advisory_payload(context, game_id, advisory_digest) else {
         return;
     };
@@ -231,6 +230,7 @@ pub(crate) async fn try_mark_advisory_payload_checked(
     persist_rebuilt(
         context,
         game_id,
+        &guard,
         &current,
         sources,
         resolved_addon_version(&current, payload),
@@ -252,7 +252,7 @@ pub(crate) async fn try_refresh_payload_validators(
     expected_digest: &str,
     payload: &LumaPayload,
 ) {
-    let _guard = game_mutation_lock::lock(game_id).await;
+    let guard = game_mutation_lock::lock(game_id).await;
     let Some(current) = load_luma_record(context, game_id, "payload validator refresh") else {
         return;
     };
@@ -278,6 +278,7 @@ pub(crate) async fn try_refresh_payload_validators(
     persist_rebuilt(
         context,
         game_id,
+        &guard,
         &current,
         sources,
         version,
@@ -315,12 +316,13 @@ fn reload_advisory_payload(
 fn persist_rebuilt(
     context: &Context,
     game_id: &renderpilot_domain::GameId,
+    guard: &GameMutationGuard,
     current: &InstalledAddon,
     sources: Vec<TrackedSource>,
     addon_version: Option<String>,
     label: &str,
 ) {
-    let refreshed = match rebuild(
+    let refreshed = match super::rebuild_metadata(
         current,
         tracking::RebuildParts {
             addon_file: current.addon_file().clone(),
@@ -338,7 +340,9 @@ fn persist_rebuilt(
             return;
         }
     };
-    if let Err(error) = context.storage().upsert_installed_addon(&refreshed) {
+    if let Err(error) =
+        crate::addons::luma::peer::commit_metadata(context, guard, current, &refreshed)
+    {
         log::warn!("Luma {label}: failed to persist for `{game_id}`: {error}");
     }
 }

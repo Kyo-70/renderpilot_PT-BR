@@ -18,12 +18,24 @@ use super::scan::{
     SlotActivity,
 };
 
+mod topology;
+#[cfg(test)]
+pub(crate) use topology::assess_topology_downstream_for_tool;
+pub(crate) use topology::{
+    TopologyHostAssessment, assess_topology_downstream_from_snapshot, probe_topology_host_download,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HostConflictKind {
     MultipleHosts,
     InactiveSlot,
     WeakIdentity,
     KnownCustomBuild,
+}
+
+struct AbsentHostTarget<'a> {
+    path: PathBuf,
+    slot: &'a str,
 }
 
 /// First-install ownership decision for a proxy ReShade runtime.
@@ -65,7 +77,7 @@ impl HostLifecycle {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HostAssessment {
     pub host: ReshadeHost,
     pub conflict: bool,
@@ -171,6 +183,11 @@ impl HostAssessment {
 
         Ok(())
     }
+
+    #[must_use]
+    pub(crate) fn content(&self) -> ReshadeContent {
+        self.content
+    }
 }
 
 /// RenoDX-shaped assessment: tool name "RenoDX", no minimum host version.
@@ -221,7 +238,6 @@ pub(super) fn assess_scan_with_allowed_addons(
 ) -> HostAssessment {
     let multiple_hosts = scan.has_multiple_reshade_hosts();
     let host = scan.primary_host();
-    let mut action = scan::host_action(&host);
     let present = host.as_present();
 
     // Checked first, ahead of every other conflict kind: a recognized custom
@@ -246,9 +262,66 @@ pub(super) fn assess_scan_with_allowed_addons(
         None
     };
 
+    finish_assessment(
+        game_dir,
+        AbsentHostTarget {
+            path: game_dir.join(proxy_dll_name),
+            slot: proxy_dll_name,
+        },
+        host,
+        conflict_kind,
+        tool_name,
+        min_host_version,
+        allowed_addon_names,
+    )
+}
+
+fn finish_assessment(
+    game_dir: &Path,
+    absent: AbsentHostTarget<'_>,
+    host: ReshadeHost,
+    conflict_kind: Option<HostConflictKind>,
+    tool_name: &'static str,
+    min_host_version: Option<&Version>,
+    allowed_addon_names: &[&str],
+) -> HostAssessment {
+    let content = if conflict_kind.is_none() {
+        scan::assess_reshade_content(game_dir, allowed_addon_names)
+    } else {
+        ReshadeContent::Indeterminate
+    };
+    finish_assessment_with_content(
+        absent.path,
+        absent.slot,
+        host,
+        conflict_kind,
+        tool_name,
+        min_host_version,
+        content,
+    )
+}
+
+/// Finishes a host decision from an already retained content classification.
+///
+/// The ordinary folder route above obtains `content` from the filesystem. Active
+/// topology operations call this pure core with content captured during their
+/// sealed observation phase, so the phase-3 decision never rereads
+/// `ReShade.ini` or any effect directory.
+fn finish_assessment_with_content(
+    absent_target_path: PathBuf,
+    absent_slot: &str,
+    host: ReshadeHost,
+    conflict_kind: Option<HostConflictKind>,
+    tool_name: &'static str,
+    min_host_version: Option<&Version>,
+    content: ReshadeContent,
+) -> HostAssessment {
+    let mut action = scan::host_action(&host);
+    let present = host.as_present();
+
     // Minimum-version gate: only when there is no conflict and the host would
-    // otherwise be reused as-is. The initial lifecycle below decides whether an
-    // under-min host is empty enough to repair safely.
+    // otherwise be reused as-is. The initial lifecycle below decides whether
+    // an under-min host is empty enough to repair safely.
     if conflict_kind.is_none()
         && action == ReshadeHostAction::UpToDate
         && let Some(min) = min_host_version
@@ -263,15 +336,10 @@ pub(super) fn assess_scan_with_allowed_addons(
 
     let target_path = present
         .map(|host| host.path.to_path_buf())
-        .unwrap_or_else(|| game_dir.join(proxy_dll_name));
+        .unwrap_or(absent_target_path);
     let slot = present
         .map(|host| host.slot.to_owned())
-        .unwrap_or_else(|| proxy_dll_name.to_owned());
-    let content = if conflict_kind.is_none() {
-        scan::assess_reshade_content(game_dir, allowed_addon_names)
-    } else {
-        ReshadeContent::Indeterminate
-    };
+        .unwrap_or_else(|| absent_slot.to_owned());
     let lifecycle = if conflict_kind.is_some() || action == ReshadeHostAction::Conflict {
         HostLifecycle::Conflict
     } else if present.is_none() {

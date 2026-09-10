@@ -106,7 +106,15 @@ impl D3d12ExecutableMutationGuard {
                 "D3D12 executable backup is unavailable for rollback",
             ));
         }
-        if state.current_sha256 != state.original_sha256 {
+        if state.current_sha256 == state.original_sha256 {
+            verify_bytes(
+                state,
+                &read_locked(&mut self.live, &state.executable_path)?,
+                &state.original_sha256,
+                state.original_sdk_version,
+                "restored D3D12 executable verification failed",
+            )?;
+        } else {
             let export = renderpilot_detection::pe_exported_u32_from_bytes(
                 &self.original_bytes,
                 D3D12_SDK_VERSION_EXPORT,
@@ -129,15 +137,7 @@ impl D3d12ExecutableMutationGuard {
             self.write_sdk_field_at_and_verify(
                 state,
                 export.file_offset,
-                &sdk_bytes,
-                &state.original_sha256,
-                state.original_sdk_version,
-                "restored D3D12 executable verification failed",
-            )?;
-        } else {
-            verify_bytes(
-                state,
-                &read_locked(&mut self.live, &state.executable_path)?,
+                sdk_bytes,
                 &state.original_sha256,
                 state.original_sdk_version,
                 "restored D3D12 executable verification failed",
@@ -164,9 +164,7 @@ impl D3d12ExecutableMutationGuard {
             D3D12_SDK_VERSION_EXPORT,
         )
         .ok_or_else(|| {
-            AppError::invalid_input(
-                "original executable has no unique inline D3D12SDKVersion export",
-            )
+            AppError::invalid_input("target executable has no unique inline D3D12SDKVersion export")
         })?;
         let end = export
             .file_offset
@@ -180,7 +178,7 @@ impl D3d12ExecutableMutationGuard {
         self.write_sdk_field_at_and_verify(
             state,
             export.file_offset,
-            &sdk_bytes,
+            sdk_bytes,
             &expected_sha256,
             target_sdk_version,
             failure,
@@ -191,15 +189,15 @@ impl D3d12ExecutableMutationGuard {
         &mut self,
         state: &D3d12ExecutableState,
         file_offset: usize,
-        sdk_bytes: &[u8; 4],
+        sdk_bytes: [u8; 4],
         expected_sha256: &Sha256Hash,
         target_sdk_version: u32,
         failure: &str,
     ) -> AppResult<Sha256Hash> {
         self.live
             .seek(SeekFrom::Start(file_offset as u64))
-            .and_then(|_| self.live.write_all(sdk_bytes))
-            .and_then(|_| self.live.sync_all())
+            .and_then(|_| self.live.write_all(&sdk_bytes))
+            .and_then(|()| self.live.sync_all())
             .map_err(|error| {
                 AppError::provider_failed(format!(
                     "failed to update D3D12 executable {}: {error}",
@@ -280,7 +278,7 @@ fn create_locked_backup_exclusively(path: &std::path::Path, bytes: &[u8]) -> App
             path.display()
         )));
     }
-    if let Err(error) = file.write_all(bytes).and_then(|_| file.sync_all()) {
+    if let Err(error) = file.write_all(bytes).and_then(|()| file.sync_all()) {
         drop(file);
         let _ = std::fs::remove_file(path);
         return Err(AppError::provider_failed(format!(

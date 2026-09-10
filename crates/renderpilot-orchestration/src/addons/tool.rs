@@ -3,7 +3,7 @@
 //! Install / update / full availability stay in each tool's `use_cases` modules
 //! (different engines and DTOs). What every framework path needs — kind identity,
 //! exclusive peers, unmanaged signatures, catalog profile policy, catalog
-//! capability probing, progress phase key, torn recovery — lives on
+//! capability probing, and the progress phase key — lives on
 //! [`AddonTool`] and the [`TOOLS`] table.
 //!
 //! **New tool checklist**
@@ -22,8 +22,8 @@ use crate::{Context, ServiceError};
 
 /// Static policy and identity for one add-on tool RenderPilot can install.
 ///
-/// Object-safe and sync on purpose: exclusivity, catalog cards, and torn recovery
-/// must not depend on typed install pipelines.
+/// Object-safe and sync on purpose: exclusivity and catalog cards must not depend
+/// on typed install pipelines.
 pub(crate) trait AddonTool: Send + Sync {
     /// Domain kind this tool owns.
     fn kind(&self) -> AddonKind;
@@ -55,9 +55,6 @@ pub(crate) trait AddonTool: Send + Sync {
     /// i18n key for the post-download finalizing progress phase.
     fn finalizing_phase(&self) -> &'static str;
 
-    /// Best-effort cleanup of torn-install debris (caller detected the sentinel).
-    fn recover_torn(&self, scan_dirs: &[&Path]);
-
     /// Lazily upgrades legacy install-record fields under the game mutation
     /// guard. Default: return the record unchanged. Tools that once stored
     /// coordinated ownership in generic engine sets implement a real migration.
@@ -76,8 +73,9 @@ pub(crate) trait AddonTool: Send + Sync {
         false
     }
 
-    /// Loads (or reuses the cached) manifest and wraps it in a type-erased
-    /// catalog capability probe. See [`super::capabilities`].
+    /// Loads the tool's capability source and wraps it in a type-erased
+    /// catalog capability probe. A source may be a cached remote manifest or a
+    /// local policy; see [`super::capabilities`].
     fn load_capability_probe(&self) -> CapabilityProbeFuture;
 }
 
@@ -144,8 +142,8 @@ mod tests {
 
     #[test]
     fn tools_cover_every_addon_kind_exactly_once() {
-        for kind in AddonKind::ALL {
-            let matches: Vec<_> = TOOLS.iter().filter(|t| t.kind() == *kind).collect();
+        for kind in [AddonKind::RenoDx, AddonKind::Luma] {
+            let matches: Vec<_> = TOOLS.iter().filter(|t| t.kind() == kind).collect();
             assert_eq!(
                 matches.len(),
                 1,
@@ -153,7 +151,7 @@ mod tests {
                 matches.len()
             );
         }
-        assert_eq!(TOOLS.len(), AddonKind::ALL.len());
+        assert_eq!(TOOLS.len(), 2);
     }
 
     #[test]

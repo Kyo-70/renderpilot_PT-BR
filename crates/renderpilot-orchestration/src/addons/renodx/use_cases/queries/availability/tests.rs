@@ -25,7 +25,6 @@ fn directx_facts() -> MatchFacts {
         launcher: Launcher::Steam,
         external_id: Some("1091500".to_owned()),
         exe_file_name: Some("game.exe".to_owned()),
-        exe_sha256: None,
         engine: None,
         graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D11], Some(Architecture::X64))
             .with_graphics_dlls(vec!["dxgi.dll".to_owned()]),
@@ -69,6 +68,60 @@ fn manual_install_can_be_offered_for_matched_incompatible_directx_games() {
     );
 
     assert!(report.is_some());
+}
+
+#[test]
+#[cfg(windows)]
+fn availability_reports_the_framework_install_sentinel() {
+    let db_dir = tempdir().expect("db dir");
+    let game_dir = tempdir().expect("game dir");
+    let context = Context::open_at(db_dir.path().join("catalog.sqlite")).expect("context");
+    let game_id = GameId::new("steam:1091599").expect("game id");
+    let exe_path = game_dir.path().join("Game.exe");
+    std::fs::write(
+        &exe_path,
+        build_pe_with_exports(MACHINE_AMD64, PE32_PLUS_MAGIC, &[]),
+    )
+    .expect("write exe");
+
+    let identity = GameIdentity::new(game_id.clone(), "RenoDX Sentinel", Launcher::Steam)
+        .expect("identity")
+        .with_external_id("1091599")
+        .expect("external id");
+    let game = GameInstallation::new(
+        identity,
+        Platform::Windows,
+        GameRuntime::NativeWindows,
+        PathRef::new(game_dir.path().to_string_lossy().replace('\\', "/")).expect("install path"),
+    )
+    .with_executable_candidate(
+        PathRef::new(exe_path.to_string_lossy().replace('\\', "/")).expect("exe path"),
+    );
+    context.storage().upsert_game(&game).expect("seed game");
+
+    let manifest = manifest(vec![title(
+        "sentinel",
+        "sentinel",
+        Architecture::X64,
+        crate::addons::renodx::types::Status::Working,
+        vec![rule(
+            crate::addons::renodx::types::MatchKind::SteamAppid,
+            "1091599",
+            100,
+        )],
+    )]);
+    let reshade_sources = crate::addons::renodx::test_support::reshade_sources();
+    let marker = game_dir.path().join("renderpilot-renodx-install.lock");
+    std::fs::write(&marker, b"").expect("write sentinel");
+
+    let torn =
+        availability(&context, &manifest, &reshade_sources, &game_id).expect("torn availability");
+    assert!(torn.install_torn);
+
+    std::fs::remove_file(marker).expect("remove sentinel");
+    let clean =
+        availability(&context, &manifest, &reshade_sources, &game_id).expect("clean availability");
+    assert!(!clean.install_torn);
 }
 
 #[tokio::test]

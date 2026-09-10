@@ -22,7 +22,15 @@ use crate::{Context, ServiceError};
 /// mutation.
 pub fn uninstall(context: &Context, game_id: &GameId) -> Result<(), ServiceError> {
     let guard = crate::mutation_boundary::enter_game_mutation_boundary(context, game_id)?;
-    uninstall_locked(context, &guard, game_id)
+    crate::addons::luma::dependency::ensure_uninstall_allowed(context, game_id)?;
+    uninstall_locked(context, &guard, game_id)?;
+    drop(guard);
+
+    if let Err(error) = crate::catalog::refresh_game_components_sync(context, game_id) {
+        log::warn!("failed to refresh game components after Luma uninstall: {error}");
+    }
+
+    Ok(())
 }
 
 /// Uninstalls Luma while a compound operation owns the game mutation boundary.
@@ -36,18 +44,25 @@ pub(crate) fn uninstall_locked(
             "Luma uninstall guard does not match the requested game",
         ));
     }
-    let plan = plan::plan_uninstall(context, game_id)?;
-    let plan::UninstallPlan { apply, workset } = plan;
-
-    crate::addons::durable::run_uninstall_workset(
-        crate::addons::durable::UninstallWorkset {
-            context,
-            guard,
-            workset,
-            feature: crate::addons::mutation_features::LUMA_UNINSTALL,
-            game_id,
-        },
-        |mutation_id| execute::execute_uninstall_body(context, game_id, &apply, mutation_id),
-        || execute::journal_cascade_after_commit(context, game_id, &apply),
-    )
+    match plan::plan_uninstall(context, game_id)? {
+        plan::UninstallPlan::Inactive(plan) => {
+            let plan::InactiveUninstallPlan { apply, workset } = *plan;
+            crate::addons::durable::run_uninstall_workset(
+                crate::addons::durable::UninstallWorkset {
+                    context,
+                    guard,
+                    workset,
+                    feature: crate::addons::mutation_features::LUMA_UNINSTALL,
+                    game_id,
+                },
+                |mutation_id| {
+                    execute::execute_uninstall_body(context, game_id, &apply, mutation_id)
+                },
+                || execute::journal_cascade_after_commit(context, game_id, &apply),
+            )
+        }
+        plan::UninstallPlan::Active(apply) => {
+            execute::execute_active_uninstall(context, guard, *apply)
+        }
+    }
 }

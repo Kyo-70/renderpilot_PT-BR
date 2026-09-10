@@ -97,6 +97,43 @@ struct ScanInputs<'a> {
     detector: &'a LibraryPatternComponentDetector,
 }
 
+/// Scans one installation whose mutation boundary is already exclusively owned
+/// by the caller.
+pub(super) fn scan_explicit_install_locked(
+    context: &crate::Context,
+    _guard: &crate::game_mutation_lock::GameMutationGuard,
+    path: PathBuf,
+    game_id: GameId,
+    root_authority: RootAuthority,
+    explicit_executable: Option<PathBuf>,
+) -> Result<ScanFolderCatalogResult, ServiceError> {
+    let detector = LibraryPatternComponentDetector::windows_default()
+        .map_err(|error| AppError::detection_failed(error.to_string()))?;
+    let source = ManualFolderGameSource::new(path)
+        .with_game_id(game_id)
+        .with_root_authority(root_authority);
+    let source = match explicit_executable {
+        Some(executable) => source.with_explicit_executable(executable),
+        None => source,
+    };
+
+    let storage = context.storage();
+    let catalog_index = reconcile::CatalogInstallIndex::load(storage)?;
+    let selected_game =
+        reconcile::reconcile_game_with_catalog(&catalog_index, source.discover_game()?);
+
+    scan_source_impl_locked(
+        ScanInputs {
+            context,
+            detector: &detector,
+        },
+        selected_game,
+        &catalog_index,
+        ExplicitRootChange::Unchanged,
+        &[],
+    )
+}
+
 fn scan_source_impl(
     inputs: ScanInputs<'_>,
     source: &ManualFolderGameSource,
@@ -105,15 +142,13 @@ fn scan_source_impl(
     consolidation_candidates: &[GameId],
 ) -> Result<ScanFolderCatalogResult, ServiceError> {
     let storage = inputs.context.storage();
-    let detector = inputs.detector;
 
     let owned_catalog_index;
-    let catalog_index = match catalog_index {
-        Some(index) => index,
-        None => {
-            owned_catalog_index = reconcile::CatalogInstallIndex::load(storage)?;
-            &owned_catalog_index
-        }
+    let catalog_index = if let Some(index) = catalog_index {
+        index
+    } else {
+        owned_catalog_index = reconcile::CatalogInstallIndex::load(storage)?;
+        &owned_catalog_index
     };
     let selected_game =
         reconcile::reconcile_game_with_catalog(catalog_index, source.discover_game()?);
@@ -121,6 +156,26 @@ fn scan_source_impl(
     affected_ids.push(selected_game.id().clone());
     let _guards =
         crate::mutation_boundary::enter_game_mutation_boundaries(inputs.context, affected_ids)?;
+
+    scan_source_impl_locked(
+        inputs,
+        selected_game,
+        catalog_index,
+        root_change,
+        consolidation_candidates,
+    )
+}
+
+fn scan_source_impl_locked(
+    inputs: ScanInputs<'_>,
+    selected_game: renderpilot_domain::GameInstallation,
+    catalog_index: &reconcile::CatalogInstallIndex,
+    root_change: ExplicitRootChange,
+    consolidation_candidates: &[GameId],
+) -> Result<ScanFolderCatalogResult, ServiceError> {
+    let storage = inputs.context.storage();
+    let detector = inputs.detector;
+
     if root_change != ExplicitRootChange::Unchanged {
         ensure_root_change_not_blocked_before_scan(inputs.context, &selected_game)?;
     }
@@ -361,5 +416,60 @@ mod tests {
             &game_id,
             DlssVersion::new(1, 0, 0, 0),
         );
+    }
+
+    #[test]
+    fn refresh_game_components_updates_catalog_after_dll_mutation() {
+        use renderpilot_application::ComponentRepository;
+
+        let root = tempfile::tempdir().expect("game root");
+        let context = crate::Context::from_storage(
+            renderpilot_storage_sqlite::SqliteStorage::in_memory().expect("storage"),
+        );
+        let game_id = GameId::new("manual:refresh-components").expect("game id");
+
+        // Initial scan: folder is empty
+        scan_fixture(&context, root.path(), &game_id);
+        let initial_components = context
+            .storage()
+            .list_components_for_game(&game_id)
+            .expect("list components");
+        assert!(initial_components.is_empty());
+        let initial_generation = context.storage().catalog_generation();
+
+        // Simulate add-on writing DLSS DLL
+        let dll = root.path().join("nvngx_dlss.dll");
+        let dlss_bytes = crate::addons::test_support::build_nvidia_dlss_pe([3, 7, 0, 0]);
+        fs::write(&dll, &dlss_bytes).expect("write dlss");
+
+        // Call our new refresh_game_components_sync
+        crate::catalog::refresh_game_components_sync(&context, &game_id)
+            .expect("refresh game components");
+
+        let updated_components = context
+            .storage()
+            .list_components_for_game(&game_id)
+            .expect("list components");
+        assert_eq!(updated_components.len(), 1);
+        assert_eq!(
+            updated_components[0].technology(),
+            renderpilot_domain::LibraryTechnology::DlssSuperResolution
+        );
+        assert!(context.storage().catalog_generation() > initial_generation);
+
+        // Simulate add-on uninstallation (deleting DLSS DLL)
+        let generation_before_removal = context.storage().catalog_generation();
+        fs::remove_file(&dll).expect("remove dlss");
+
+        // Refresh catalog components again
+        crate::catalog::refresh_game_components_sync(&context, &game_id)
+            .expect("refresh game components after removal");
+
+        let cleared_components = context
+            .storage()
+            .list_components_for_game(&game_id)
+            .expect("list components");
+        assert!(cleared_components.is_empty());
+        assert!(context.storage().catalog_generation() > generation_before_removal);
     }
 }

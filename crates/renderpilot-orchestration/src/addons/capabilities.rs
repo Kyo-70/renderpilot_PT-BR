@@ -4,11 +4,11 @@
 //! usable profile for this game?". Full availability queries are deliberately
 //! not reused here: RenoDX availability may adopt an orphaned install and both
 //! tools perform host/filesystem checks that do not belong in card rendering.
-//! Instead, a scan refresh resolves the pure manifest matchers once and stores
-//! the resulting profile snapshot durably in SQLite.
+//! Instead, a scan refresh resolves each tool's pure capability policy once
+//! and stores the resulting profile snapshot durably in SQLite.
 //!
-//! `CapabilityProbe` type-erases the per-tool manifest + pure matcher behind
-//! one `Fn(&MatchFacts) -> bool`, built by each tool's
+//! `CapabilityProbe` type-erases each tool's pure matcher behind one
+//! `Fn(&MatchFacts, &[LibraryComponent]) -> bool`, built by each tool's
 //! `AddonTool::load_capability_probe`. Adding a tool means implementing that
 //! one method — this module never lists tools by name.
 
@@ -16,36 +16,39 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 
-use renderpilot_domain::{AddonKind, GameId};
+use renderpilot_application::ComponentRepository;
+use renderpilot_domain::{AddonKind, GameId, LibraryComponent};
 
 use crate::addons::game_analysis::analyze_game;
 use crate::addons::matching::MatchFacts;
 use crate::addons::tool;
 use crate::{Context, ServiceError};
 
-/// Boxed future returned by `AddonTool::load_capability_probe`: fetches
-/// (or reuses the cached) manifest and wraps it in a `CapabilityProbe`.
+/// Boxed future returned by `AddonTool::load_capability_probe`.
 pub(crate) type CapabilityProbeFuture =
     Pin<Box<dyn Future<Output = Result<CapabilityProbe, ServiceError>> + Send + 'static>>;
 
-/// Type-erased, loaded capability probe for one tool: answers "does this
-/// tool's manifest expose a usable profile for these game facts?" without the
-/// caller needing to know the tool's manifest or resolution types.
+/// Type-erased, loaded capability probe for one tool.
+///
+/// Components are passed as a per-game slice so a probe can use detected
+/// native-library evidence without reaching into storage or performing I/O.
+type CapabilityAvailability = dyn Fn(&MatchFacts, &[LibraryComponent]) -> bool + Send + Sync;
+
 pub(crate) struct CapabilityProbe {
     kind: AddonKind,
     source_revision: String,
-    is_available: Box<dyn Fn(&MatchFacts) -> bool + Send + Sync>,
+    is_available: Box<CapabilityAvailability>,
 }
 
 impl CapabilityProbe {
-    /// Wraps a tool's pure `manifest + facts -> available` policy behind the
-    /// type-erased signature this module operates on. Tools build this from
-    /// their own manifest/matcher/resolution types, which never leak here.
+    /// Wraps a tool's pure `facts + components -> available` policy behind the
+    /// type-erased signature this module operates on. Tool-specific matcher
+    /// types never leak into the capability refresh pipeline.
     #[must_use]
     pub(crate) fn new(
         kind: AddonKind,
         source_revision: impl Into<String>,
-        is_available: impl Fn(&MatchFacts) -> bool + Send + Sync + 'static,
+        is_available: impl Fn(&MatchFacts, &[LibraryComponent]) -> bool + Send + Sync + 'static,
     ) -> Self {
         Self {
             kind,
@@ -62,8 +65,8 @@ impl CapabilityProbe {
         &self.source_revision
     }
 
-    fn is_profile_available(&self, facts: &MatchFacts) -> bool {
-        (self.is_available)(facts)
+    fn is_profile_available(&self, facts: &MatchFacts, components: &[LibraryComponent]) -> bool {
+        (self.is_available)(facts, components)
     }
 }
 
@@ -141,13 +144,17 @@ fn refresh_profile_capabilities(
         .into_iter()
         .map(|row| (row.game_id, std::path::PathBuf::from(row.selected_path)))
         .collect::<HashMap<_, _>>();
+    let components_by_game = components_by_game(context.storage().list_all_components()?);
     let mut matches = HashMap::<AddonKind, Vec<GameId>>::new();
     for game in games {
         let override_path = executable_overrides
             .get(game.id().as_str())
             .map(std::path::PathBuf::as_path);
         let analysis = analyze_game(&game, override_path);
-        let capabilities = profile_capabilities_for_facts(probes, &analysis.facts);
+        let components = components_by_game
+            .get(game.id())
+            .map_or(&[][..], Vec::as_slice);
+        let capabilities = profile_capabilities_for_facts(probes, &analysis.facts, components);
 
         for kind in capabilities {
             matches.entry(kind).or_default().push(game.id().clone());
@@ -179,13 +186,14 @@ fn refresh_profile_capabilities_for_game(
         .get_nvapi_executable_override(game_id.as_str())?
         .map(|row| std::path::PathBuf::from(row.selected_path));
     let analysis = analyze_game(&game, override_path.as_deref());
+    let components = context.storage().list_components_for_game(game_id)?;
     let capabilities = probes
         .iter()
         .map(|probe| {
             (
                 probe.kind(),
                 probe.source_revision().to_owned(),
-                probe.is_profile_available(&analysis.facts),
+                probe.is_profile_available(&analysis.facts, &components),
             )
         })
         .collect::<Vec<_>>();
@@ -198,12 +206,24 @@ fn refresh_profile_capabilities_for_game(
 fn profile_capabilities_for_facts(
     probes: &[CapabilityProbe],
     facts: &MatchFacts,
+    components: &[LibraryComponent],
 ) -> Vec<AddonKind> {
     probes
         .iter()
-        .filter(|probe| probe.is_profile_available(facts))
+        .filter(|probe| probe.is_profile_available(facts, components))
         .map(CapabilityProbe::kind)
         .collect()
+}
+
+fn components_by_game(components: Vec<LibraryComponent>) -> HashMap<GameId, Vec<LibraryComponent>> {
+    let mut by_game = HashMap::new();
+    for component in components {
+        by_game
+            .entry(component.game_id().clone())
+            .or_insert_with(Vec::new)
+            .push(component);
+    }
+    by_game
 }
 
 /// Owned capability probes loaded for a catalog refresh. Callers move this
@@ -234,7 +254,7 @@ impl LoadedCapabilityProbes {
     }
 }
 
-/// Concurrently loads cached (or freshly fetched) tool capability probes for a
+/// Concurrently loads tool capability probes for a
 /// catalog refresh. Per-kind failures are logged and skipped so one offline
 /// CDN does not block another tool's snapshot update.
 ///
@@ -254,7 +274,7 @@ pub async fn load_capability_probes() -> LoadedCapabilityProbes {
         .filter_map(|(kind, result)| match result {
             Ok(probe) => Some(probe),
             Err(error) => {
-                log::warn!("failed to load {kind:?} manifest for catalog capabilities: {error}");
+                log::warn!("failed to load {kind:?} capability probe: {error}");
                 None
             }
         })
@@ -265,7 +285,10 @@ pub async fn load_capability_probes() -> LoadedCapabilityProbes {
 
 #[cfg(test)]
 mod tests {
-    use renderpilot_domain::{Architecture, ExeGraphicsInfo, GraphicsApi, Launcher};
+    use renderpilot_domain::{
+        Architecture, ComponentId, ComponentKind, ExeGraphicsInfo, GraphicsApi, Launcher,
+        LibraryComponent, LibraryTechnology, Swappability,
+    };
 
     use super::*;
     use crate::addons::luma;
@@ -277,7 +300,6 @@ mod tests {
             launcher: Launcher::Steam,
             external_id: Some("49520".to_owned()),
             exe_file_name: Some("Borderlands2.exe".to_owned()),
-            exe_sha256: None,
             engine: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D9], Some(Architecture::X86)),
         }
@@ -328,7 +350,7 @@ mod tests {
             luma::tool::capability_probe(luma_manifest),
         ];
         assert_eq!(
-            profile_capabilities_for_facts(&probes, &borderlands_facts()),
+            profile_capabilities_for_facts(&probes, &borderlands_facts(), &[]),
             vec![AddonKind::RenoDx, AddonKind::Luma]
         );
     }
@@ -343,6 +365,37 @@ mod tests {
         assert_eq!(
             snapshot.capabilities_for(&game_id),
             vec![AddonKind::RenoDx, AddonKind::Luma]
+        );
+    }
+
+    #[test]
+    fn components_are_grouped_by_game_without_cross_game_leakage() {
+        let first = GameId::new("game:first").expect("game id");
+        let second = GameId::new("game:second").expect("game id");
+        let components = vec![
+            LibraryComponent::new(
+                ComponentId::new("component:first").expect("component id"),
+                first.clone(),
+                ComponentKind::NativeLibrary,
+                LibraryTechnology::AmdFsr,
+                Swappability::ReadOnly,
+            ),
+            LibraryComponent::new(
+                ComponentId::new("component:second").expect("component id"),
+                second.clone(),
+                ComponentKind::NativeLibrary,
+                LibraryTechnology::IntelXeSs,
+                Swappability::ReadOnly,
+            ),
+        ];
+
+        let grouped = components_by_game(components);
+        assert_eq!(grouped.get(&first).expect("first components").len(), 1);
+        assert_eq!(grouped.get(&second).expect("second components").len(), 1);
+        assert_eq!(grouped[&first][0].technology(), LibraryTechnology::AmdFsr);
+        assert_eq!(
+            grouped[&second][0].technology(),
+            LibraryTechnology::IntelXeSs
         );
     }
 }

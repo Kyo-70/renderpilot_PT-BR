@@ -8,10 +8,6 @@
 //! so the matcher logic stays platform-agnostic; only the resolver step is
 //! Windows-specific.
 //!
-//! The fingerprint ([`MatchFacts::exe_sha256`]) is left unset here because hashing
-//! a multi-hundred-megabyte executable on every scan is wasteful; the install flow
-//! fills it in only when a title actually matches on a fingerprint rule.
-
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -101,7 +97,6 @@ pub fn assemble_facts(
         launcher: install.identity().launcher(),
         external_id: install.identity().external_id().map(str::to_owned),
         exe_file_name,
-        exe_sha256: None,
         engine,
         graphics,
     }

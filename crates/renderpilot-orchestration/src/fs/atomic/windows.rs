@@ -8,7 +8,7 @@ use std::{
     os::windows::{
         ffi::OsStrExt,
         fs::{MetadataExt, OpenOptionsExt},
-        io::AsRawHandle,
+        io::{AsRawHandle, FromRawHandle},
     },
     path::{Component, Path, PathBuf},
 };
@@ -26,7 +26,7 @@ use windows_sys::{
             DELETE, FILE_ATTRIBUTE_REPARSE_POINT, FILE_DISPOSITION_INFO,
             FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_READ_ATTRIBUTES,
             FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_TRAVERSE,
-            FileDispositionInfo, MoveFileExW, SYNCHRONIZE, SetFileInformationByHandle,
+            FileDispositionInfo, SYNCHRONIZE, SetFileInformationByHandle,
         },
         System::{
             IO::IO_STATUS_BLOCK,
@@ -35,42 +35,148 @@ use windows_sys::{
     },
 };
 
-use crate::ServiceError;
-
 use super::replace::temporary_file_path;
 #[cfg(test)]
 use super::{NoReplaceTestFault, no_replace_test_fault};
 use super::{
     NoReplaceWrite, PreparedNoReplaceWrite, sync_no_replace_temp_file, write_no_replace_temp_bytes,
 };
+use crate::ServiceError;
 
-#[expect(
-    unsafe_code,
-    reason = "calling the Windows filesystem API requires a small audited FFI boundary"
-)]
+const OBJECT_ATTRIBUTES_BYTES: u32 =
+    std::mem::size_of::<windows_sys::Wdk::Foundation::OBJECT_ATTRIBUTES>() as u32;
+
 pub(super) fn move_windows_no_replace(
     source: &Path,
     destination: &Path,
 ) -> Result<(), ServiceError> {
-    let source = source
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect::<Vec<_>>();
-    let destination = destination
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect::<Vec<_>>();
-    // SAFETY: both buffers are stable, NUL-terminated UTF-16 paths for the
-    // duration of the call. Zero flags intentionally prohibit replacement.
-    if unsafe { MoveFileExW(source.as_ptr(), destination.as_ptr(), 0) } == 0 {
+    let source_parent = source
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .ok_or_else(|| {
+            crate::failed(format!(
+                "source `{}` has no parent directory",
+                source.display()
+            ))
+        })?;
+    let destination_parent = destination
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .ok_or_else(|| {
+            crate::failed(format!(
+                "destination `{}` has no parent directory",
+                destination.display()
+            ))
+        })?;
+    let (_source_leaf, source_leaf_wide) = windows_destination_leaf(source)?;
+    let (destination_leaf, destination_leaf_wide) = windows_destination_leaf(destination)?;
+    let source_parent = open_windows_no_replace_parent(source_parent)?;
+    let destination_parent = open_windows_no_replace_parent(destination_parent)?;
+    // Open the source leaf relative to the retained, no-follow parent.  The
+    // source pathname is never resolved again after the parent handle is
+    // acquired, so a parent/leaf swap cannot redirect the native rename.
+    let source_file =
+        open_windows_entry_relative(&source_parent, &source_leaf_wide).map_err(|error| {
+            crate::failed(format!(
+                "failed to open source `{}` relative to its retained parent: {error}",
+                source.display()
+            ))
+        })?;
+    let source_metadata = source_file.metadata().map_err(|error| {
+        crate::failed(format!(
+            "failed to inspect retained source `{}`: {error}",
+            source.display()
+        ))
+    })?;
+    if source_metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
         return Err(crate::failed(format!(
-            "failed to move durable mutation participant without replacement: {}",
-            io::Error::last_os_error()
+            "source `{}` is a reparse object",
+            source.display()
         )));
     }
-    Ok(())
+    // Keep the source entry and both no-follow parent handles open through
+    // the native rename.  No syscall below re-resolves a hostile parent path.
+    rename_open_handle_no_replace(&source_file, &destination_parent, &destination_leaf_wide)
+        .map_err(|error| {
+            crate::failed(format!(
+                "failed to move `{}` to `{}` without replacement: {error}",
+                source.display(),
+                destination_leaf.to_string_lossy()
+            ))
+        })
+}
+
+#[cfg(windows)]
+#[expect(
+    unsafe_code,
+    reason = "the retained source handle is renamed through the documented Windows native API"
+)]
+fn rename_open_handle_no_replace(
+    source: &File,
+    destination_parent: &File,
+    destination_leaf_wide: &[u16],
+) -> io::Result<()> {
+    fn ntstatus_result(status: NTSTATUS) -> io::Result<()> {
+        if status >= 0 {
+            return Ok(());
+        }
+        let dos_error = unsafe { RtlNtStatusToDosError(status) };
+        let dos_error = i32::try_from(dos_error).map_err(|_| {
+            io::Error::other(format!(
+                "NTSTATUS {status:#010x} translated to an invalid Win32 code"
+            ))
+        })?;
+        Err(io::Error::from_raw_os_error(dos_error))
+    }
+    let name_bytes = destination_leaf_wide
+        .len()
+        .checked_mul(std::mem::size_of::<u16>())
+        .and_then(|length| u32::try_from(length).ok())
+        .ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "destination leaf is too long")
+        })?;
+    let required_bytes = std::mem::size_of::<FILE_RENAME_INFORMATION>()
+        .checked_add(name_bytes as usize)
+        .and_then(|length| u32::try_from(length).ok())
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "rename buffer is too large"))?;
+    let slot_bytes = std::mem::size_of::<FILE_RENAME_INFORMATION>();
+    let slots = (required_bytes as usize).div_ceil(slot_bytes);
+    let mut storage = Vec::with_capacity(slots);
+    storage.resize_with(slots, MaybeUninit::<FILE_RENAME_INFORMATION>::zeroed);
+    let rename = storage.as_mut_ptr().cast::<FILE_RENAME_INFORMATION>();
+    unsafe {
+        (*rename).Anonymous.ReplaceIfExists = false;
+        (*rename).RootDirectory = destination_parent.as_raw_handle();
+        (*rename).FileNameLength = name_bytes;
+        std::ptr::copy_nonoverlapping(
+            destination_leaf_wide.as_ptr(),
+            std::ptr::addr_of_mut!((*rename).FileName).cast::<u16>(),
+            destination_leaf_wide.len(),
+        );
+        let mut io_status = IO_STATUS_BLOCK::default();
+        let status = NtSetInformationFile(
+            source.as_raw_handle(),
+            &mut io_status,
+            rename.cast(),
+            required_bytes,
+            FileRenameInformation,
+        );
+        if status < 0 {
+            return ntstatus_result(status);
+        }
+        if status == STATUS_PENDING {
+            match WaitForSingleObject(source.as_raw_handle(), INFINITE) {
+                WAIT_OBJECT_0 => {}
+                WAIT_FAILED => return Err(io::Error::last_os_error()),
+                result => {
+                    return Err(io::Error::other(format!(
+                        "unexpected rename wait result {result:#010x}"
+                    )));
+                }
+            }
+        }
+        ntstatus_result(io_status.Anonymous.Status)
+    }
 }
 
 #[cfg(windows)]
@@ -362,8 +468,10 @@ fn discard_windows_after_prepare_error(
 #[cfg(windows)]
 fn windows_destination_is_occupied(error: &io::Error) -> bool {
     matches!(
-        error.raw_os_error(),
-        Some(code) if code == ERROR_FILE_EXISTS as i32 || code == ERROR_ALREADY_EXISTS as i32
+        error
+            .raw_os_error()
+            .and_then(|code| u32::try_from(code).ok()),
+        Some(ERROR_FILE_EXISTS | ERROR_ALREADY_EXISTS)
     )
 }
 
@@ -389,12 +497,12 @@ fn windows_destination_leaf(path: &Path) -> Result<(OsString, Vec<u16>), Service
     let wide = leaf.encode_wide().collect::<Vec<_>>();
     if wide.is_empty()
         || wide.contains(&0)
-        || wide
-            .iter()
-            .any(|unit| *unit == b'/' as u16 || *unit == b'\\' as u16 || *unit == b':' as u16)
+        || wide.iter().any(|unit| {
+            *unit == u16::from(b'/') || *unit == u16::from(b'\\') || *unit == u16::from(b':')
+        })
         || wide
             .last()
-            .is_some_and(|unit| *unit == b'.' as u16 || *unit == b' ' as u16)
+            .is_some_and(|unit| *unit == u16::from(b'.') || *unit == u16::from(b' '))
     {
         return Err(crate::failed(format!(
             "cannot publish `{}` because its destination leaf was unsafe",
@@ -402,6 +510,77 @@ fn windows_destination_leaf(path: &Path) -> Result<(OsString, Vec<u16>), Service
         )));
     }
     Ok((leaf, wide))
+}
+
+#[cfg(windows)]
+#[expect(
+    unsafe_code,
+    reason = "NtCreateFile is the documented handle-relative Windows open primitive"
+)]
+fn open_windows_entry_relative(parent: &File, leaf: &[u16]) -> io::Result<File> {
+    use windows_sys::{
+        Wdk::{
+            Foundation::OBJECT_ATTRIBUTES,
+            Storage::FileSystem::{
+                FILE_OPEN, FILE_OPEN_REPARSE_POINT, FILE_SYNCHRONOUS_IO_NONALERT, NtCreateFile,
+            },
+        },
+        Win32::{
+            Foundation::{HANDLE, OBJ_CASE_INSENSITIVE, UNICODE_STRING},
+            Storage::FileSystem::{
+                DELETE, FILE_ATTRIBUTE_NORMAL, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE,
+                FILE_SHARE_READ, FILE_SHARE_WRITE, SYNCHRONIZE,
+            },
+        },
+    };
+
+    let byte_length = leaf
+        .len()
+        .checked_mul(std::mem::size_of::<u16>())
+        .and_then(|length| u16::try_from(length).ok())
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "entry leaf is too long"))?;
+    if leaf.is_empty() || leaf.contains(&0) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "entry leaf is empty or contains NUL",
+        ));
+    }
+    let name = UNICODE_STRING {
+        Length: byte_length,
+        MaximumLength: byte_length,
+        Buffer: leaf.as_ptr().cast_mut(),
+    };
+    let attributes = OBJECT_ATTRIBUTES {
+        Length: OBJECT_ATTRIBUTES_BYTES,
+        RootDirectory: parent.as_raw_handle(),
+        ObjectName: &raw const name,
+        Attributes: OBJ_CASE_INSENSITIVE,
+        SecurityDescriptor: std::ptr::null(),
+        SecurityQualityOfService: std::ptr::null(),
+    };
+    let mut handle: HANDLE = std::ptr::null_mut();
+    let mut io_status = IO_STATUS_BLOCK::default();
+    let status = unsafe {
+        NtCreateFile(
+            &raw mut handle,
+            DELETE | GENERIC_READ | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            &raw const attributes,
+            &raw mut io_status,
+            std::ptr::null(),
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT,
+            std::ptr::null(),
+            0,
+        )
+    };
+    if status < 0 || handle.is_null() {
+        return Err(io::Error::other(format!(
+            "relative entry open failed with NTSTATUS {status:#010x}"
+        )));
+    }
+    Ok(unsafe { File::from_raw_handle(handle) })
 }
 
 #[cfg(windows)]

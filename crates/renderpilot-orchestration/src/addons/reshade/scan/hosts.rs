@@ -62,7 +62,11 @@ pub fn scan_reshade_hosts(game_dir: &Path, active_proxy_slot: Option<&str>) -> R
         // Only DLLs that could actually be the ReShade host are worth the PE reads:
         // a known proxy slot, the ReShade engine DLL, or a `reshade*` name. This
         // skips the dozens of unrelated game DLLs in a typical install folder.
-        if !lower.ends_with(".dll") || !is_host_candidate(&lower) {
+        if !Path::new(&file_name)
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("dll"))
+            || !is_host_candidate(&lower)
+        {
             continue;
         }
         let Some(host) =
@@ -150,6 +154,13 @@ fn addon_support_from_exports(
     } else {
         ReshadeAddonSupport::Unknown
     }
+}
+
+pub(crate) fn addon_support_from_exports_for_topology(
+    exports: Option<&[String]>,
+    has_reshade_export: bool,
+) -> ReshadeAddonSupport {
+    addon_support_from_exports(exports, has_reshade_export)
 }
 
 fn active_slot_state(slot: &str, active_proxy_slot: Option<&str>) -> ActiveSlotState {

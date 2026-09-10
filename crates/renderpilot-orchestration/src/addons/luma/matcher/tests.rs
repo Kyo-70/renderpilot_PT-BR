@@ -9,7 +9,6 @@ fn facts() -> MatchFacts {
         launcher: Launcher::Steam,
         external_id: Some("403640".to_owned()),
         exe_file_name: Some("Dishonored2.exe".to_owned()),
-        exe_sha256: None,
         engine: None,
         graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D11], Some(Architecture::X64))
             .with_graphics_dlls(vec!["dxgi.dll".to_owned()]),
@@ -123,7 +122,7 @@ fn confirmed_d3d12_only_is_incompatible_unlike_renodx() {
 }
 
 #[test]
-fn generic_ue_d3d12_is_installable_so_the_manual_dx11_callout_can_be_shown() {
+fn generic_ue_d3d12_is_installable_for_the_explicit_compatibility_route() {
     let mut t = title(
         "generic-ue",
         "Luma-Unreal_Engine.zip",

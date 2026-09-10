@@ -432,14 +432,12 @@ fn executable_candidate_paths(game: &GameInstallation) -> Vec<PathBuf> {
 /// candidates remain unresolved rather than guessing which executable owns the
 /// runtime.
 fn unique_known_executable_candidate(candidates: &[PathBuf]) -> Option<PathBuf> {
-    let mut known = candidates.iter().filter_map(|candidate| {
-        let path = candidate.clone();
-        renderpilot_detection::analyze_executable(&path)
+    let mut known = candidates.iter().filter(|candidate| {
+        renderpilot_detection::analyze_executable(candidate)
             .architecture()
             .is_some()
-            .then_some(path)
     });
-    let selected = known.next()?;
+    let selected = known.next()?.clone();
     known.next().is_none().then_some(selected)
 }
 
@@ -476,21 +474,20 @@ fn is_unique_valid_executable_pair_for_presentation<'a>(
         .collect::<Vec<_>>();
     let mut seen = HashSet::new();
     paths.retain(|path| seen.insert(crate::paths::normalized_key(path)));
-    let valid = paths
-        .into_iter()
-        .filter(|path| {
-            let Ok(backup) = crate::fs::backup_path(path) else {
-                return false;
-            };
-            path.is_file()
-                && backup.is_file()
-                && renderpilot_detection::read_pe_exported_u32(path, D3D12_SDK_VERSION_EXPORT)
-                    .is_some()
-                && renderpilot_detection::read_pe_exported_u32(&backup, D3D12_SDK_VERSION_EXPORT)
-                    .is_some()
-        })
-        .collect::<Vec<_>>();
-    valid.len() == 1 && crate::paths::same_path(&valid[0], selected)
+    let mut valid_iter = paths.into_iter().filter(|path| {
+        let Ok(backup) = crate::fs::backup_path(path) else {
+            return false;
+        };
+        path.is_file()
+            && backup.is_file()
+            && renderpilot_detection::read_pe_exported_u32(path, D3D12_SDK_VERSION_EXPORT).is_some()
+            && renderpilot_detection::read_pe_exported_u32(&backup, D3D12_SDK_VERSION_EXPORT)
+                .is_some()
+    });
+    match (valid_iter.next(), valid_iter.next()) {
+        (Some(only), None) => crate::paths::same_path(&only, selected),
+        _ => false,
+    }
 }
 
 fn has_complete_d3d12_dll_sidecars(

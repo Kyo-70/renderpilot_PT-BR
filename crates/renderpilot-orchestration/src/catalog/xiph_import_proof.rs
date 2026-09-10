@@ -149,7 +149,7 @@ fn prove_external_aliases_impl(
         return Ok(None);
     }
 
-    let root = std::fs::canonicalize(game_root).map_err(|error| {
+    let root = crate::paths::canonicalize_existing(game_root).map_err(|error| {
         AppError::invalid_input(format!(
             "cannot establish canonical game root for Xiph import proof {}: {error}",
             game_root.display()
@@ -270,7 +270,7 @@ fn observe_importer(
 /// reparse point can change between the strict walk and this stable read, so a
 /// previously in-root lexical path is not sufficient authority for the read.
 fn canonical_importer_within_root(root: &Path, path: &Path) -> AppResult<PathBuf> {
-    let canonical = std::fs::canonicalize(path).map_err(|error| {
+    let canonical = crate::paths::canonicalize_existing(path).map_err(|error| {
         AppError::invalid_input(format!(
             "Xiph import proof cannot canonicalize importer {}: {error}",
             path.display()

@@ -81,7 +81,7 @@ fn normalized_cache_path(path: &Path) -> Result<PathBuf, ServiceError> {
             parent.display()
         ))
     })?;
-    let parent = parent.canonicalize().map_err(|error| {
+    let parent = crate::paths::canonicalize_existing(parent).map_err(|error| {
         crate::failed(format!(
             "failed to normalize cache directory `{}`: {error}",
             parent.display()

@@ -8,6 +8,8 @@ mod paths;
 mod sources;
 
 #[cfg(test)]
+mod metadata_tests;
+#[cfg(test)]
 mod tests;
 
 use renderpilot_domain::InstalledAddon;
@@ -19,7 +21,7 @@ pub(crate) use install_state::advisory_nightly_host_source;
 pub(super) use install_state::install_state_from_record;
 pub(crate) use paths::{
     owned_dependency_paths, owned_host_adjacent_paths, owns_path, payload_disk_intact,
-    payload_owned_paths,
+    payload_managed_paths,
 };
 pub(crate) use sources::{
     payload_needs_provenance_bind, promote_advisory_payload_source, refresh_addon_validators,
@@ -41,4 +43,22 @@ pub(crate) fn rebuild(
     parts: tracking::RebuildParts,
 ) -> Result<InstalledAddon, ServiceError> {
     tracking::rebuild_install_record(record, parts, tracking::PreserveMetadata::luma())
+}
+
+/// Rebuilds a record for a metadata-only refresh without synthesizing any
+/// physical host metadata. The guard-bound facade requires every physical
+/// claim, including host kind, to remain exactly as observed.
+pub(crate) fn rebuild_metadata(
+    record: &InstalledAddon,
+    parts: tracking::RebuildParts,
+) -> Result<InstalledAddon, ServiceError> {
+    tracking::rebuild_install_record(
+        record,
+        parts,
+        tracking::PreserveMetadata {
+            force_host_kind: None,
+            reshade_channel: true,
+            registered_exe: false,
+        },
+    )
 }

@@ -64,14 +64,14 @@ fn disappearing_owned_dlss_paths(
 
 /// Catalog cascade plan for an owned DLSS binding that the update payload no
 /// longer ships. Thin composition of [`disappearing_owned_dlss_paths`] +
-/// [`crate::catalog::cascade::cascade_for_owned_paths`].
+/// [`crate::catalog::cascade::cascade_for_managed_paths`].
 pub(crate) fn cascade_for_disappearing_owned(
     storage: &renderpilot_storage_sqlite::SqliteStorage,
     record: &InstalledAddon,
     payload: &[LumaPayloadFile],
 ) -> renderpilot_application::AppResult<crate::catalog::cascade::CascadeResult> {
     let owned_paths = disappearing_owned_dlss_paths(record, payload);
-    crate::catalog::cascade::cascade_for_owned_paths(storage, record.game_id(), &owned_paths)
+    crate::catalog::cascade::cascade_for_managed_paths(storage, record.game_id(), &owned_paths)
 }
 
 pub(super) fn owned_binding(

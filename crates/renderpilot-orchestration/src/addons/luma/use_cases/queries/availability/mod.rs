@@ -46,7 +46,7 @@ pub async fn load_availability(
         analyze_and_resolve,
     )?;
     reconcile::maybe_adopt(context, &mut preflight, manifest, reshade_sources, game_id)?;
-    build_report(preflight, manifest, reshade_sources)
+    build_report(context, game_id, preflight, manifest, reshade_sources)
 }
 
 /// Pure preview of whether Luma can be installed for the game. Never changes
@@ -66,10 +66,12 @@ pub(crate) fn availability(
         manifest,
         analyze_and_resolve,
     )?;
-    build_report(preflight, manifest, reshade_sources)
+    build_report(context, game_id, preflight, manifest, reshade_sources)
 }
 
 fn build_report(
+    context: &Context,
+    game_id: &GameId,
     preflight: AvailabilityPreflight<LumaResolution>,
     manifest: &LumaManifest,
     reshade_sources: &ReshadeSourceCatalog,
@@ -99,16 +101,18 @@ fn build_report(
     }
 
     // Borrow `resolution` here — `outcome`'s `match` below consumes it by value.
-    // For installed records we still re-resolve to pick up current manifest args + auto DX11.
+    // For installed records we still re-resolve to pick up current manifest arguments.
     let state = record
         .as_ref()
         .map(|record| {
-            tracking::install_state_from_record(
-                record,
-                effective_launch_args(&analysis, &resolution),
-            )
+            tracking::install_state_from_record(record, effective_launch_args(&resolution))
         })
         .unwrap_or(LumaInstallState::NotInstalled);
+    let uninstall_blocked_by = if record.is_some() {
+        crate::addons::luma::dependency::uninstall_blocker(context, game_id)?
+    } else {
+        None
+    };
 
     let install_torn = install_roots
         .as_ref()
@@ -128,8 +132,8 @@ fn build_report(
             )
         });
 
-    // Compute user-facing launch args (manifest + auto DX11 for UE+D3D12) once.
-    let launch_args = effective_launch_args(&analysis, &resolution);
+    // Compute user-facing launch args from the resolved manifest title once.
+    let launch_args = effective_launch_args(&resolution);
 
     let outcome = if let Some(block) = blocked {
         let blocked = availability_pipeline::blocked_outcome(block);
@@ -170,6 +174,7 @@ fn build_report(
         vcredist_present: vcredist::vcredist_present(arch),
         vcredist_installer_url: vcredist::vcredist_installer_url(arch).to_owned(),
         install_torn,
+        uninstall_blocked_by,
         outcome,
     })
 }

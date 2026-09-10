@@ -9,8 +9,8 @@
 //! Luma is narrower than RenoDX in one more way: RenoDX targets any DirectX
 //! version, but Luma's add-on is DirectX-11-specific. Confirmed non-D3D11
 //! renderers are normally incompatible. The one deliberate exception is a
-//! Generic UE profile with a D3D12 import: that is an advisory signal that the
-//! game may need the user's manual `-dx11` switch, not proof of its active RHI.
+//! Generic UE profile with a D3D12 import: that is an advisory signal for
+//! compatibility routing, not proof of an active RHI or a launch argument.
 
 use renderpilot_domain::{Architecture, GraphicsApi};
 
@@ -47,8 +47,7 @@ pub(crate) struct ResolvedLumaInstall {
     pub(crate) guidance: Vec<LumaGuidance>,
     /// Managed external dependency, if this title needs one.
     pub(crate) external_requirement: Option<LumaExternalRequirement>,
-    /// Dedicated game profile vs shared engine payload (drives UI badge and
-    /// the Generic UE D3D12 → manual `-dx11` launch-argument rule).
+    /// Dedicated game profile vs shared engine payload.
     pub(crate) profile: LumaProfile,
 }
 

@@ -236,13 +236,14 @@ fn preparing_recovery_never_restores_partial_snapshots() {
             initial_manifest_json: serialize_manifest(&FileMutationManifest {
                 format_version: MANIFEST_FORMAT_VERSION,
                 roots: vec![
-                    std::fs::canonicalize(root.path())
+                    crate::paths::canonicalize_existing(root.path())
                         .unwrap()
                         .to_string_lossy()
                         .into_owned(),
                 ],
                 transaction_dir: transaction_dir.to_string_lossy().into_owned(),
                 snapshots: Vec::new(),
+                peer_ancestors: Vec::new(),
             })
             .unwrap(),
         })
@@ -512,6 +513,7 @@ fn orphan_sweep_preserves_claimed_directories_and_removes_unclaimed_ones() {
                 ],
                 transaction_dir: claimed.to_string_lossy().into_owned(),
                 snapshots: Vec::new(),
+                peer_ancestors: Vec::new(),
             })
             .expect("manifest"),
         })
@@ -1118,6 +1120,7 @@ fn legacy_cleanup_recovery_tolerates_an_unreachable_game_root() {
         roots: vec![unreachable_game_root().to_string_lossy().into_owned()],
         transaction_dir: transaction_dir.to_string_lossy().into_owned(),
         snapshots: Vec::new(),
+        peer_ancestors: Vec::new(),
     })
     .expect("manifest");
     context
@@ -1168,6 +1171,7 @@ fn ordinary_v1_prepared_recovery_requires_a_valid_live_scope() {
                 .into_owned(),
             snapshot: None,
         }],
+        peer_ancestors: Vec::new(),
     })
     .expect("manifest");
     context

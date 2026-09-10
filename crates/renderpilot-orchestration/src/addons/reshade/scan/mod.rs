@@ -14,27 +14,30 @@
 //! state, and [`effects`] detects an existing user effects/preset setup.
 
 mod effects;
+#[cfg(test)]
+mod exact_host;
 mod host_model;
 mod hosts;
 mod identity;
 mod paths;
 
 pub(crate) use effects::{ReshadeContent, assess_reshade_content};
+#[cfg(test)]
+pub(crate) use exact_host::{ExactHostObservation, observe_exact_host_file};
 pub use host_model::{
     ReshadeAddonSupport, ReshadeHost, ReshadeHostAction, ReshadeIdentity, ReshadeScan, SlotActivity,
 };
-pub(crate) use hosts::is_reshade_proxy_file;
+pub(crate) use hosts::{addon_support_from_exports_for_topology, is_reshade_proxy_file};
 pub use hosts::{host_action, scan_reshade_hosts};
 pub use identity::is_known_custom_build;
-pub(crate) use identity::{guess_advisory_channel, is_proxy_slot};
+pub(crate) use identity::{
+    guess_advisory_channel, is_known_custom_identity, is_proxy_slot,
+    version_strings_point_to_reshade,
+};
 pub use paths::{
     RESHADE_INI_FILE_NAME, ReshadePaths, remove_reshade_logs_best_effort, reshade_ini_path,
     resolve_paths,
 };
-pub(crate) use paths::{load_ini, read_addon_config_state};
+pub(crate) use paths::{load_ini, read_addon_config_state, resolve_strict_snapshot};
 
-/// Test fixtures construct host present-states by hand (`reshade::host_policy`,
-/// `renodx` host_report tests). Production code only names these types inside
-/// `host_model`; re-export under `cfg(test)` avoids a production `unused_imports`.
-#[cfg(test)]
-pub use host_model::{ActiveSlotReason, ActiveSlotState};
+pub(crate) use host_model::{ActiveSlotReason, ActiveSlotState};

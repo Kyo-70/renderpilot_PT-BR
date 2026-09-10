@@ -41,7 +41,7 @@ fn curated_manifest(appid: &str) -> LumaManifest {
         Status::Working,
         vec![rule(MatchKind::SteamAppid, appid, 100)],
     )]);
-    m.min_reshade_version = "6.7.0".to_owned();
+    "6.7.0".clone_into(&mut m.min_reshade_version);
     m
 }
 

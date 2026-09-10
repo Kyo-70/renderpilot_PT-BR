@@ -92,8 +92,6 @@ pub enum LumaGuidanceKind {
     GameSetting,
     /// A manual edit to an engine INI file.
     EngineIni,
-    /// A launch argument the user must add in their launcher.
-    LaunchArgument,
     /// A stability or usability warning.
     Warning,
     /// An interaction with another game/mod configuration.
@@ -114,7 +112,7 @@ pub struct LumaGuidance {
     pub kind: LumaGuidanceKind,
     /// Reviewed English text used until a local translation is available.
     pub fallback_text: String,
-    /// Exact copyable INI or argument text when this guidance kind uses code.
+    /// Exact copyable INI text when this guidance kind uses code.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
 }
@@ -176,7 +174,8 @@ impl LumaProfile {
         }
     }
 
-    /// Whether this is the Generic Unreal profile (features + DX11 callout apply).
+    /// Whether this is the Generic Unreal profile (feature validation and the
+    /// D3D12 matcher exception apply; launch arguments are title-declared).
     #[must_use]
     pub const fn is_generic_unreal(self) -> bool {
         matches!(
@@ -233,8 +232,8 @@ pub struct LumaTitle {
 
 impl LumaTitle {
     /// Whether this title is a Generic Unreal profile with the matching shared
-    /// release asset. Single gate for features validation, the D3D12→DX11 matcher
-    /// exception, and the advisory manual `-dx11` launch-arg callout.
+    /// release asset. Single gate for features validation and the D3D12 matcher
+    /// exception.
     #[must_use]
     pub(crate) fn is_generic_unreal(&self) -> bool {
         self.profile.is_generic_unreal() && is_generic_unreal_asset(&self.asset)

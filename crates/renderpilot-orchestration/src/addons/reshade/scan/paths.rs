@@ -3,7 +3,9 @@
 //! derivation interprets.
 
 use std::env;
+use std::fmt;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -35,6 +37,88 @@ pub struct ReshadePaths {
     pub addon_path_is_absolute: bool,
 }
 
+/// The configuration inputs captured at the start of an operation.
+///
+/// The parsed INI is intentionally private: callers can use the derived paths
+/// and pass the snapshot to the content classifier, but cannot accidentally
+/// retain a mutable configuration model beyond this boundary.
+pub(crate) struct ReshadeConfigSnapshot {
+    paths: ReshadePaths,
+    ini: Option<Ini>,
+}
+
+impl ReshadeConfigSnapshot {
+    pub(crate) fn paths(&self) -> &ReshadePaths {
+        &self.paths
+    }
+
+    pub(crate) fn assess_content(
+        &self,
+        game_dir: &Path,
+        allowed_addon_names: &[&str],
+    ) -> super::effects::ReshadeContent {
+        super::effects::assess_reshade_content_from_snapshot(
+            game_dir,
+            &self.paths,
+            self.ini.as_ref(),
+            allowed_addon_names,
+        )
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum ReshadeConfigSnapshotError {
+    ReadDirectory { path: PathBuf, error: io::Error },
+    ReadEntry { path: PathBuf, error: io::Error },
+    InvalidEntry { path: PathBuf, reason: &'static str },
+    ReadRetainedFile { path: PathBuf, error: String },
+    InvalidUtf8 { path: PathBuf },
+}
+
+impl fmt::Display for ReshadeConfigSnapshotError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ReadDirectory { path, error } => {
+                write!(
+                    formatter,
+                    "failed to inspect ReShade config directory `{}`: {error}",
+                    path.display()
+                )
+            }
+            Self::ReadEntry { path, error } => {
+                write!(
+                    formatter,
+                    "failed to inspect ReShade config entry near `{}`: {error}",
+                    path.display()
+                )
+            }
+            Self::InvalidEntry { path, reason } => {
+                write!(
+                    formatter,
+                    "ReShade configuration `{}` is {reason}",
+                    path.display()
+                )
+            }
+            Self::ReadRetainedFile { path, error } => {
+                write!(
+                    formatter,
+                    "failed to read retained ReShade configuration `{}`: {error}",
+                    path.display()
+                )
+            }
+            Self::InvalidUtf8 { path } => {
+                write!(
+                    formatter,
+                    "ReShade configuration `{}` is not valid UTF-8",
+                    path.display()
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for ReshadeConfigSnapshotError {}
+
 /// Returns the path to an existing `ReShade.ini` in `game_dir`, matched
 /// case-insensitively.
 #[must_use]
@@ -56,15 +140,69 @@ pub fn reshade_ini_path(game_dir: &Path) -> Option<PathBuf> {
 /// Resolves ReShade's effective base and add-on paths.
 #[must_use]
 pub fn resolve_paths(game_dir: &Path, host_path: Option<&Path>) -> ReshadePaths {
-    let default_base = host_path
-        .and_then(Path::parent)
-        .unwrap_or(game_dir)
-        .to_path_buf();
+    let default_base = default_base(game_dir, host_path);
     let ini_path = reshade_ini_path(&default_base).or_else(|| reshade_ini_path(game_dir));
     let ini = ini_path.as_deref().and_then(load_ini);
 
+    resolve_paths_from_ini(default_base, ini_path, ini.as_ref())
+}
+
+/// Resolves the ReShade paths and keeps the exact parsed configuration used to
+/// derive them. Existing configuration entries that are not regular files,
+/// links, unreadable, or non-UTF-8 are rejected instead of being treated as an
+/// absent configuration.
+pub(crate) fn resolve_strict_snapshot(
+    game_dir: &Path,
+    host_path: Option<&Path>,
+) -> Result<ReshadeConfigSnapshot, ReshadeConfigSnapshotError> {
+    let default_base = default_base(game_dir, host_path);
+    let ini_path = strict_reshade_ini_path(&default_base, game_dir)?;
+    let ini = match ini_path.as_deref() {
+        Some(path) => {
+            let (bytes, _) = read_strict_config_file(path)?;
+            let text =
+                String::from_utf8(bytes).map_err(|_| ReshadeConfigSnapshotError::InvalidUtf8 {
+                    path: path.to_path_buf(),
+                })?;
+            Some(Ini::parse(&text))
+        }
+        None => None,
+    };
+    let paths = resolve_paths_from_ini(default_base, ini_path, ini.as_ref());
+    Ok(ReshadeConfigSnapshot { paths, ini })
+}
+
+fn read_strict_config_file(
+    path: &Path,
+) -> Result<(Vec<u8>, crate::fs::EntryObservation), ReshadeConfigSnapshotError> {
+    let (parent, leaf) = crate::fs::verified_parent(path).map_err(|error| {
+        ReshadeConfigSnapshotError::ReadRetainedFile {
+            path: path.to_path_buf(),
+            error: error.to_string(),
+        }
+    })?;
+    let (bytes, observation) = parent.read_regular_file(&leaf, None).map_err(|error| {
+        ReshadeConfigSnapshotError::ReadRetainedFile {
+            path: path.to_path_buf(),
+            error: error.to_string(),
+        }
+    })?;
+    Ok((bytes, observation))
+}
+
+fn default_base(game_dir: &Path, host_path: Option<&Path>) -> PathBuf {
+    host_path
+        .and_then(Path::parent)
+        .unwrap_or(game_dir)
+        .to_path_buf()
+}
+
+fn resolve_paths_from_ini(
+    default_base: PathBuf,
+    ini_path: Option<PathBuf>,
+    ini: Option<&Ini>,
+) -> ReshadePaths {
     let base_raw = ini
-        .as_ref()
         .and_then(|ini| ini.get(INSTALL_SECTION, BASE_PATH_KEY))
         .map(str::to_owned)
         .or_else(|| env::var(RESHADE_BASE_PATH_OVERRIDE_ENV).ok());
@@ -75,7 +213,6 @@ pub fn resolve_paths(game_dir: &Path, host_path: Option<&Path>) -> ReshadePaths 
 
     // `[ADDON] AddonPath` is config-only — ReShade has no environment override for it.
     let addon_raw = ini
-        .as_ref()
         .and_then(|ini| ini.get(ADDON_SECTION, ADDON_PATH_KEY))
         .map(str::to_owned);
     let addon_path_is_absolute = addon_raw
@@ -92,6 +229,80 @@ pub fn resolve_paths(game_dir: &Path, host_path: Option<&Path>) -> ReshadePaths 
         effective_addon_path,
         addon_path_is_absolute,
     }
+}
+
+fn strict_reshade_ini_path(
+    default_base: &Path,
+    game_dir: &Path,
+) -> Result<Option<PathBuf>, ReshadeConfigSnapshotError> {
+    let mut directories = vec![default_base];
+    if !crate::paths::same_path(default_base, game_dir) {
+        directories.push(game_dir);
+    }
+
+    for directory in directories {
+        if let Some(path) = strict_ini_in_directory(directory)? {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
+fn strict_ini_in_directory(
+    directory: &Path,
+) -> Result<Option<PathBuf>, ReshadeConfigSnapshotError> {
+    let entries = match fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(ReshadeConfigSnapshotError::ReadDirectory {
+                path: directory.to_path_buf(),
+                error,
+            });
+        }
+    };
+
+    let mut found = None;
+    for entry in entries {
+        let entry = entry.map_err(|error| ReshadeConfigSnapshotError::ReadEntry {
+            path: directory.to_path_buf(),
+            error,
+        })?;
+        if !entry
+            .file_name()
+            .to_string_lossy()
+            .eq_ignore_ascii_case(RESHADE_INI)
+        {
+            continue;
+        }
+
+        let path = entry.path();
+        let file_type =
+            entry
+                .file_type()
+                .map_err(|error| ReshadeConfigSnapshotError::ReadEntry {
+                    path: path.clone(),
+                    error,
+                })?;
+        let reason = if file_type.is_symlink() {
+            Some("a symbolic link")
+        } else if !file_type.is_file() {
+            Some("not a regular file")
+        } else {
+            None
+        };
+        if let Some(reason) = reason {
+            return Err(ReshadeConfigSnapshotError::InvalidEntry { path, reason });
+        }
+        if found.is_some() {
+            return Err(ReshadeConfigSnapshotError::InvalidEntry {
+                path,
+                reason: "ambiguous because multiple case variants exist",
+            });
+        }
+        found = Some(path);
+    }
+    Ok(found)
 }
 
 /// Deletes `ReShade.log` and rotated `ReShade.log1..N` files near `base_path`.

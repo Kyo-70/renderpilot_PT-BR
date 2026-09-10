@@ -27,6 +27,7 @@ pub(crate) mod mutation_boundary;
 pub mod net;
 pub mod nvapi;
 mod paths;
+mod peer_mutation_executor;
 pub mod portable;
 pub mod storage;
 mod util;

@@ -19,12 +19,11 @@ use serde::{Deserialize, Serialize};
 pub struct MatchFacts {
     /// Launcher that owns the game.
     pub launcher: Launcher,
-    /// Launcher-specific id (Steam AppID, Epic catalog id, GOG product id).
+    /// Launcher-specific id (Steam AppID, Epic `.item` AppName, GOG product
+    /// id, or Xbox StoreId).
     pub external_id: Option<String>,
     /// Game executable file name (for example `Cyberpunk2077.exe`).
     pub exe_file_name: Option<String>,
-    /// Lowercase SHA-256 hex of the game executable, when computed.
-    pub exe_sha256: Option<String>,
     /// Detected engine.
     pub engine: Option<Engine>,
     /// Graphics API and architecture detected from the executable.
@@ -37,11 +36,12 @@ pub struct MatchFacts {
 pub struct MatchRule {
     /// What the rule matches against.
     pub kind: MatchKind,
-    /// The value to match (a Steam AppID, exe-name glob, engine id, …).
+    /// The value to match (a Steam AppID, Epic AppName, exe-name glob, engine
+    /// id, …).
     #[serde(default)]
     pub value: String,
-    /// Specificity tier; higher wins. Conventionally: id 100, fingerprint 90,
-    /// exe-name 70, engine 40, generic 10.
+    /// Specificity tier; higher wins. Conventionally: id 100, exe-name 70,
+    /// engine 40, generic 10.
     pub tier: u32,
 }
 
@@ -51,12 +51,13 @@ pub struct MatchRule {
 pub enum MatchKind {
     /// Steam application id.
     SteamAppid,
-    /// Epic Games catalog id.
+    /// Exact Epic `.item` AppName (with legacy CatalogItemId fallback only in
+    /// platform discovery when AppName is unavailable).
     EpicId,
     /// GOG product id.
     GogId,
-    /// SHA-256 fingerprint of the game executable.
-    ExeSha256,
+    /// Canonical Microsoft Store product id from a registered Xbox package.
+    XboxStoreId,
     /// Case-insensitive glob over the executable file name.
     ExeName,
     /// Detected engine (for example `unreal`, `unity`).
@@ -240,10 +241,12 @@ pub fn rule_matches(kind: MatchKind, value: &str, facts: &MatchFacts) -> bool {
         MatchKind::SteamAppid => facts.launcher == Launcher::Steam && external_id_eq(facts, value),
         MatchKind::EpicId => facts.launcher == Launcher::Epic && external_id_eq(facts, value),
         MatchKind::GogId => facts.launcher == Launcher::Gog && external_id_eq(facts, value),
-        MatchKind::ExeSha256 => facts
-            .exe_sha256
-            .as_deref()
-            .is_some_and(|hash| hash.eq_ignore_ascii_case(value.trim())),
+        // StoreIds are canonical uppercase values. Registered-package discovery
+        // supplies the same canonical value, so do not weaken this identity with
+        // case folding or permit a non-Xbox installation to claim it.
+        MatchKind::XboxStoreId => {
+            facts.launcher == Launcher::Xbox && facts.external_id.as_deref() == Some(value)
+        }
         MatchKind::ExeName => facts
             .exe_file_name
             .as_deref()
@@ -358,7 +361,6 @@ mod tests {
             launcher: Launcher::Manual,
             external_id: None,
             exe_file_name: None,
-            exe_sha256: None,
             engine: None,
             graphics: ExeGraphicsInfo::new(Vec::new(), None),
         }
@@ -414,5 +416,37 @@ mod tests {
         let titles = [bbb, aaa];
         let (winner, _) = select_title(&titles, &any_facts()).expect("a match");
         assert_eq!(winner.id, "aaa");
+    }
+
+    #[test]
+    fn match_kind_deserializes_the_manifest_xbox_store_id_spelling() {
+        let rule: MatchRule =
+            serde_json::from_str(r#"{"kind":"xbox_store_id","value":"9MW53ZKZH168","tier":100}"#)
+                .expect("manifest rule");
+
+        assert_eq!(rule.kind, MatchKind::XboxStoreId);
+    }
+
+    #[test]
+    fn xbox_store_id_matches_only_an_exact_canonical_xbox_identity() {
+        let value = "9MW53ZKZH168";
+        let mut facts = any_facts();
+        facts.launcher = Launcher::Xbox;
+        facts.external_id = Some(value.to_owned());
+        assert!(rule_matches(MatchKind::XboxStoreId, value, &facts));
+
+        facts.external_id = Some(value.to_ascii_lowercase());
+        assert!(!rule_matches(MatchKind::XboxStoreId, value, &facts));
+
+        for launcher in [
+            Launcher::Manual,
+            Launcher::Steam,
+            Launcher::Epic,
+            Launcher::Gog,
+        ] {
+            facts.launcher = launcher;
+            facts.external_id = Some(value.to_owned());
+            assert!(!rule_matches(MatchKind::XboxStoreId, value, &facts));
+        }
     }
 }

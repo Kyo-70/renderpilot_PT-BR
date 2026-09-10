@@ -2,14 +2,13 @@
 
 use std::path::Path;
 
-use renderpilot_domain::AddonKind;
+use renderpilot_domain::{AddonKind, LibraryComponent};
 
 use crate::addons::capabilities::{CapabilityProbe, CapabilityProbeFuture};
 use crate::addons::matching::MatchFacts;
 use crate::addons::tool::AddonTool;
 
 use super::LUMA_PHASE_FINALIZING;
-use super::install::recover_torn_install;
 use super::manifest_store;
 use super::matcher::{self, LumaResolution};
 use super::types::LumaManifest;
@@ -22,14 +21,21 @@ pub(crate) struct LumaTool;
 #[must_use]
 pub(crate) fn is_luma_addon_file_name(lower: &str) -> bool {
     lower.starts_with("luma-")
-        && (lower.ends_with(".addon") || lower.ends_with(".addon64") || lower.ends_with(".addon32"))
+        && Path::new(lower).extension().is_some_and(|ext| {
+            ext.eq_ignore_ascii_case("addon")
+                || ext.eq_ignore_ascii_case("addon64")
+                || ext.eq_ignore_ascii_case("addon32")
+        })
 }
 
 /// Matches a `.bak` sibling left by a torn install or engine backup.
 /// Not counted as unmanaged — recovery removes these.
 #[must_use]
 pub(crate) fn is_luma_addon_backup_file_name(lower: &str) -> bool {
-    lower.ends_with(".bak") && is_luma_addon_file_name(lower.strip_suffix(".bak").unwrap_or(lower))
+    Path::new(lower)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("bak"))
+        && is_luma_addon_file_name(lower.strip_suffix(".bak").unwrap_or(lower))
 }
 
 /// Pure catalog probe over an already-loaded manifest — tests (and any other
@@ -40,7 +46,7 @@ pub(crate) fn capability_probe(manifest: LumaManifest) -> CapabilityProbe {
     CapabilityProbe::new(
         AddonKind::Luma,
         source_revision,
-        move |facts: &MatchFacts| {
+        move |facts: &MatchFacts, _components: &[LibraryComponent]| {
             let resolution = matcher::resolve(&manifest, facts);
             matches!(&resolution, LumaResolution::Installable(_))
         },
@@ -88,12 +94,14 @@ fn luma_dir_has_framework_shaped_content(dir: &Path, depth: u8) -> bool {
 }
 
 fn is_luma_framework_file_name(lower: &str) -> bool {
-    lower.ends_with(".hlsl")
-        || lower.ends_with(".fx")
-        || lower.ends_with(".fxh")
-        || lower.ends_with(".addon")
-        || lower.ends_with(".addon32")
-        || lower.ends_with(".addon64")
+    Path::new(lower).extension().is_some_and(|ext| {
+        ext.eq_ignore_ascii_case("hlsl")
+            || ext.eq_ignore_ascii_case("fx")
+            || ext.eq_ignore_ascii_case("fxh")
+            || ext.eq_ignore_ascii_case("addon")
+            || ext.eq_ignore_ascii_case("addon32")
+            || ext.eq_ignore_ascii_case("addon64")
+    })
 }
 
 impl AddonTool for LumaTool {
@@ -119,10 +127,6 @@ impl AddonTool for LumaTool {
 
     fn finalizing_phase(&self) -> &'static str {
         LUMA_PHASE_FINALIZING
-    }
-
-    fn recover_torn(&self, scan_dirs: &[&Path]) {
-        recover_torn_install(scan_dirs);
     }
 
     fn supports_deep_check(&self) -> bool {

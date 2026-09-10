@@ -48,13 +48,13 @@ pub fn set_executable_override(
     let install_dir = Path::new(game.install_path().as_str());
     let exe_path = Path::new(absolute_path);
 
-    let canonical_install = install_dir.canonicalize().map_err(|error| {
+    let canonical_install = crate::paths::canonicalize_existing(install_dir).map_err(|error| {
         ServiceError::command_failed(format!(
             "could not canonicalize install dir {}: {error}",
             install_dir.display()
         ))
     })?;
-    let canonical_exe = exe_path.canonicalize().map_err(|error| {
+    let canonical_exe = crate::paths::canonicalize_existing(exe_path).map_err(|error| {
         ServiceError::command_failed(format!(
             "could not canonicalize executable {}: {error}",
             exe_path.display()

@@ -96,6 +96,9 @@ pub struct AvailabilityReport {
     /// Read-only state of the RenoDX add-on file/config, when the expected file
     /// name is known.
     pub renodx_addon: Option<RenoDxAddonState>,
+    /// Whether an earlier framework-managed RenoDX operation left its crash
+    /// sentinel behind.
+    pub install_torn: bool,
     /// Whether and how RenoDX can be installed.
     pub outcome: AvailabilityOutcome,
     /// The manual "install ReShade host + your own add-on file" escape hatch,

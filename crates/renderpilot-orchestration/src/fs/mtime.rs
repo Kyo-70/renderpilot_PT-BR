@@ -53,9 +53,8 @@ pub(crate) fn format_http_date(time: SystemTime) -> String {
 #[must_use]
 pub(crate) fn is_reasonable_file_mtime(time: SystemTime) -> bool {
     let future_slop = Duration::from_hours(24);
-    time <= SystemTime::now()
-        .checked_add(future_slop)
-        .unwrap_or(SystemTime::now())
+    let now = SystemTime::now();
+    time <= now.checked_add(future_slop).unwrap_or(now)
 }
 
 /// Best-effort mtime stamp for an installed file, from its upstream `Last-Modified`

@@ -9,7 +9,7 @@ use renderpilot_application::{
     AppError, AppResult, ArtifactRepository, CandidateArtifactIndex,
     ComponentReplacementCandidates, ComponentRepository, CoordinatedCandidateOption,
     GameRepository, InstalledAddonRepository, OperationPlan, OperationRecord,
-    find_replacement_candidate_selection_indexed,
+    OptiScalerStateRepository, find_replacement_candidate_selection_indexed,
 };
 use renderpilot_detection::DetectedLibraryFile;
 use renderpilot_domain::{
@@ -263,9 +263,9 @@ pub struct OperationListCatalogEntry {
     pub component_ids: Vec<String>,
 }
 
-/// Computes the add-on capabilities (RenoDX / Luma) for a single game using the
-/// same rules as the catalog cards list: profile snapshot (from manifests) union
-/// any currently active installed add-on for the game.
+/// Computes add-on capabilities for a single game using the same rules as the
+/// catalog cards list: the profile-derived snapshot union any currently active
+/// generic add-on record and the dedicated durable OptiScaler state.
 pub fn addon_capabilities(
     context: &crate::Context,
     game_id: &GameId,
@@ -274,23 +274,36 @@ pub fn addon_capabilities(
         crate::addons::capabilities::DurableProfileCapabilities::load_for_game(context, game_id)?;
     let installed =
         crate::addons::records::active_record(context, game_id)?.map(|record| record.kind());
-    Ok(merge_addon_capabilities(&profile, installed))
+    let optiscaler_installed = context
+        .storage()
+        .get_optiscaler_install_state(game_id)?
+        .is_some();
+    Ok(merge_addon_capabilities(
+        &profile,
+        installed,
+        optiscaler_installed,
+    ))
 }
 
-/// Merge profile-derived capabilities (from manifest matchers in the snapshot)
-/// with any currently active installed add-on for the game.
+/// Merge profile-derived capabilities with durable installed add-on state.
 ///
 /// A game appears to "support" an add-on (and therefore gets a card / badge /
-/// filter option) if *either* the profile snapshot says the manifest matches
-/// *or* the game has an active record in `installed_addons`.
+/// filter option) if the profile snapshot enables the tool, the game has an
+/// active generic record in `installed_addons`, or its dedicated OptiScaler
+/// install state exists.
 pub(crate) fn merge_addon_capabilities(
     profile_capabilities: &[AddonKind],
     installed: Option<AddonKind>,
+    optiscaler_installed: bool,
 ) -> Vec<AddonKind> {
     AddonKind::ALL
         .iter()
         .copied()
-        .filter(|kind| profile_capabilities.contains(kind) || installed == Some(*kind))
+        .filter(|kind| {
+            profile_capabilities.contains(kind)
+                || installed == Some(*kind)
+                || (*kind == AddonKind::OptiScaler && optiscaler_installed)
+        })
         .collect()
 }
 
@@ -419,11 +432,13 @@ pub(crate) fn get_game_details_with_universe(
     let game = storage.require_game(game_id)?;
     let components = storage.list_components_for_game(game_id)?;
     let installed_addon = storage.get_installed_addon(game_id)?;
+    let optiscaler_installed = storage.get_optiscaler_install_state(game_id)?.is_some();
     let profile_capabilities =
         crate::addons::capabilities::DurableProfileCapabilities::load_for_game(context, game_id)?;
     let addon_capabilities = merge_addon_capabilities(
         &profile_capabilities,
         installed_addon.as_ref().map(|a| a.kind()),
+        optiscaler_installed,
     );
     let backup_component_ids =
         crate::coordinated_files::available_component_backup_ids(storage, game_id, &components)?;
@@ -743,6 +758,66 @@ fn filter_artifacts_by_technology(
     }
 }
 
+/// Refreshes detected library components for a single game under an existing mutation lock.
+pub(crate) fn refresh_game_components_locked(
+    context: &crate::Context,
+    guard: &crate::game_mutation_lock::GameMutationGuard,
+    game_id: &GameId,
+) -> Result<ScanFolderCatalogResult, ServiceError> {
+    if guard.game_id() != game_id {
+        return Err(ServiceError::invalid_input(
+            "mutation guard does not match the requested game for component refresh",
+        ));
+    }
+
+    let game = context
+        .storage()
+        .find_game(game_id)?
+        .ok_or_else(|| AppError::game_not_found(game_id.as_str()))?;
+
+    let root = PathBuf::from(game.install_path().as_str());
+    if !root.is_dir() {
+        return Err(ServiceError::invalid_input(format!(
+            "game installation directory '{}' is missing or not a directory",
+            root.display()
+        )));
+    }
+
+    let explicit_executable = game
+        .confirmed_executable()
+        .map(|relative| root.join(relative.as_str()));
+
+    scan::scan_explicit_install_locked(
+        context,
+        guard,
+        root,
+        game.id().clone(),
+        game.root_authority(),
+        explicit_executable,
+    )
+}
+
+/// Refreshes detected library components for a single game asynchronously, acquiring
+/// the game's mutation lock before scanning and persisting the results.
+pub async fn refresh_game_components(
+    context: &crate::Context,
+    game_id: &GameId,
+) -> Result<ScanFolderCatalogResult, ServiceError> {
+    let guard =
+        crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id).await?;
+    refresh_game_components_locked(context, &guard, game_id)
+}
+
+/// Refreshes detected library components for a single game synchronously, acquiring
+/// the game's mutation lock before scanning and persisting the results.
+pub fn refresh_game_components_sync(
+    context: &crate::Context,
+    game_id: &GameId,
+) -> Result<ScanFolderCatalogResult, ServiceError> {
+    let guard = crate::mutation_boundary::enter_game_mutation_boundary(context, game_id)?;
+    refresh_game_components_locked(context, &guard, game_id)
+}
+
 #[cfg(test)]
 mod tests {
     use renderpilot_domain::{
@@ -776,8 +851,16 @@ mod tests {
         // Merge (used by catalog cards and GameDetails) unions profile + installed
         // capabilities and preserves AddonKind::ALL order.
         assert_eq!(
-            merge_addon_capabilities(&[AddonKind::Luma], Some(AddonKind::RenoDx)),
+            merge_addon_capabilities(&[AddonKind::Luma], Some(AddonKind::RenoDx), false),
             vec![AddonKind::RenoDx, AddonKind::Luma]
+        );
+    }
+
+    #[test]
+    fn merge_addon_capabilities_keeps_a_durable_optiscaler_install_visible() {
+        assert_eq!(
+            merge_addon_capabilities(&[], None, true),
+            vec![AddonKind::OptiScaler]
         );
     }
 

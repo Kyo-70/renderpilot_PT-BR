@@ -27,9 +27,11 @@ pub(crate) fn sequential_stage_observer<'a>(
                 return;
             }
 
-            let stage_progress = ((local.downloaded_bytes.min(local.total_bytes) as u128)
-                * (STAGE_UNITS as u128)
-                / (local.total_bytes as u128)) as u64;
+            let stage_progress = u64::try_from(
+                u128::from(local.downloaded_bytes.min(local.total_bytes)) * u128::from(STAGE_UNITS)
+                    / u128::from(local.total_bytes),
+            )
+            .unwrap_or(STAGE_UNITS);
 
             observe(DownloadProgress {
                 downloaded_bytes: stage_index

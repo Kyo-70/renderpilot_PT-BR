@@ -72,6 +72,9 @@ pub struct AvailabilityReport {
     /// cleanly (the engine's crash-safety sentinel is still present). `false`
     /// when the install directory can't be resolved. Reinstalling clears it.
     pub install_torn: bool,
+    /// Installed add-on that must be removed before this installed Luma can
+    /// be uninstalled. The backend remains authoritative at command time.
+    pub uninstall_blocked_by: Option<AddonKind>,
     /// Whether and how Luma can be installed.
     pub outcome: AvailabilityOutcome,
 }

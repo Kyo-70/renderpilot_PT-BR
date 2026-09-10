@@ -8,20 +8,24 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::ServiceError;
-
 #[cfg(test)]
 use super::{NoReplaceTestFault, no_replace_test_fault};
 use super::{
     NoReplaceWrite, PreparedNoReplaceWrite, sync_no_replace_temp_file, write_no_replace_temp_bytes,
 };
+use crate::{
+    ServiceError,
+    fs::{VerifiedDir, verified_parent},
+};
 
 pub(super) fn move_linux_no_replace(source: &Path, destination: &Path) -> Result<(), ServiceError> {
+    let (source_parent, source_leaf) = verified_parent(source)?;
+    let (destination_parent, destination_leaf) = verified_parent(destination)?;
     rustix::fs::renameat_with(
-        rustix::fs::CWD,
-        source,
-        rustix::fs::CWD,
-        destination,
+        source_parent.as_fd(),
+        source_leaf.as_os_str(),
+        destination_parent.as_fd(),
+        destination_leaf.as_os_str(),
         rustix::fs::RenameFlags::NOREPLACE,
     )
     .map_err(|error| {
@@ -82,20 +86,10 @@ pub(super) fn prepare_linux_no_replace(
     parent: &Path,
     bytes: &[u8],
 ) -> Result<PreparedNoReplaceWrite, ServiceError> {
-    let destination_leaf = linux_destination_leaf(path)?;
+    let (_, destination_leaf) = verified_parent(path)?;
     #[cfg(test)]
     no_replace_test_fault(NoReplaceTestFault::Create)?;
-    let parent_directory = rustix::fs::open(
-        parent,
-        rustix::fs::OFlags::RDONLY | rustix::fs::OFlags::DIRECTORY | rustix::fs::OFlags::CLOEXEC,
-        rustix::fs::Mode::empty(),
-    )
-    .map_err(|error| {
-        crate::failed(format!(
-            "failed to open publication parent directory `{}`: {error}",
-            parent.display()
-        ))
-    })?;
+    let parent_directory = VerifiedDir::open(parent)?.into_fd();
     let candidate_fd = rustix::fs::openat(
         &parent_directory,
         ".",
@@ -132,25 +126,8 @@ pub(super) fn prepare_linux_no_replace(
     Ok(PreparedNoReplaceWrite {
         file,
         parent_directory,
-        destination_leaf,
+        destination_leaf: destination_leaf.as_os_str().to_owned(),
     })
-}
-
-#[cfg(target_os = "linux")]
-fn linux_destination_leaf(path: &Path) -> Result<OsString, ServiceError> {
-    let parent = path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty());
-    let leaf = path
-        .file_name()
-        .filter(|leaf| *leaf != "." && *leaf != "..");
-    match (parent, leaf) {
-        (Some(_), Some(leaf)) if !leaf.is_empty() => Ok(leaf.to_owned()),
-        _ => Err(crate::failed(format!(
-            "cannot publish `{}` because its destination is not a safe parent-and-leaf path",
-            path.display()
-        ))),
-    }
 }
 
 #[cfg(target_os = "linux")]

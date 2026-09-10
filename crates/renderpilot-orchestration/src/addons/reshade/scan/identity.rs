@@ -34,7 +34,7 @@ pub(super) fn is_reshade_engine_dll(name: &str) -> bool {
         .any(|slot| name.eq_ignore_ascii_case(slot))
 }
 
-pub(super) fn version_strings_point_to_reshade(strings: &VersionIdentityStrings) -> bool {
+pub(crate) fn version_strings_point_to_reshade(strings: &VersionIdentityStrings) -> bool {
     let values = [
         strings.product_name.as_deref(),
         strings.file_description.as_deref(),
@@ -79,10 +79,13 @@ pub fn is_known_custom_build(
                 )
         })
     });
-    has_custom_runtime || host_identity.is_some_and(identity_mentions_a_known_custom_build)
+    has_custom_runtime || host_identity.is_some_and(is_known_custom_identity)
 }
 
-fn identity_mentions_a_known_custom_build(identity: &VersionIdentityStrings) -> bool {
+/// Whether the identity strings from one retained PE image identify a known
+/// custom ReShade build. This predicate is intentionally independent of any
+/// directory enumeration so topology decisions remain exact-file-only.
+pub(crate) fn is_known_custom_identity(identity: &VersionIdentityStrings) -> bool {
     let values = [
         identity.product_name.as_deref(),
         identity.file_description.as_deref(),
@@ -168,6 +171,17 @@ mod tests {
         };
 
         assert!(is_known_custom_build(dir.path(), Some(&identity)));
+    }
+
+    #[test]
+    fn exact_identity_predicate_detects_gshade_without_directory_access() {
+        let identity = VersionIdentityStrings {
+            product_name: Some("GShade".to_owned()),
+            ..Default::default()
+        };
+
+        assert!(is_known_custom_identity(&identity));
+        assert!(!is_known_custom_identity(&VersionIdentityStrings::default()));
     }
 
     #[test]

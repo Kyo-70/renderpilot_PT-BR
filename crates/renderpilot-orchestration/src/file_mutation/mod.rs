@@ -14,6 +14,7 @@
 //! reserved for multi-step flows that open an engine sentinel first.
 
 mod manifest;
+mod peer_recovery;
 mod recover;
 mod retryable_v2;
 mod scope;
@@ -26,12 +27,44 @@ use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 
+use renderpilot_application::ProxyTopologyRepository;
+use renderpilot_domain::{AddonKind, mutation_features::MutationFeatureOwner};
+
 pub(crate) use recover::{recover_pending, recover_pending_matching};
 pub(crate) use retryable_v2::{
     RetryableFileMutationV2, RetryableFileOperation, RetryableFilePlan, V2DiskObservation, observe,
 };
 pub(crate) use scope::MutationScope;
 pub(crate) use transaction::{DurableFileTransaction, DurableMutation, run_durable_mutation};
+
+/// Fences framework-owned mutations while a peer proxy topology is active.
+/// Recovery remains available at the boundary; only creation of a new
+/// mutation is rejected for a conflicting add-on owner.
+pub(crate) fn ensure_feature_allowed_with_proxy_topology(
+    context: &crate::Context,
+    game_id: &renderpilot_domain::GameId,
+    feature: &str,
+) -> Result<(), crate::ServiceError> {
+    if context.storage().get_proxy_topology(game_id)?.is_none() {
+        return Ok(());
+    }
+    let owner = renderpilot_domain::mutation_features::feature_owner(feature).ok_or_else(|| {
+        crate::ServiceError::invalid_input(format!(
+            "durable mutation feature cannot be classified under an active proxy topology: {feature}"
+        ))
+    })?;
+    let peer_kind = match owner {
+        MutationFeatureOwner::Luma => Some(AddonKind::Luma),
+        MutationFeatureOwner::RenoDx => Some(AddonKind::RenoDx),
+        MutationFeatureOwner::Catalog
+        | MutationFeatureOwner::OptiScaler
+        | MutationFeatureOwner::SharedVulkan => None,
+    };
+    if let Some(peer_kind) = peer_kind {
+        return Err(crate::ServiceError::peer_topology_conflict(peer_kind));
+    }
+    Ok(())
+}
 
 pub(super) fn remove_dir_if_exists(directory: &Path) -> Result<(), crate::ServiceError> {
     match fs::remove_dir_all(directory) {

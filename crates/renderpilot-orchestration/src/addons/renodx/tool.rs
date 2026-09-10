@@ -2,14 +2,13 @@
 
 use std::path::Path;
 
-use renderpilot_domain::{AddonKind, InstalledAddon};
+use renderpilot_domain::{AddonKind, InstalledAddon, LibraryComponent};
 
 use crate::addons::capabilities::{CapabilityProbe, CapabilityProbeFuture};
 use crate::addons::matching::MatchFacts;
 use crate::addons::tool::AddonTool;
 
 use super::RENODX_PHASE_FINALIZING;
-use super::install::recover_torn_install;
 use super::manifest_store;
 use super::matcher::{self, RenoDxResolution};
 use super::types::RenoDxManifest;
@@ -35,7 +34,7 @@ pub(crate) fn capability_probe(manifest: RenoDxManifest) -> CapabilityProbe {
     CapabilityProbe::new(
         AddonKind::RenoDx,
         source_revision,
-        move |facts: &MatchFacts| {
+        move |facts: &MatchFacts, _components: &[LibraryComponent]| {
             let resolution = matcher::resolve(&manifest, facts);
             matches!(
                 &resolution,
@@ -76,10 +75,6 @@ impl AddonTool for RenoDxTool {
 
     fn finalizing_phase(&self) -> &'static str {
         RENODX_PHASE_FINALIZING
-    }
-
-    fn recover_torn(&self, scan_dirs: &[&Path]) {
-        recover_torn_install(scan_dirs);
     }
 
     fn load_capability_probe(&self) -> CapabilityProbeFuture {

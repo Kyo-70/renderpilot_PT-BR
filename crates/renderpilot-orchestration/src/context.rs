@@ -9,12 +9,13 @@ mod snapshot_cache;
 
 use self::caches::{BackgroundRefreshGate, GameDetailsCache, ReplacementUniverseCache};
 use self::snapshot_cache::CatalogSnapshotCache;
+use crate::peer_mutation_executor::PeerMutationExecutor;
 
 type DeveloperModeStatusProvider = dyn Fn() -> DeveloperModeStatus + Send + Sync;
 
 /// Shared application context holding the catalog storage and configuration.
 pub struct Context {
-    storage: SqliteStorage,
+    peer_mutation_executor: PeerMutationExecutor,
     file_mutation_root: PathBuf,
     catalog_snapshots: CatalogSnapshotCache,
     catalog_scan: Mutex<()>,
@@ -92,7 +93,7 @@ impl Context {
         file_mutation_root: PathBuf,
     ) -> Self {
         Self {
-            storage,
+            peer_mutation_executor: PeerMutationExecutor::new(storage),
             file_mutation_root,
             catalog_snapshots: CatalogSnapshotCache::default(),
             catalog_scan: Mutex::new(()),
@@ -127,7 +128,11 @@ impl Context {
     /// orchestration↔presentation boundary compiler-enforced. Tests that need
     /// raw storage open their own [`SqliteStorage`] on the same database path.
     pub(crate) fn storage(&self) -> &SqliteStorage {
-        &self.storage
+        self.peer_mutation_executor.repositories()
+    }
+
+    pub(crate) fn peer_mutation_executor(&self) -> &PeerMutationExecutor {
+        &self.peer_mutation_executor
     }
 
     pub(crate) fn file_mutation_root(&self) -> &Path {
@@ -264,7 +269,9 @@ impl Context {
 
     /// Marks the projection stale while retaining it for readers during rebuild.
     pub fn invalidate_catalog_snapshot(&self) {
-        self.storage.invalidate_catalog_projection();
+        self.peer_mutation_executor
+            .repositories()
+            .invalidate_catalog_projection();
         self.catalog_snapshots.invalidate();
     }
 }

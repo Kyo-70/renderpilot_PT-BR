@@ -23,7 +23,7 @@ use std::path::Path;
 use super::errors;
 use crate::ServiceError;
 
-mod apply;
+pub(crate) mod apply;
 mod changes;
 mod helpers;
 mod rollback;
@@ -31,9 +31,12 @@ mod sentinel;
 mod types;
 
 pub(crate) use changes::{Action, InstallChanges};
-pub(crate) use helpers::{ensure_bare_file_name, existing_case_insensitive, safe_join};
+pub(crate) use helpers::{
+    ensure_bare_file_name, ensure_safe_relative_path, existing_case_insensitive, safe_join,
+};
 pub use rollback::{cleanup_empty_dirs_best_effort, uninstall, uninstall_tree};
 pub use sentinel::{clear_torn_install_marker, is_install_torn};
+pub(crate) use types::PeerMutationPlan;
 pub use types::{
     FileOp, IniSection, IniSectionRemoval, InstallOptions, InstallPlan, InstallReceipt,
     MergeStrategy,
