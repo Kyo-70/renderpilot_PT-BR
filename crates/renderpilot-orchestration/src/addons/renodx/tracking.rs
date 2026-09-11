@@ -26,9 +26,21 @@ pub(super) fn install_state_from_record(record: &InstalledAddon) -> RenoDxInstal
 pub(super) fn required_rollback_host_path(
     record: &InstalledAddon,
 ) -> Result<PathBuf, ServiceError> {
-    tracking::host_proxy_path(record).ok_or_else(|| {
-        errors::invalid("RenoDX install record does not identify a ReShade host path".to_owned())
-    })
+    record
+        .managed_files()
+        .iter()
+        .map(|file| PathBuf::from(file.path().as_str()))
+        .find(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.eq_ignore_ascii_case("ReShade64.dll"))
+        })
+        .or_else(|| tracking::host_proxy_path(record))
+        .ok_or_else(|| {
+            errors::invalid(
+                "RenoDX install record does not identify a ReShade host path".to_owned(),
+            )
+        })
 }
 
 pub(super) fn replace_host_source(
@@ -208,6 +220,30 @@ mod tests {
                 .file_name()
                 .and_then(|name| name.to_str()),
             Some("d3d11.dll")
+        );
+    }
+
+    #[test]
+    fn rollback_host_path_prefers_the_coordinated_managed_host() {
+        let managed_path = path(r"C:\Games\Test\ReShade64.dll");
+        let managed = renderpilot_domain::ManagedAddonFile::owned(
+            managed_path.clone(),
+            renderpilot_domain::ManagedFileBaseline::Absent,
+            renderpilot_domain::Sha256Hash::new("a".repeat(64)).expect("digest"),
+        );
+        let record = record(
+            vec![
+                path(r"C:\Games\Test\renodx-test.addon64"),
+                path(r"C:\Games\Test\dxgi.dll"),
+            ],
+            Vec::new(),
+        )
+        .try_with_managed_files(vec![managed])
+        .expect("managed record");
+
+        assert_eq!(
+            required_rollback_host_path(&record).expect("managed host"),
+            PathBuf::from(managed_path.as_str())
         );
     }
 

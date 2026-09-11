@@ -27,6 +27,8 @@ pub(crate) struct Manifest {
     pub(crate) files: Vec<FileParticipant>,
     pub(crate) registry: Vec<RegistryParticipant>,
     pub(crate) directories: Vec<DirectoryParticipant>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) peer_program: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -100,6 +102,7 @@ impl Manifest {
             files: Vec::new(),
             registry: Vec::new(),
             directories: Vec::new(),
+            peer_program: None,
         }
     }
 

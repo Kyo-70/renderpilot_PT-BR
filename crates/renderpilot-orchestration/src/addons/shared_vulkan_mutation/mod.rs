@@ -23,7 +23,8 @@ pub(crate) use manifest::{Manifest, RegistryValue, Scope};
 pub(crate) use plan::{FileIntent, MutationPlan, RegistryIntent};
 pub(crate) use recovery::recover_pending;
 pub(crate) use transaction::{
-    CatalogProjection, MutationIdentity, PhysicalParticipants, Request, ScopeSpec, execute,
+    CatalogProjection, MutationIdentity, PeerUnchangedRequest, PhysicalParticipants, Request,
+    ScopeSpec, execute, execute_peer_unchanged,
 };
 
 #[derive(Debug)]

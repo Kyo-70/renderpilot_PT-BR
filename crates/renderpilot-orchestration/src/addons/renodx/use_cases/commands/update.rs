@@ -1,23 +1,21 @@
 //! Applies updates to installed RenoDX add-ons and host artifacts.
 
-use renderpilot_domain::{AddonKind, GameId};
+use renderpilot_domain::GameId;
 
-use crate::addons::progress::emit_tool_finalizing;
 use crate::addons::renodx::types::RenoDxManifest;
 use crate::addons::reshade::types::ReshadeSourceCatalog;
 use crate::net::ProgressObserver;
 use crate::{Context, ServiceError};
 
+mod active;
 mod commit;
+mod inactive;
 mod prepare;
+mod route;
 mod snapshot;
 
 #[cfg(test)]
 mod tests;
-
-use commit::authorize_update_commit;
-use prepare::prepare_update_artifacts;
-use snapshot::{ensure_update_snapshot_matches, resolve_update_snapshot};
 
 /// Complete request for a generic RenoDX update.
 pub struct UpdateRequest<'a> {
@@ -43,76 +41,19 @@ pub struct UpdateRequest<'a> {
 /// (same 3-phase contract as Luma update). Shared Vulkan layer updates still
 /// apply under the lock in phase 3 (system-wide mutation).
 pub async fn update(request: UpdateRequest<'_>) -> Result<(), ServiceError> {
-    let UpdateRequest {
-        context,
-        manifest,
-        reshade_sources,
-        game_id,
-        safety,
-        progress,
-    } = request;
-    // Phase 1: snapshot under the per-game lock.
-    let snapshot = {
-        let _guard =
+    let context = request.context;
+    let manifest = request.manifest;
+    let reshade_sources = request.reshade_sources;
+    let game_id = request.game_id;
+    let phase1 = {
+        let guard =
             crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id).await?;
-        resolve_update_snapshot(context, manifest, reshade_sources, game_id)?
+        route::snapshot_update_route(context, manifest, reshade_sources, &guard)?
     };
-
-    // Phase 2: downloads only for per-game sources (no disk apply).
-    let prepared = prepare_update_artifacts(&snapshot, progress).await?;
-    let shared_update = match snapshot.shared_vulkan_channel {
-        Some(channel) => Some(
-            crate::addons::renodx::use_cases::commands::update_reshade::PreparedReShadeUpdate::prepare(
-                reshade_sources,
-                channel,
-                progress,
-            )
-            .await?,
-        ),
-        None => None,
-    };
-
-    // Phase 3: re-lock, revalidate, shared Vulkan (if any), apply.
-    // Peer exclusivity is not re-checked here: one installed-addon row per game
-    // plus our own record already blocks foreign tools for the duration of prepare.
-    let guards = crate::mutation_boundary::enter_mutation_boundary_async(
-        context,
-        game_id,
-        shared_update.is_some(),
-    )
-    .await?;
-    let revalidated = resolve_update_snapshot(context, manifest, reshade_sources, game_id)?;
-    ensure_update_snapshot_matches(&snapshot, &revalidated)?;
-    let current = &revalidated.record;
-
-    emit_tool_finalizing(progress, AddonKind::RenoDx);
-    let replacement_paths = prepared.replacement_paths();
-    let host_install_path = prepared.host_install_path();
-    let targets = crate::addons::renodx::mutation_targets::update_targets(
-        &revalidated.record,
-        &replacement_paths,
-        host_install_path.as_deref(),
-    )?;
-    match shared_update {
-        Some(shared_update) => commit::authorize_combined_update(commit::CombinedUpdateRequest {
-            context,
-            guards,
-            safety: &safety,
-            shared_update,
-            artifacts: prepared,
-            current,
-            targets,
-            game_id,
-        }),
-        None => authorize_update_commit(context, guards, &safety, |guard| {
-            commit::apply_update(commit::UpdateCommit {
-                context,
-                guard,
-                artifacts: prepared,
-                current,
-                targets,
-                game_id,
-            })
-        }),
+    match phase1 {
+        route::UpdatePhase1::Inactive(snapshot) => inactive::update(request, *snapshot).await,
+        route::UpdatePhase1::Active(snapshot) => {
+            active::update(request, *snapshot).await.map(|_| ())
+        }
     }
 }

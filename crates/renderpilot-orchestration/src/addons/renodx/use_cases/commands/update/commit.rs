@@ -95,7 +95,7 @@ pub(super) fn apply_update(commit: UpdateCommit<'_>) -> Result<(), ServiceError>
             }
             Ok(())
         },
-        |_| {},
+        |()| {},
         || {},
     )
 }

@@ -58,14 +58,14 @@ pub(crate) fn read_snapshot(
     relative: &str,
 ) -> Result<Vec<u8>, MutationError> {
     let path = transaction_root.join(relative);
-    let root = transaction_root.canonicalize().map_err(MutationError::io)?;
+    let root = crate::paths::canonicalize_existing(transaction_root).map_err(MutationError::io)?;
     let metadata = fs::symlink_metadata(&path).map_err(MutationError::io)?;
     if metadata.file_type().is_symlink() {
         return Err(MutationError::conflict(
             "snapshot path must not be a symbolic link",
         ));
     }
-    let canonical_path = path.canonicalize().map_err(MutationError::io)?;
+    let canonical_path = crate::paths::canonicalize_existing(&path).map_err(MutationError::io)?;
     if !canonical_path.starts_with(&root) {
         return Err(MutationError::conflict(
             "snapshot path escaped transaction root",

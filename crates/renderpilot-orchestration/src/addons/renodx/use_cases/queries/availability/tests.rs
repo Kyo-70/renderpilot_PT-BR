@@ -11,11 +11,12 @@ use crate::addons::renodx::test_support::{
     MACHINE_AMD64, PE32_PLUS_MAGIC, build_pe_with_exports, rule, title,
 };
 #[cfg(windows)]
-use renderpilot_application::{GameRepository, InstalledAddonRepository};
+use renderpilot_application::{GameRepository, InstalledAddonRepository, ProxyTopologyRepository};
 use renderpilot_domain::{ExeGraphicsInfo, GraphicsApi, Launcher};
 #[cfg(windows)]
 use renderpilot_domain::{
-    GameIdentity, GameInstallation, GameRuntime, InstalledAddon, PathRef, Platform,
+    FileReceipt, GameIdentity, GameInstallation, GameProxyTopology, GameRuntime, InstalledAddon,
+    PathRef, Platform, ProxyImplementation, ProxyLink, ProxyRootPrestate, Sha256Hash,
 };
 #[cfg(windows)]
 use tempfile::tempdir;
@@ -200,6 +201,117 @@ async fn availability_auto_adopts_proxy_install_after_db_loss() {
         .expect("adopted record");
     assert!(record.installed_at().is_some());
     assert_eq!(record.addon_version(), None);
+}
+
+#[tokio::test]
+#[cfg(windows)]
+async fn availability_does_not_adopt_orphan_over_existing_proxy_topology() {
+    let db_dir = tempdir().expect("db dir");
+    let game_dir = tempdir().expect("game dir");
+    let context = Context::open_at(db_dir.path().join("catalog.sqlite")).expect("context");
+    let game_id = GameId::new("steam:1091502").expect("game id");
+    let exe_path = game_dir.path().join("Game.exe");
+
+    std::fs::write(
+        &exe_path,
+        build_pe_with_exports(MACHINE_AMD64, PE32_PLUS_MAGIC, &[]),
+    )
+    .expect("write exe");
+    std::fs::write(game_dir.path().join("dxgi.dll"), full_reshade_host_bytes())
+        .expect("write host");
+    std::fs::write(game_dir.path().join("renodx-cp2077.addon64"), b"addon").expect("write addon");
+    std::fs::write(
+        game_dir.path().join("ReShade.ini"),
+        "[ADDON]\r\nDisabledAddons=Generic Depth,Effect Runtime Sync\r\n",
+    )
+    .expect("write ini");
+
+    let identity = GameIdentity::new(game_id.clone(), "Cyberpunk 2077", Launcher::Steam)
+        .expect("identity")
+        .with_external_id("1091502")
+        .expect("external id");
+    let game = GameInstallation::new(
+        identity,
+        Platform::Windows,
+        GameRuntime::NativeWindows,
+        PathRef::new(game_dir.path().to_string_lossy().replace('\\', "/")).expect("install path"),
+    )
+    .with_executable_candidate(
+        PathRef::new(exe_path.to_string_lossy().replace('\\', "/")).expect("exe path"),
+    );
+    context.storage().upsert_game(&game).expect("seed game");
+
+    let root_slot = PathRef::new(
+        game_dir
+            .path()
+            .join("dxgi.dll")
+            .to_string_lossy()
+            .replace('\\', "/"),
+    )
+    .expect("root slot");
+    let topology = GameProxyTopology {
+        id: "topology:availability-aggregate-owner".to_owned(),
+        game_id: game_id.clone(),
+        root_slot: root_slot.clone(),
+        outer: ProxyLink {
+            implementation: ProxyImplementation::OptiScaler,
+            path: root_slot,
+            receipt: FileReceipt::owned(
+                "optiscaler:availability",
+                Sha256Hash::new("a".repeat(64)).expect("digest"),
+            )
+            .expect("receipt"),
+        },
+        downstream: None,
+        downstream_origin: None,
+        root_prestate: ProxyRootPrestate::Absent,
+    };
+    let connection = rusqlite::Connection::open(db_dir.path().join("catalog.sqlite"))
+        .expect("fixture connection");
+    connection
+        .execute(
+            "INSERT INTO game_proxy_topologies (game_id, id, topology_json) VALUES (?1, ?2, ?3)",
+            rusqlite::params![
+                game_id.as_str(),
+                topology.id.as_str(),
+                serde_json::to_string(&topology).expect("topology json")
+            ],
+        )
+        .expect("topology");
+
+    let manifest = manifest(vec![title(
+        "cp2077",
+        "cp2077",
+        Architecture::X64,
+        crate::addons::renodx::types::Status::Working,
+        vec![rule(
+            crate::addons::renodx::types::MatchKind::SteamAppid,
+            "1091502",
+            100,
+        )],
+    )]);
+    let mut reshade_sources = crate::addons::renodx::test_support::reshade_sources();
+    reshade_sources.stable = None;
+
+    let report = load_availability(&context, &manifest, &reshade_sources, &game_id)
+        .await
+        .expect("availability remains queryable");
+    assert!(matches!(report.state, RenoDxInstallState::NotInstalled));
+    assert!(
+        context
+            .storage()
+            .get_installed_addon(&game_id)
+            .expect("get record")
+            .is_none(),
+        "aggregate-owned topology must not be independently adopted"
+    );
+    assert_eq!(
+        context
+            .storage()
+            .get_proxy_topology(&game_id)
+            .expect("get topology"),
+        Some(topology)
+    );
 }
 
 #[test]

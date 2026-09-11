@@ -18,12 +18,31 @@ use crate::{Context, ServiceError};
 ///
 /// Tracked sources are owned copies: network preparation must not borrow data
 /// that can be changed after the phase-one lock is released.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct UpdateSnapshot {
     pub(super) record: InstalledAddon,
     pub(super) shared_vulkan_channel: Option<ReshadeChannel>,
     pub(super) addon: Option<TrackedSource>,
     pub(super) host: Option<TrackedSource>,
     pub(super) host_target: Option<HostUpdateTarget>,
+}
+
+impl UpdateSnapshot {
+    pub(super) fn record(&self) -> &InstalledAddon {
+        &self.record
+    }
+
+    pub(super) fn host(&self) -> Option<&TrackedSource> {
+        self.host.as_ref()
+    }
+
+    pub(super) fn shared_vulkan_channel(&self) -> Option<ReshadeChannel> {
+        self.shared_vulkan_channel
+    }
+
+    pub(super) fn host_target(&self) -> Option<&HostUpdateTarget> {
+        self.host_target.as_ref()
+    }
 }
 
 pub(super) fn resolve_update_snapshot(

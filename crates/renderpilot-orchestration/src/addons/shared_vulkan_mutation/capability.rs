@@ -42,6 +42,10 @@ pub(crate) struct CapabilityPath {
 }
 
 impl TrustedRoots {
+    pub(crate) fn root_ids(&self) -> Vec<String> {
+        self.roots.iter().map(|root| root.id.clone()).collect()
+    }
+
     pub(crate) fn shared_only(shared_root: &Path) -> Result<Self, MutationError> {
         Self::build(
             Scope::SharedOnly,

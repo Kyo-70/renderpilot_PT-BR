@@ -66,6 +66,7 @@ fn recover_row(
             Ok(())
         }
         PendingSharedVulkanMutationState::Committed => {
+            validate_shared_peer_program(row)?;
             let manifest =
                 Manifest::from_json(&row.manifest_json).map_err(MutationError::manifest)?;
             manifest
@@ -86,9 +87,42 @@ fn recover_row(
             Ok(())
         }
         PendingSharedVulkanMutationState::Prepared => {
+            validate_shared_peer_program(row)?;
             recover_prepared(context, row, &root, roots, registry)
         }
     }
+}
+
+fn validate_shared_peer_program(
+    row: &renderpilot_storage_sqlite::PendingSharedVulkanMutationRow,
+) -> Result<(), crate::ServiceError> {
+    let value: serde_json::Value = serde_json::from_str(&row.manifest_json).map_err(|error| {
+        crate::ServiceError::invalid_input(format!(
+            "shared mutation {} requires repair; manifest JSON is malformed: {error}",
+            row.id
+        ))
+    })?;
+    let Some(peer_program) = value.get("peer_program") else {
+        return Ok(());
+    };
+    if !peer_program.is_object() {
+        return Err(crate::ServiceError::invalid_input(format!(
+            "shared mutation {} requires repair; peer program is not an object",
+            row.id
+        )));
+    }
+    renderpilot_storage_sqlite::validate_shared_peer_recovery_program(
+        &row.id,
+        &row.feature,
+        &row.manifest_json,
+        &row.root_capabilities_json,
+    )
+    .map_err(|error| {
+        crate::ServiceError::invalid_input(format!(
+            "shared mutation {} requires repair; peer program is invalid: {error}",
+            row.id
+        ))
+    })
 }
 
 fn recover_prepared(
@@ -201,8 +235,7 @@ fn payloads_from_manifest(
                     .map(|path| roots.resolve(path))
                     .transpose()?,
                 bytes: match participant.after {
-                    FileAfter::Absent => None,
-                    FileAfter::Present { .. } => None,
+                    FileAfter::Absent | FileAfter::Present { .. } => None,
                 },
             })
         })

@@ -8,6 +8,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use renderpilot_domain::Sha256Hash;
 use serde::Serialize;
 
 use crate::addons::ini::Ini;
@@ -45,11 +46,68 @@ pub struct ReshadePaths {
 pub(crate) struct ReshadeConfigSnapshot {
     paths: ReshadePaths,
     ini: Option<Ini>,
+    retained_ini: Option<RetainedReshadeIni>,
+}
+
+/// The exact configuration file image retained while resolving ReShade paths.
+///
+/// This is deliberately tool-neutral.  A caller that needs ownership semantics
+/// can project it into its own authority type, but no caller needs to read or
+/// parse `ReShade.ini` a second time.
+pub(crate) struct RetainedReshadeIni {
+    path: PathBuf,
+    bytes: Vec<u8>,
+    identity: String,
+    digest: Sha256Hash,
+    length: u64,
+    raw_addon_path_token: Option<String>,
+}
+
+impl RetainedReshadeIni {
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+
+    pub(crate) fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub(crate) fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub(crate) fn digest(&self) -> &Sha256Hash {
+        &self.digest
+    }
+
+    pub(crate) const fn length(&self) -> u64 {
+        self.length
+    }
+
+    pub(crate) fn raw_addon_path_token(&self) -> Option<&str> {
+        self.raw_addon_path_token.as_deref()
+    }
 }
 
 impl ReshadeConfigSnapshot {
     pub(crate) fn paths(&self) -> &ReshadePaths {
         &self.paths
+    }
+
+    pub(crate) fn retained_ini(&self) -> Option<&RetainedReshadeIni> {
+        self.retained_ini.as_ref()
+    }
+
+    /// Resolves a caller-supplied immutable `AddonPath` overlay using the same
+    /// base-path rules as the parsed configuration.  The snapshot remains the
+    /// sole source of the base path and no configuration read is performed.
+    pub(crate) fn effective_addon_path_with_overlay(
+        &self,
+        raw_addon_path: Option<&str>,
+    ) -> PathBuf {
+        raw_addon_path
+            .map(|raw| resolve_config_path(&self.paths.effective_base_path, raw))
+            .unwrap_or_else(|| self.paths.effective_addon_path.clone())
     }
 
     pub(crate) fn assess_content(
@@ -73,6 +131,8 @@ pub(crate) enum ReshadeConfigSnapshotError {
     InvalidEntry { path: PathBuf, reason: &'static str },
     ReadRetainedFile { path: PathBuf, error: String },
     InvalidUtf8 { path: PathBuf },
+    InvalidDigest { path: PathBuf },
+    InvalidLength { path: PathBuf },
 }
 
 impl fmt::Display for ReshadeConfigSnapshotError {
@@ -110,6 +170,20 @@ impl fmt::Display for ReshadeConfigSnapshotError {
                 write!(
                     formatter,
                     "ReShade configuration `{}` is not valid UTF-8",
+                    path.display()
+                )
+            }
+            Self::InvalidDigest { path } => {
+                write!(
+                    formatter,
+                    "ReShade configuration `{}` did not yield a valid digest",
+                    path.display()
+                )
+            }
+            Self::InvalidLength { path } => {
+                write!(
+                    formatter,
+                    "ReShade configuration `{}` has an invalid byte length",
                     path.display()
                 )
             }
@@ -157,19 +231,48 @@ pub(crate) fn resolve_strict_snapshot(
 ) -> Result<ReshadeConfigSnapshot, ReshadeConfigSnapshotError> {
     let default_base = default_base(game_dir, host_path);
     let ini_path = strict_reshade_ini_path(&default_base, game_dir)?;
-    let ini = match ini_path.as_deref() {
+    let (ini, retained_ini) = match ini_path.as_deref() {
         Some(path) => {
-            let (bytes, _) = read_strict_config_file(path)?;
-            let text =
-                String::from_utf8(bytes).map_err(|_| ReshadeConfigSnapshotError::InvalidUtf8 {
+            let (bytes, observation) = read_strict_config_file(path)?;
+            let text = String::from_utf8(bytes.clone()).map_err(|_| {
+                ReshadeConfigSnapshotError::InvalidUtf8 {
                     path: path.to_path_buf(),
+                }
+            })?;
+            let digest = observation
+                .digest
+                .ok_or_else(|| ReshadeConfigSnapshotError::InvalidDigest {
+                    path: path.to_path_buf(),
+                })
+                .and_then(|digest| {
+                    Sha256Hash::new(digest).map_err(|_| ReshadeConfigSnapshotError::InvalidDigest {
+                        path: path.to_path_buf(),
+                    })
                 })?;
-            Some(Ini::parse(&text))
+            let length = u64::try_from(bytes.len()).map_err(|_| {
+                ReshadeConfigSnapshotError::InvalidLength {
+                    path: path.to_path_buf(),
+                }
+            })?;
+            let ini = Ini::parse(&text);
+            let retained_ini = RetainedReshadeIni {
+                path: path.to_path_buf(),
+                bytes,
+                identity: observation.identity,
+                digest,
+                length,
+                raw_addon_path_token: ini.get(ADDON_SECTION, ADDON_PATH_KEY).map(str::to_owned),
+            };
+            (Some(ini), Some(retained_ini))
         }
-        None => None,
+        None => (None, None),
     };
     let paths = resolve_paths_from_ini(default_base, ini_path, ini.as_ref());
-    Ok(ReshadeConfigSnapshot { paths, ini })
+    Ok(ReshadeConfigSnapshot {
+        paths,
+        ini,
+        retained_ini,
+    })
 }
 
 fn read_strict_config_file(

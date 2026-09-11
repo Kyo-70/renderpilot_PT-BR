@@ -12,6 +12,9 @@ use super::io::{self, ParticipantState};
 use super::manifest::{MANIFEST_VERSION, Manifest, RegistryParticipant, RegistryValue, Scope};
 use super::plan::{FileIntent, MutationPlan, Request};
 
+mod recovery_edges;
+mod renodx_reshade_ini;
+
 struct FakeRegistry {
     value: RefCell<RegistryValueState>,
 }
@@ -268,6 +271,7 @@ fn registry_forward_and_restore_use_the_requested_fence() {
             after,
         }],
         directories: Vec::new(),
+        peer_program: None,
     };
 
     io::restore_registry(&registry, &manifest, &roots, false).expect("apply registry after");
@@ -301,6 +305,7 @@ fn registry_publication_order_is_derived_from_the_durable_transition() {
         files: Vec::new(),
         registry: vec![registry],
         directories: Vec::new(),
+        peer_program: None,
     };
     let active = RegistryValue::Present {
         value_type: 4,
@@ -345,6 +350,7 @@ fn registry_restore_refuses_to_overwrite_a_third_state() {
             },
         }],
         directories: Vec::new(),
+        peer_program: None,
     };
 
     assert!(io::restore_registry(&registry, &manifest, &roots, false).is_err());
@@ -670,174 +676,4 @@ fn foreign_created_directory_child_is_third_state_and_is_preserved() {
         .is_err()
     );
     assert_eq!(std::fs::read(foreign).expect("preserved"), b"foreign");
-}
-
-#[test]
-fn cleanup_refuses_to_delete_a_drifted_snapshot() {
-    let temp = tempfile::tempdir().expect("tempdir");
-    let transaction_root = temp.path().join("mutation");
-    std::fs::create_dir(&transaction_root).expect("mutation root");
-    let live = temp.path().join("ReShade64.dll");
-    std::fs::write(&live, b"before").expect("seed");
-    let plan = MutationPlan::build(Request {
-        transaction_root: transaction_root.clone(),
-        mutation_id: "snapshot-drift".to_owned(),
-        roots: super::TrustedRoots::shared_only(temp.path()).expect("roots"),
-        scope: Scope::SharedOnly,
-        game_id: None,
-        feature: "test".to_owned(),
-        intents: vec![FileIntent {
-            live_path: live,
-            before: Some(b"before".to_vec()),
-            after: Some(b"after".to_vec()),
-        }],
-        registry: Vec::new(),
-        registry_authority: None,
-        created_dirs: Vec::new(),
-    })
-    .expect("plan");
-    io::materialize_stages(&plan).expect("stage");
-    io::apply_files(
-        &transaction_root,
-        &plan.manifest,
-        &plan.payloads,
-        &plan.roots,
-    )
-    .expect("apply");
-    let super::manifest::FileBefore::Snapshot { snapshot_path, .. } =
-        &plan.manifest.files[0].before
-    else {
-        panic!("snapshot");
-    };
-    let snapshot = transaction_root.join(snapshot_path);
-    std::fs::write(&snapshot, b"foreign").expect("drift snapshot");
-
-    assert!(
-        io::cleanup_artifacts(
-            &transaction_root,
-            &plan.manifest,
-            &plan.roots,
-            ParticipantState::After,
-        )
-        .is_err()
-    );
-    assert_eq!(std::fs::read(snapshot).expect("preserved"), b"foreign");
-}
-
-#[test]
-fn restored_before_state_can_finish_cleanup_after_snapshot_was_already_removed() {
-    let temp = tempfile::tempdir().expect("tempdir");
-    let transaction_root = temp.path().join("mutation");
-    std::fs::create_dir(&transaction_root).expect("mutation root");
-    let live = temp.path().join("ReShade64.dll");
-    std::fs::write(&live, b"before").expect("seed");
-    let plan = MutationPlan::build(Request {
-        transaction_root: transaction_root.clone(),
-        mutation_id: "cleanup-retry".to_owned(),
-        roots: super::TrustedRoots::shared_only(temp.path()).expect("roots"),
-        scope: Scope::SharedOnly,
-        game_id: None,
-        feature: "test".to_owned(),
-        intents: vec![FileIntent {
-            live_path: live,
-            before: Some(b"before".to_vec()),
-            after: Some(b"after".to_vec()),
-        }],
-        registry: Vec::new(),
-        registry_authority: None,
-        created_dirs: Vec::new(),
-    })
-    .expect("plan");
-    let super::manifest::FileBefore::Snapshot { snapshot_path, .. } =
-        &plan.manifest.files[0].before
-    else {
-        panic!("snapshot")
-    };
-    std::fs::remove_file(transaction_root.join(snapshot_path)).expect("partial cleanup");
-
-    assert_eq!(
-        io::classify_all(&transaction_root, &plan.manifest, &plan.roots, None)
-            .expect("classify retry"),
-        vec![ParticipantState::Before]
-    );
-    io::cleanup_artifacts(
-        &transaction_root,
-        &plan.manifest,
-        &plan.roots,
-        ParticipantState::Before,
-    )
-    .expect("finish cleanup");
-    assert!(!transaction_root.exists());
-}
-
-#[test]
-fn stale_file_preimage_is_rejected_before_snapshot_or_target_write() {
-    let temp = tempfile::tempdir().expect("tempdir");
-    let transaction_root = temp.path().join("mutation");
-    std::fs::create_dir(&transaction_root).expect("mutation root");
-    let live = temp.path().join("ReShade64.dll");
-    std::fs::write(&live, b"current").expect("seed");
-
-    let result = MutationPlan::build(Request {
-        transaction_root: transaction_root.clone(),
-        mutation_id: "stale-file".to_owned(),
-        roots: super::TrustedRoots::shared_only(temp.path()).expect("roots"),
-        scope: Scope::SharedOnly,
-        game_id: None,
-        feature: "test".to_owned(),
-        intents: vec![FileIntent {
-            live_path: live.clone(),
-            before: Some(b"stale".to_vec()),
-            after: Some(b"after".to_vec()),
-        }],
-        registry: Vec::new(),
-        registry_authority: None,
-        created_dirs: Vec::new(),
-    });
-
-    assert!(result.is_err());
-    assert_eq!(std::fs::read(live).expect("unchanged"), b"current");
-    assert!(!transaction_root.join("snapshots").exists());
-}
-
-#[test]
-fn stale_registry_preimage_is_rejected_without_mutation() {
-    let temp = tempfile::tempdir().expect("tempdir");
-    let transaction_root = temp.path().join("mutation");
-    std::fs::create_dir(&transaction_root).expect("mutation root");
-    let registry = FakeRegistry {
-        value: RefCell::new(RegistryValueState::Present {
-            value_type: 4,
-            raw_bytes: vec![0; 4],
-        }),
-    };
-
-    let result = MutationPlan::build(Request {
-        transaction_root,
-        mutation_id: "stale-registry".to_owned(),
-        roots: super::TrustedRoots::shared_only(temp.path()).expect("roots"),
-        scope: Scope::SharedOnly,
-        game_id: None,
-        feature: "test".to_owned(),
-        intents: Vec::new(),
-        registry: vec![super::RegistryIntent {
-            manifest_path: temp.path().join("ReShade64.json"),
-            before: RegistryValue::Absent,
-            after: RegistryValue::Present {
-                value_type: 4,
-                raw_bytes: vec![0; 4],
-            },
-        }],
-        registry_authority: Some(&registry),
-        created_dirs: Vec::new(),
-    });
-
-    assert!(result.is_err());
-    assert_eq!(
-        *registry.value.borrow(),
-        RegistryValueState::Present {
-            value_type: 4,
-            raw_bytes: vec![0; 4],
-        }
-    );
 }

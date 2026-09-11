@@ -25,6 +25,7 @@ pub(crate) mod install;
 pub mod manifest_store;
 pub(crate) mod matcher;
 pub(crate) mod mutation_targets;
+pub(crate) mod peer;
 /// Platform infrastructure.
 pub mod platform;
 pub(crate) mod policy;
@@ -141,6 +142,17 @@ mod tests {
             }
             other => panic!("expected external category, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn parses_a_manifest_with_a_canonical_xbox_store_id_rule() {
+        let xbox_manifest = SAMPLE.replacen(
+            r#""kind": "steam_appid", "value": "1091500""#,
+            r#""kind": "xbox_store_id", "value": "9MW53ZKZH168""#,
+            1,
+        );
+
+        assert!(parse_manifest(xbox_manifest.as_bytes()).is_ok());
     }
 
     #[test]

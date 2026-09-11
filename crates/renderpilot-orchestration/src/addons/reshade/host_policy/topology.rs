@@ -62,6 +62,11 @@ impl TopologyHostAssessment {
     }
 
     #[must_use]
+    pub(crate) fn requires_host_download(&self) -> bool {
+        self.assessment.initial_writes_host()
+    }
+
+    #[must_use]
     pub(crate) fn initial_is_conflict(&self) -> bool {
         self.assessment.initial_is_conflict()
     }

@@ -6,7 +6,9 @@
 //! channel switches publish the shared files and game-owned catalog projection
 //! through one combined durable transaction.
 
-use renderpilot_application::InstalledAddonRepository;
+use std::path::Path;
+
+use renderpilot_application::{InstalledAddonRepository, ProxyTopologyRepository};
 use renderpilot_domain::{AddonKind, GameId, InstalledAddonHostKind, RenoDxInstallState};
 
 use crate::addons::engine::InstallReceipt;
@@ -112,7 +114,10 @@ pub async fn switch_reshade_channel(
             {
                 return Err(errors::state_changed_retry_update());
             }
-            let updated = current.with_reshade_channel(target_channel.as_str());
+            let topology = context.storage().get_proxy_topology(game_id)?;
+            let updated = current
+                .clone()
+                .with_reshade_channel(target_channel.as_str());
             let shared = prepared.plan_locked(context)?;
             if shared.plan.is_noop() {
                 return crate::FileSafetyAuthority::new().authorize_game_commit(
@@ -126,7 +131,52 @@ pub async fn switch_reshade_channel(
                     },
                 );
             }
-            crate::FileSafetyAuthority::new().authorize_game_shared_commit(
+            if let Some(topology) = topology {
+                let game = crate::addons::renodx::game_context::require_game(context, game_id)?;
+                let game_root =
+                    crate::paths::canonical_candidate(Path::new(game.install_path().as_str()))
+                        .map_err(|error| {
+                            errors::failed(format!("failed to resolve RenoDX game root: {error}"))
+                        })?;
+                crate::FileSafetyAuthority::new().authorize_game_shared_commit(
+                    context,
+                    crate::addons::mutation_features::RENODX_SWITCH_RESHADE_CHANNEL,
+                    &guards,
+                    &safety,
+                    || {
+                        let crate::addons::renodx::use_cases::commands::update_reshade::PreparedSharedVulkanUpdate {
+                            layer_dir,
+                            plan,
+                            shared_record,
+                            changed: _,
+                        } = shared;
+                        let registry = crate::addons::renodx::platform::vulkan::native_registry()
+                            .ok_or_else(errors::vulkan_unsupported_platform)?;
+                        let updated = crate::addons::renodx::peer::execute_active_shared_mutation(
+                            crate::addons::renodx::peer::ActiveSharedMutationRequest {
+                                context,
+                                feature:
+                                    crate::addons::mutation_features::RENODX_SWITCH_RESHADE_CHANNEL,
+                                game_id,
+                                game_root: &game_root,
+                                topology: &topology,
+                                before_record: Some(&current),
+                                after_record: updated,
+                                game_intents: Vec::new(),
+                                shared_plan: plan,
+                                reshade_ini_authority: None,
+                                layer_dir: &layer_dir,
+                                source: None,
+                                shared_record: Some(&shared_record),
+                                registry,
+                            },
+                        )
+                        .map_err(active_shared_mutation_error)?;
+                        Ok(tracking::install_state_from_record(&updated))
+                    },
+                )
+            } else {
+                crate::FileSafetyAuthority::new().authorize_game_shared_commit(
                 context,
                 crate::addons::mutation_features::RENODX_SWITCH_RESHADE_CHANNEL,
                 &guards,
@@ -177,6 +227,7 @@ pub async fn switch_reshade_channel(
                     Ok(tracking::install_state_from_record(&updated))
                 },
             )
+            }
         }
         ChannelSwitchPhase1::Proxy(snapshot) => {
             drop(guard);
@@ -189,15 +240,15 @@ pub async fn switch_reshade_channel(
             let guard =
                 crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id)
                     .await?;
-            let current = match resolve_channel_switch_phase1(
+            let ChannelSwitchPhase1::Proxy(current) = resolve_channel_switch_phase1(
                 context,
                 manifest,
                 reshade_sources,
                 game_id,
                 target_channel,
-            )? {
-                ChannelSwitchPhase1::Proxy(current) => current,
-                _ => return Err(errors::state_changed_retry_update()),
+            )?
+            else {
+                return Err(errors::state_changed_retry_update());
             };
             ensure_proxy_channel_switch_matches(&snapshot, &current)?;
 
@@ -281,6 +332,21 @@ pub async fn switch_reshade_channel(
                     )
                 },
             )
+        }
+    }
+}
+
+fn active_shared_mutation_error(
+    error: crate::addons::renodx::peer::ActiveSharedMutationError,
+) -> ServiceError {
+    match error {
+        crate::addons::renodx::peer::ActiveSharedMutationError::Artifact(error)
+        | crate::addons::renodx::peer::ActiveSharedMutationError::Transaction(error) => error,
+        crate::addons::renodx::peer::ActiveSharedMutationError::InvalidInput(reason) => {
+            ServiceError::command_failed(reason)
+        }
+        crate::addons::renodx::peer::ActiveSharedMutationError::InvalidPath(path) => {
+            ServiceError::command_failed(format!("invalid active RenoDX path: {}", path.display()))
         }
     }
 }

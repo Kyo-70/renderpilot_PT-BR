@@ -1,3 +1,4 @@
+use renderpilot_application::ProxyTopologyRepository;
 use renderpilot_domain::GameId;
 
 use crate::Context;
@@ -30,6 +31,15 @@ pub(super) fn maybe_adopt(
         .pending_file_mutations_for_game(game_id)?
         .is_empty()
     {
+        return Ok(());
+    }
+    // An existing proxy topology is the aggregate owner of the game's root
+    // slot.  Availability must not turn a recoverable RenoDX-looking disk
+    // state into an independent peer record: that would race the aggregate
+    // lifecycle and make the next durable mutation fail with a topology
+    // conflict.  Leave adoption to the owning lifecycle while still
+    // returning a normal availability report.
+    if context.storage().get_proxy_topology(game_id)?.is_some() {
         return Ok(());
     }
     if preflight.blocked.is_some() || preflight.record.is_some() {

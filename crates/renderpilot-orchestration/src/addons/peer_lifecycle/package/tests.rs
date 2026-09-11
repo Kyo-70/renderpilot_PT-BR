@@ -8,6 +8,9 @@ use sha2::Digest as _;
 #[path = "catalog_tests.rs"]
 mod catalog_tests;
 
+#[path = "renodx_reshade_ini_tests.rs"]
+mod renodx_reshade_ini_tests;
+
 fn hash(bytes: &[u8]) -> Sha256Hash {
     Sha256Hash::new(hex::encode(sha2::Sha256::digest(bytes))).expect("hash")
 }

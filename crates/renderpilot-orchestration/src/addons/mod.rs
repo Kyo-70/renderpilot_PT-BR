@@ -92,6 +92,7 @@ pub(crate) mod manifest_validate;
 pub(crate) mod matching;
 pub(crate) mod mutation_features;
 pub(crate) mod mutation_targets;
+pub(crate) mod optiscaler;
 pub(crate) mod peer_lifecycle;
 pub(crate) mod progress;
 pub mod record;

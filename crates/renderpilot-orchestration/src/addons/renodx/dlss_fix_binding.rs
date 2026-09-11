@@ -53,11 +53,11 @@ impl DlssFixBinding {
 /// path and never authorizes deletion by itself.
 pub(crate) fn resolve(record: &InstalledAddon) -> DlssFixBinding {
     let addon = Path::new(record.addon_file().as_str());
-    let parent = addon.parent().map(Path::to_path_buf).unwrap_or_default();
+    let parent = addon.parent().unwrap_or_else(|| Path::new(""));
     let arch = arch_from_addon_file(record.addon_file().as_str());
     let target = arch
         .map(|arch| parent.join(source::dlss_fix_file_name(arch)))
-        .unwrap_or(parent.join("renodx-dlssfix.invalid"));
+        .unwrap_or_else(|| parent.join("renodx-dlssfix.invalid"));
     let observation = observe(&target);
 
     let mut sources = record
@@ -128,8 +128,8 @@ pub(crate) fn resolve(record: &InstalledAddon) -> DlssFixBinding {
         arch,
         observation,
         source,
-        has_evidence,
         isolation_paths,
+        has_evidence,
         main_payload_collision,
     }
 }

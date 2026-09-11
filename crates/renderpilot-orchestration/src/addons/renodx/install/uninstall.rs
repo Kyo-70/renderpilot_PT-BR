@@ -1,7 +1,11 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use renderpilot_domain::{InstalledAddon, InstalledAddonHostKind, PathRef};
+use renderpilot_domain::{
+    InstalledAddon, InstalledAddonHostKind, ManagedFileBaseline, ManagedFileMode, PathRef,
+    Sha256Hash,
+};
+use sha2::{Digest, Sha256};
 
 use crate::ServiceError;
 use crate::addons::reshade::scan as reshade;
@@ -23,10 +27,30 @@ pub(crate) struct PreparedRenoDxUninstall {
 
 #[derive(Debug)]
 enum RenoDxUninstallOperation {
-    RemoveCreated { path: PathBuf },
-    RestoreBackup { live: PathBuf, backup: PathBuf },
-    RewriteIni { path: PathBuf, bytes: Vec<u8> },
-    RemoveIni { path: PathBuf },
+    RemoveCreated {
+        path: PathBuf,
+    },
+    RestoreBackup {
+        live: PathBuf,
+        backup: PathBuf,
+    },
+    RemoveManagedOwned {
+        path: PathBuf,
+        installed_sha256: Sha256Hash,
+    },
+    RestoreManagedOwned {
+        live: PathBuf,
+        backup: PathBuf,
+        installed_sha256: Sha256Hash,
+        baseline_sha256: Sha256Hash,
+    },
+    RewriteIni {
+        path: PathBuf,
+        bytes: Vec<u8>,
+    },
+    RemoveIni {
+        path: PathBuf,
+    },
 }
 
 impl PreparedRenoDxUninstall {
@@ -34,8 +58,10 @@ impl PreparedRenoDxUninstall {
     /// absent paths remain valid idempotent operations; non-regular, unreadable,
     /// symlink, and reparse paths are logged and omitted instead of blocking
     /// cleanup of other safe files or the metadata row.
-    #[must_use]
-    pub(crate) fn prepare(record: &InstalledAddon, game_dir_hint: Option<&Path>) -> Self {
+    pub(crate) fn prepare(
+        record: &InstalledAddon,
+        game_dir_hint: Option<&Path>,
+    ) -> Result<Self, ServiceError> {
         let mut operations = Vec::new();
         let backed_up: HashSet<String> = record
             .backed_up_files()
@@ -80,6 +106,67 @@ impl PreparedRenoDxUninstall {
             }
         }
 
+        // An OptiScaler outer can temporarily relocate RenoDX's proxy host
+        // through the coordinated `managed_files` projection. Once that outer
+        // has been removed, inactive uninstall is again responsible for the
+        // host.  Generic `created_files` intentionally cannot stand in for
+        // this claim: it has a distinct ownership/baseline contract.
+        for managed in record.managed_files() {
+            if managed.mode() == ManagedFileMode::Reused {
+                continue;
+            }
+            let live = PathBuf::from(managed.path().as_str());
+            if !live
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(reshade::is_proxy_slot)
+            {
+                return Err(crate::failed(format!(
+                    "RenoDX inactive uninstall cannot release a non-proxy managed file: {}",
+                    live.display()
+                )));
+            }
+            let Some(_) = read_exact_managed_file(&live, managed.installed_sha256())? else {
+                // An already absent Owned/Absent host needs no filesystem
+                // action.  It remains safe to retire its metadata record.
+                if matches!(managed.baseline(), ManagedFileBaseline::Absent) {
+                    continue;
+                }
+                return Err(crate::failed(format!(
+                    "RenoDX managed host disappeared before its baseline could be restored: {}",
+                    live.display()
+                )));
+            };
+            match managed.baseline() {
+                ManagedFileBaseline::Absent => {
+                    operations.push(RenoDxUninstallOperation::RemoveManagedOwned {
+                        path: live,
+                        installed_sha256: managed.installed_sha256().clone(),
+                    });
+                }
+                ManagedFileBaseline::Present { sha256 } => {
+                    let backup = crate::fs::backup_path(&live).map_err(|error| {
+                        crate::failed(format!(
+                            "RenoDX managed host has an invalid baseline sidecar path {}: {error}",
+                            live.display()
+                        ))
+                    })?;
+                    read_exact_managed_file(&backup, sha256)?.ok_or_else(|| {
+                        crate::failed(format!(
+                            "RenoDX managed host baseline sidecar is missing: {}",
+                            backup.display()
+                        ))
+                    })?;
+                    operations.push(RenoDxUninstallOperation::RestoreManagedOwned {
+                        live,
+                        backup,
+                        installed_sha256: managed.installed_sha256().clone(),
+                        baseline_sha256: sha256.clone(),
+                    });
+                }
+            }
+        }
+
         let owns_whole_stack = matches!(
             record.host_kind(),
             Some(InstalledAddonHostKind::SharedVulkanLayer)
@@ -105,10 +192,10 @@ impl PreparedRenoDxUninstall {
                     reshade::resolve_paths(game_dir, Some(&host_path)).effective_base_path
                 })
             });
-        Self {
+        Ok(Self {
             operations,
             log_base_path,
-        }
+        })
     }
 
     /// Exact paths this plan may mutate. Durable target selection must derive
@@ -149,6 +236,53 @@ impl PreparedRenoDxUninstall {
                     intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
                         live_path: live,
                         before,
+                        after: Some(restored.clone()),
+                    });
+                    intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
+                        live_path: backup,
+                        before: Some(restored),
+                        after: None,
+                    });
+                }
+                RenoDxUninstallOperation::RemoveManagedOwned {
+                    path,
+                    installed_sha256,
+                } => {
+                    let before =
+                        read_exact_managed_file(&path, &installed_sha256)?.ok_or_else(|| {
+                            crate::failed(format!(
+                                "RenoDX managed host disappeared before composition: {}",
+                                path.display()
+                            ))
+                        })?;
+                    intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
+                        before: Some(before),
+                        live_path: path,
+                        after: None,
+                    });
+                }
+                RenoDxUninstallOperation::RestoreManagedOwned {
+                    live,
+                    backup,
+                    installed_sha256,
+                    baseline_sha256,
+                } => {
+                    let before =
+                        read_exact_managed_file(&live, &installed_sha256)?.ok_or_else(|| {
+                            crate::failed(format!(
+                                "RenoDX managed host disappeared before composition: {}",
+                                live.display()
+                            ))
+                        })?;
+                    let restored = read_exact_managed_file(&backup, &baseline_sha256)?.ok_or_else(|| {
+                        crate::failed(format!(
+                            "RenoDX managed host baseline sidecar disappeared before composition: {}",
+                            backup.display()
+                        ))
+                    })?;
+                    intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
+                        live_path: live,
+                        before: Some(before),
                         after: Some(restored.clone()),
                     });
                     intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
@@ -213,6 +347,47 @@ impl PreparedRenoDxUninstall {
                     })?;
                     insert_parent(&mut touched_dirs, live);
                 }
+                RenoDxUninstallOperation::RemoveManagedOwned {
+                    path,
+                    installed_sha256,
+                } => {
+                    read_exact_managed_file(path, installed_sha256)?.ok_or_else(|| {
+                        crate::failed(format!(
+                            "RenoDX managed host disappeared before removal: {}",
+                            path.display()
+                        ))
+                    })?;
+                    crate::fs::remove_file_if_exists(path)?;
+                    insert_parent(&mut touched_dirs, path);
+                }
+                RenoDxUninstallOperation::RestoreManagedOwned {
+                    live,
+                    backup,
+                    installed_sha256,
+                    baseline_sha256,
+                } => {
+                    read_exact_managed_file(live, installed_sha256)?.ok_or_else(|| {
+                        crate::failed(format!(
+                            "RenoDX managed host disappeared before baseline restoration: {}",
+                            live.display()
+                        ))
+                    })?;
+                    read_exact_managed_file(backup, baseline_sha256)?.ok_or_else(|| {
+                        crate::failed(format!(
+                            "RenoDX managed host baseline sidecar disappeared before restoration: {}",
+                            backup.display()
+                        ))
+                    })?;
+                    crate::fs::remove_file_if_exists(live)?;
+                    std::fs::rename(backup, live).map_err(|error| {
+                        crate::failed(format!(
+                            "failed to restore RenoDX managed host baseline `{}` to `{}`: {error}",
+                            backup.display(),
+                            live.display()
+                        ))
+                    })?;
+                    insert_parent(&mut touched_dirs, live);
+                }
                 RenoDxUninstallOperation::RewriteIni { path, bytes } => {
                     crate::fs::write_file_atomically(path, bytes)?;
                     insert_parent(&mut touched_dirs, path);
@@ -251,6 +426,33 @@ fn read_regular_file(path: &Path) -> Result<Option<Vec<u8>>, ServiceError> {
         .map_err(|error| crate::failed(error.to_string()))
 }
 
+/// Reads one coordinated host only when its no-follow regular-file observation
+/// still matches the persisted SHA-256 claim.  `managed_files` lack an identity
+/// token, so digest equality is the full ownership proof available to the
+/// inactive legacy route; a mismatch must never be downgraded to generic
+/// deletion authority.
+fn read_exact_managed_file(
+    path: &Path,
+    expected_sha256: &Sha256Hash,
+) -> Result<Option<Vec<u8>>, ServiceError> {
+    let Some(bytes) = read_regular_file(path)? else {
+        return Ok(None);
+    };
+    let actual = Sha256Hash::new(hex::encode(Sha256::digest(&bytes))).map_err(|error| {
+        crate::failed(format!(
+            "RenoDX managed host produced an invalid SHA-256 at {}: {error}",
+            path.display()
+        ))
+    })?;
+    if &actual != expected_sha256 {
+        return Err(crate::failed(format!(
+            "RenoDX managed host changed from its persisted receipt: {}",
+            path.display()
+        )));
+    }
+    Ok(Some(bytes))
+}
+
 /// Compatibility harness for the existing focused install-engine tests. The
 /// production path uses the prepared plan directly with a durable transaction.
 #[cfg(test)]
@@ -258,7 +460,7 @@ pub(crate) fn uninstall(
     record: &InstalledAddon,
     game_dir_hint: Option<&Path>,
 ) -> Result<(), ServiceError> {
-    let plan = PreparedRenoDxUninstall::prepare(record, game_dir_hint);
+    let plan = PreparedRenoDxUninstall::prepare(record, game_dir_hint)?;
     plan.apply()?;
     plan.remove_logs_best_effort();
     Ok(())
@@ -269,6 +471,8 @@ impl RenoDxUninstallOperation {
         match self {
             Self::RemoveCreated { .. } => "remove-created",
             Self::RestoreBackup { .. } => "restore-backup",
+            Self::RemoveManagedOwned { .. } => "remove-managed-owned",
+            Self::RestoreManagedOwned { .. } => "restore-managed-owned",
             Self::RewriteIni { .. } => "rewrite-ini",
             Self::RemoveIni { .. } => "remove-ini",
         }
@@ -278,14 +482,24 @@ impl RenoDxUninstallOperation {
         match self {
             Self::RemoveCreated { path }
             | Self::RemoveIni { path }
-            | Self::RewriteIni { path, .. } => vec![path.clone()],
-            Self::RestoreBackup { live, backup } => vec![live.clone(), backup.clone()],
+            | Self::RewriteIni { path, .. }
+            | Self::RemoveManagedOwned { path, .. } => vec![path.clone()],
+            Self::RestoreBackup { live, backup }
+            | Self::RestoreManagedOwned { live, backup, .. } => vec![live.clone(), backup.clone()],
         }
     }
 }
 
 fn host_dll_written_by_this_install(record: &InstalledAddon) -> bool {
     crate::addons::tracking::owned_proxy_host_path(record).is_some()
+        || record.managed_files().iter().any(|file| {
+            file.mode() == ManagedFileMode::Owned
+                && matches!(file.baseline(), ManagedFileBaseline::Absent)
+                && Path::new(file.path().as_str())
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(reshade::is_proxy_slot)
+        })
 }
 
 fn ini_path_in(paths: &[PathRef]) -> Option<&PathRef> {
@@ -377,7 +591,9 @@ fn insert_parent(target: &mut HashSet<PathBuf>, path: &Path) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use renderpilot_domain::{AddonKind, GameId};
+    use renderpilot_domain::{
+        AddonKind, GameId, ManagedAddonFile, ManagedFileBaseline, Sha256Hash,
+    };
     use tempfile::tempdir;
 
     fn record(addon: &Path) -> InstalledAddon {
@@ -388,8 +604,97 @@ mod tests {
         )
     }
 
+    fn hash(bytes: &[u8]) -> Sha256Hash {
+        Sha256Hash::new(hex::encode(Sha256::digest(bytes))).expect("digest")
+    }
+
     #[test]
-    fn plan_and_apply_skip_nonregular_companion_but_remove_safe_owned_paths() {
+    fn plan_removes_owned_managed_proxy_host_after_outer_release() {
+        let root = tempdir().expect("root");
+        let addon = root.path().join("renodx-game.addon64");
+        let host = root.path().join("dxgi.dll");
+        let ini = root.path().join(reshade::RESHADE_INI_FILE_NAME);
+        std::fs::write(&addon, b"addon").expect("addon");
+        std::fs::write(&host, b"managed ReShade host").expect("host");
+        std::fs::write(&ini, b"[ADDON]\r\nDisabledAddons=Generic Depth\r\n").expect("ini");
+        let record = record(&addon)
+            .with_created_file(PathRef::new(ini.to_string_lossy()).expect("ini path"))
+            .try_with_managed_files(vec![ManagedAddonFile::owned(
+                PathRef::new(host.to_string_lossy()).expect("host path"),
+                ManagedFileBaseline::Absent,
+                hash(b"managed ReShade host"),
+            )])
+            .expect("record");
+
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
+        assert!(plan.affected_paths().contains(&host));
+
+        plan.apply().expect("apply");
+        assert!(!addon.exists());
+        assert!(!host.exists());
+        assert!(
+            !ini.exists(),
+            "the ReShade.ini created with an owned managed host must be removed"
+        );
+    }
+
+    #[test]
+    fn plan_restores_owned_managed_proxy_host_baseline() {
+        let root = tempdir().expect("root");
+        let addon = root.path().join("renodx-game.addon64");
+        let host = root.path().join("dxgi.dll");
+        let backup = crate::fs::backup_path(&host).expect("backup path");
+        std::fs::write(&addon, b"addon").expect("addon");
+        std::fs::write(&host, b"managed ReShade host").expect("host");
+        std::fs::write(&backup, b"original ReShade host").expect("backup");
+        let record = record(&addon)
+            .try_with_managed_files(vec![ManagedAddonFile::owned(
+                PathRef::new(host.to_string_lossy()).expect("host path"),
+                ManagedFileBaseline::Present {
+                    sha256: hash(b"original ReShade host"),
+                },
+                hash(b"managed ReShade host"),
+            )])
+            .expect("record");
+
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
+        assert!(plan.affected_paths().contains(&host));
+        assert!(plan.affected_paths().contains(&backup));
+
+        plan.apply().expect("apply");
+        assert_eq!(
+            std::fs::read(&host).expect("restored host"),
+            b"original ReShade host"
+        );
+        assert!(!backup.exists());
+    }
+
+    #[test]
+    fn managed_host_drift_cannot_be_deleted_after_planning() {
+        let root = tempdir().expect("root");
+        let addon = root.path().join("renodx-game.addon64");
+        let host = root.path().join("dxgi.dll");
+        std::fs::write(&addon, b"addon").expect("addon");
+        std::fs::write(&host, b"managed ReShade host").expect("host");
+        let record = record(&addon)
+            .try_with_managed_files(vec![ManagedAddonFile::owned(
+                PathRef::new(host.to_string_lossy()).expect("host path"),
+                ManagedFileBaseline::Absent,
+                hash(b"managed ReShade host"),
+            )])
+            .expect("record");
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
+        std::fs::write(&host, b"foreign replacement").expect("drift host");
+
+        assert!(plan.apply().is_err());
+        assert_eq!(
+            std::fs::read(&host).expect("host remains"),
+            b"foreign replacement"
+        );
+    }
+
+    #[test]
+    fn plan_and_apply_skip_nonregular_companion_but_remove_safe_managed_paths() {
         let root = tempdir().expect("root");
         let addon = root.path().join("renodx-game.addon64");
         let companion = root.path().join("renodx-dlssfix.addon64");
@@ -398,7 +703,7 @@ mod tests {
         let record = record(&addon)
             .with_created_file(PathRef::new(companion.to_string_lossy()).expect("companion"));
 
-        let plan = PreparedRenoDxUninstall::prepare(&record, None);
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
         assert_eq!(plan.affected_paths(), vec![addon.clone()]);
 
         plan.apply().expect("apply safe operations");
@@ -419,7 +724,7 @@ mod tests {
             .with_created_file(PathRef::new(host.to_string_lossy()).expect("host"))
             .with_backed_up_file(PathRef::new(host.to_string_lossy()).expect("backup host"));
 
-        let plan = PreparedRenoDxUninstall::prepare(&record, None);
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
         let affected = plan.affected_paths();
         assert!(affected.contains(&addon));
         assert!(affected.contains(&host));
@@ -442,7 +747,7 @@ mod tests {
         let record =
             record(&addon).with_backed_up_file(PathRef::new(ini.to_string_lossy()).expect("ini"));
 
-        let plan = PreparedRenoDxUninstall::prepare(&record, None);
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
         let affected = plan.affected_paths();
         assert!(!affected.contains(&ini));
         assert!(!affected.contains(&backup));
@@ -476,7 +781,7 @@ mod tests {
         let record = record(&addon)
             .with_created_file(PathRef::new(companion.to_string_lossy()).expect("companion"));
 
-        let plan = PreparedRenoDxUninstall::prepare(&record, None);
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
         assert_eq!(plan.affected_paths(), vec![addon.clone()]);
         plan.apply().expect("apply safe operations");
         assert!(!addon.exists());

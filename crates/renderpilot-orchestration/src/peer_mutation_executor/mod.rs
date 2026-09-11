@@ -7,12 +7,16 @@
 mod aggregate_membership;
 pub(crate) mod ancestor_io;
 mod ancestors;
+#[cfg(test)]
+mod dlss_tests;
 mod observation;
 mod program;
 #[cfg(test)]
 mod read_guard_tests;
 mod read_guards;
 mod recovery;
+#[cfg(test)]
+mod renodx_reshade_ini_tests;
 #[cfg(test)]
 pub(crate) mod timing_tests;
 
@@ -34,9 +38,9 @@ use renderpilot_domain::{
     PeerEndpointOperation, PeerFileImage, PlannedGameProxyTopology,
 };
 use renderpilot_storage_sqlite::{
-    AggregateBefore, GameAggregateMutation, MetadataAggregatePreparation,
+    AggregateBefore, GameAggregateMutation, InstalledAddonMutation, MetadataAggregatePreparation,
     MetadataAggregateTransition, PeerCommitPreparation, PeerStorageRuntime, PlannedAggregateAfter,
-    PreparedPeerCommitPermit, SqliteStorage,
+    PreparedPeerCommitPermit, SharedArtifactMutation, SharedPeerCommitPreparation, SqliteStorage,
 };
 
 use crate::addons::engine::apply::{PeerMutationPreflight, apply_peer_mutation};
@@ -64,6 +68,24 @@ struct OrdinaryPeerPreparationInput<'a, 'b> {
     feature: &'b str,
     subject_id: Option<&'b str>,
     package: PeerMutationPackage<'a>,
+    route: OrdinaryPeerPreparationRoute,
+}
+
+#[derive(Clone, Copy)]
+enum OrdinaryPeerPreparationRoute {
+    Generic,
+    RenoDxDlss,
+    RenoDxOptiScalerConfig,
+}
+
+impl OrdinaryPeerPreparationRoute {
+    fn requires_renodx_dlss(self) -> bool {
+        matches!(self, Self::RenoDxDlss)
+    }
+
+    fn requires_renodx_optiscaler_config(self) -> bool {
+        matches!(self, Self::RenoDxOptiScalerConfig)
+    }
 }
 
 impl<'a> PreparedPeerFileMutation<'a> {
@@ -304,6 +326,13 @@ impl PeerMutationExecutor {
         Ok(())
     }
 
+    pub(crate) fn finish_shared_peer_preparation(
+        &self,
+        preparation: SharedPeerCommitPreparation<'_>,
+    ) -> renderpilot_application::AppResult<PreparedPeerCommitPermit> {
+        self.runtime.finish_shared_peer_preparation(preparation)
+    }
+
     fn finish_file_peer_preparation(
         &self,
         preparation: PeerCommitPreparation<'_>,
@@ -327,6 +356,50 @@ impl PeerMutationExecutor {
             feature,
             subject_id,
             package,
+            route: OrdinaryPeerPreparationRoute::Generic,
+        })
+    }
+
+    /// Reserves the narrow RenoDX DLSS-Fix peer route. Unlike the generic
+    /// entrypoint, this accepts a typed projection and may therefore carry an
+    /// endpoint-free claim transition without weakening generic manifests.
+    pub(crate) fn prepare_ordinary_file_peer_with_renodx_dlss<'a>(
+        &'a self,
+        context: &'a Context,
+        guard: &GameMutationGuard,
+        feature: &str,
+        subject_id: Option<&str>,
+        package: PeerMutationPackage<'a>,
+    ) -> Result<PreparedPeerFileMutation<'a>, ServiceError> {
+        self.prepare_ordinary_file_peer_inner(OrdinaryPeerPreparationInput {
+            context,
+            guard,
+            feature,
+            subject_id,
+            package,
+            route: OrdinaryPeerPreparationRoute::RenoDxDlss,
+        })
+    }
+
+    /// Reserves the one active RenoDX proxy transition allowed to advance
+    /// OptiScaler's typed `Plugins.LoadReshade` receipt. It remains an
+    /// ordinary peer permit; the separate entrypoint prevents generic peer
+    /// callers from attaching a state mutation.
+    pub(crate) fn prepare_ordinary_file_peer_with_renodx_optiscaler_config<'a>(
+        &'a self,
+        context: &'a Context,
+        guard: &GameMutationGuard,
+        feature: &str,
+        subject_id: Option<&str>,
+        package: PeerMutationPackage<'a>,
+    ) -> Result<PreparedPeerFileMutation<'a>, ServiceError> {
+        self.prepare_ordinary_file_peer_inner(OrdinaryPeerPreparationInput {
+            context,
+            guard,
+            feature,
+            subject_id,
+            package,
+            route: OrdinaryPeerPreparationRoute::RenoDxOptiScalerConfig,
         })
     }
 
@@ -340,7 +413,20 @@ impl PeerMutationExecutor {
             feature,
             subject_id,
             package,
+            route,
         } = input;
+        if package.renodx_dlss_projection().is_some() != route.requires_renodx_dlss() {
+            return Err(crate::failed(
+                "RenoDX DLSS peer package used through the wrong preparation entrypoint",
+            ));
+        }
+        if package.renodx_optiscaler_config().is_some() != route.requires_renodx_optiscaler_config()
+        {
+            return Err(crate::failed(
+                "RenoDX OptiScaler configuration peer package used through the wrong preparation entrypoint",
+            ));
+        }
+        validate_peer_feature(feature, &package)?;
         let initial_read_guards = observe_peer_read_guards(&package)?;
         let transaction = DurableFileTransaction::prepare_peer_mutation(
             context, guard, feature, subject_id, &package,
@@ -353,11 +439,9 @@ impl PeerMutationExecutor {
                 ))),
             };
         }
-        if let Err(error) = renderpilot_storage_sqlite::validate_file_peer_program_manifest(
-            transaction.manifest_json(),
-        ) {
+        if let Err(error) = validate_peer_manifest(feature, &package, transaction.manifest_json()) {
             return match transaction.abandon_preparing(context) {
-                Ok(()) => Err(error.into()),
+                Ok(()) => Err(error),
                 Err(cleanup) => Err(crate::failed(format!(
                     "{error}; abandoning peer preparation failed: {cleanup}"
                 ))),
@@ -379,9 +463,27 @@ impl PeerMutationExecutor {
             component_set: package.component_set(),
             baseline_mutations: package.baseline_mutations(),
             catalog_claim: package.catalog_claim(),
-            renodx_reshade_ini: None,
+            renodx_reshade_ini: package.renodx_reshade_ini_authority(),
         };
-        let permit_result = self.finish_file_peer_preparation(preparation);
+        let permit_result = match (
+            package.renodx_dlss_projection(),
+            package.renodx_optiscaler_config(),
+        ) {
+            (Some(_), Some(_)) => Err(renderpilot_application::AppError::invalid_input(
+                "RenoDX DLSS and OptiScaler configuration peer projections cannot share a permit",
+            )),
+            (Some(projection), None) => self
+                .runtime
+                .finish_file_peer_preparation_with_renodx_dlss(preparation, projection.clone()),
+            (None, Some(companion)) => self
+                .runtime
+                .finish_file_peer_preparation_with_renodx_optiscaler_config(
+                    preparation,
+                    companion.before_state(),
+                    companion.projection(),
+                ),
+            (None, None) => self.finish_file_peer_preparation(preparation),
+        };
         let permit = match permit_result {
             Ok(permit) => permit,
             Err(error) => {
@@ -405,5 +507,91 @@ impl PeerMutationExecutor {
     ) -> renderpilot_application::AppResult<()> {
         self.runtime
             .seal_and_commit_ordinary_peer(permit, evidence, read_guards)
+    }
+
+    pub(crate) fn commit_shared_peer(
+        &self,
+        permit: PreparedPeerCommitPermit,
+        evidence: Vec<PeerEndpointEvidence>,
+        addon: InstalledAddonMutation<'_>,
+        shared_artifact: SharedArtifactMutation<'_>,
+    ) -> renderpilot_application::AppResult<()> {
+        self.runtime
+            .seal_and_commit_shared_peer(permit, evidence, addon, shared_artifact)
+    }
+}
+
+fn validate_peer_feature(
+    feature: &str,
+    package: &PeerMutationPackage<'_>,
+) -> Result<(), ServiceError> {
+    if package.renodx_dlss_projection().is_some()
+        && !renderpilot_domain::mutation_features::is_renodx_dlss_fix_feature(feature)
+    {
+        return Err(crate::failed(
+            "RenoDX DLSS peer projection requires a DLSS-Fix feature",
+        ));
+    }
+    if package.renodx_optiscaler_config().is_some()
+        && !matches!(
+            feature,
+            renderpilot_domain::mutation_features::RENODX_INSTALL
+                | renderpilot_domain::mutation_features::RENODX_INSTALL_FROM_FILE
+                | renderpilot_domain::mutation_features::RENODX_UNINSTALL
+        )
+    {
+        return Err(crate::failed(
+            "RenoDX OptiScaler configuration projection requires a main install or uninstall feature",
+        ));
+    }
+    if let Some(authority) = package.renodx_reshade_ini_authority()
+        && authority.feature().as_feature() != feature
+    {
+        return Err(crate::failed(
+            "peer feature does not match its RenoDX ReShade.ini authority",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_peer_manifest(
+    feature: &str,
+    package: &PeerMutationPackage<'_>,
+    manifest_json: &str,
+) -> Result<(), ServiceError> {
+    if let Some(companion) = package.renodx_optiscaler_config() {
+        return renderpilot_storage_sqlite::
+            validate_file_peer_program_manifest_with_renodx_optiscaler_config(
+                feature,
+                package.canonical_game_root(),
+                package.renodx_reshade_ini_authority(),
+                companion.before_state(),
+                companion.projection(),
+                manifest_json,
+            )
+            .map_err(Into::into);
+    }
+    if let Some(projection) = package.renodx_dlss_projection() {
+        return renderpilot_storage_sqlite::validate_file_peer_program_manifest_with_renodx_dlss(
+            feature,
+            package.canonical_game_root(),
+            package.renodx_reshade_ini_authority(),
+            projection,
+            manifest_json,
+        )
+        .map_err(Into::into);
+    }
+    match package.renodx_reshade_ini_authority() {
+        Some(authority) => {
+            renderpilot_storage_sqlite::validate_file_peer_program_manifest_with_renodx_reshade_ini(
+                feature,
+                package.canonical_game_root(),
+                authority,
+                manifest_json,
+            )
+            .map_err(Into::into)
+        }
+        None => renderpilot_storage_sqlite::validate_file_peer_program_manifest(manifest_json)
+            .map_err(Into::into),
     }
 }

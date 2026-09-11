@@ -350,6 +350,28 @@ impl ExactEndpointProgram {
         Ok(Self { endpoints })
     }
 
+    /// Constructs the endpoint-free RenoDX DLSS claim route. The typed
+    /// projection is still required by the specialized package and permit.
+    pub(crate) fn renodx_dlss_claim_only() -> Self {
+        Self {
+            endpoints: Vec::new(),
+        }
+    }
+
+    /// Adds one endpoint while retaining canonical path and duplicate checks.
+    pub(crate) fn append(self, endpoint: ExactEndpoint) -> Result<Self, PeerRouteError> {
+        let mut endpoints = self.endpoints;
+        endpoints.push(endpoint);
+        Self::new(endpoints)
+    }
+
+    /// Inserts one endpoint before existing effects for disable transitions.
+    pub(crate) fn prepend(self, endpoint: ExactEndpoint) -> Result<Self, PeerRouteError> {
+        let mut endpoints = self.endpoints;
+        endpoints.insert(0, endpoint);
+        Self::new(endpoints)
+    }
+
     pub(crate) fn endpoints(&self) -> &[ExactEndpoint] {
         &self.endpoints
     }

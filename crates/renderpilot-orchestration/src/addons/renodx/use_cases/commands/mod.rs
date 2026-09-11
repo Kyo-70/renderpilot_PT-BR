@@ -2,6 +2,7 @@
 pub mod dlss_fix;
 /// Install commands.
 pub mod install;
+mod optiscaler_config;
 /// Shared Vulkan layer commands.
 pub mod shared_vulkan_layer;
 /// ReShade channel switch command.
