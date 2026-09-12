@@ -69,6 +69,14 @@ pub(crate) fn emit_finalizing(progress: Option<&ProgressObserver<'_>>, phase: &'
     }
 }
 
+/// Emits an indeterminate event for a bounded verification phase.  Download
+/// verification may include archive decompression or PE inspection after the
+/// byte progress reaches its terminal value, so callers must reset the bar to
+/// an explicit spinner state rather than leave a misleading 100% value.
+pub(crate) fn emit_indeterminate(progress: Option<&ProgressObserver<'_>>, phase: &'static str) {
+    emit_finalizing(progress, phase);
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Mutex;

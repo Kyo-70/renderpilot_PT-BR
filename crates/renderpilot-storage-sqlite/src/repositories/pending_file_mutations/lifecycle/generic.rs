@@ -152,23 +152,6 @@ impl SqliteStorage {
         })
     }
 
-    /// Reads all pending mutation IDs for recovery cleanup.
-    pub fn all_pending_file_mutation_ids(&self) -> AppResult<Vec<String>> {
-        self.with_connection(|connection| {
-            let mut statement = connection
-                .prepare("SELECT id FROM pending_file_mutations")
-                .map_err(storage_error)?;
-            let rows = statement
-                .query_map([], |row| row.get(0))
-                .map_err(storage_error)?;
-            let mut ids = Vec::new();
-            for id in rows {
-                ids.push(id.map_err(storage_error)?);
-            }
-            Ok(ids)
-        })
-    }
-
     /// Test-only malformed-state fixture. Production callers cannot insert a
     /// caller-selected state; they must use `begin_file_mutation_preparation`.
     #[cfg(test)]

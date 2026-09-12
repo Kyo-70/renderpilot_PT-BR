@@ -32,14 +32,6 @@ pub(crate) fn uninstall_locked(
     route::uninstall_locked(context, guard, game_id)
 }
 
-pub(crate) fn registered_vulkan_exe_for_uninstall(
-    context: &Context,
-    game_id: &GameId,
-    record: &renderpilot_domain::InstalledAddon,
-) -> Option<std::path::PathBuf> {
-    route::registered_vulkan_exe_for_uninstall(context, game_id, record)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

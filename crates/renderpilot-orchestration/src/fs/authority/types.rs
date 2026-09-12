@@ -3,12 +3,16 @@ use super::*;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum AuthorityMode {
     CooperativeSameUid,
+    HostileSameUid,
 }
 
 impl AuthorityMode {
     pub(crate) fn preflight(self) -> Result<(), ServiceError> {
         match self {
             Self::CooperativeSameUid => Ok(()),
+            Self::HostileSameUid => Err(crate::failed(
+                "hostile same-principal filesystem authority is unsupported; use a separate native helper or fail closed",
+            )),
         }
     }
 }
@@ -19,6 +23,18 @@ impl AuthorityMode {
 pub(crate) struct LeafName(OsString);
 
 impl LeafName {
+    #[cfg(test)]
+    pub(crate) fn from_capability(
+        prefix: &str,
+        capability: &[u8; 32],
+    ) -> Result<Self, ServiceError> {
+        if prefix.is_empty() || capability.iter().all(|byte| *byte == 0) {
+            return Err(crate::failed("invalid private namespace capability prefix"));
+        }
+        let encoded = format!("{prefix}-{}", hex::encode(capability));
+        Self::parse(OsStr::new(&encoded))
+    }
+
     pub(crate) fn parse(name: &OsStr) -> Result<Self, ServiceError> {
         let textual = name.to_string_lossy();
         if name.is_empty()
@@ -53,12 +69,26 @@ impl LeafName {
     pub(crate) fn as_os_str(&self) -> &OsStr {
         &self.0
     }
+
+    pub(in crate::fs::authority) fn is_bound_to_capability(&self, capability: &[u8; 32]) -> bool {
+        let encoded = hex::encode(capability);
+        self.0.to_str().is_some_and(|name| {
+            name.strip_suffix(encoded.as_str())
+                .is_some_and(|prefix| !prefix.is_empty() && prefix.ends_with('-'))
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum EntryKind {
     File,
     Directory,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RenameNoReplace {
+    Moved,
+    Occupied,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -83,6 +113,13 @@ pub(crate) enum CreateFileNoReplace {
         observation: EntryObservation,
     },
     Occupied,
+}
+
+/// One direct child observed through a retained namespace directory handle.
+#[derive(Clone, Debug)]
+pub(crate) struct NamespaceChild {
+    pub(crate) name: LeafName,
+    pub(crate) observation: EntryObservation,
 }
 
 /// Identity and content captured from the same retained handle.

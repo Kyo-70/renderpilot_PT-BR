@@ -1,8 +1,6 @@
 //! Crash recovery for pending durable file transactions.
 
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::io;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use renderpilot_storage_sqlite::{
@@ -12,6 +10,7 @@ use renderpilot_storage_sqlite::{
 use super::manifest::{
     FileMutationManifest, MANIFEST_FORMAT_VERSION, deserialize_manifest, restore_manifest,
 };
+use super::optiscaler;
 use super::peer_recovery;
 use super::retryable_v2;
 use super::scope::{MutationScope, require_path_in_scope};
@@ -25,7 +24,7 @@ pub(crate) fn recover_pending(
     guard: &GameMutationGuard,
 ) -> Result<(), ServiceError> {
     recover_pending_matching(context, guard, |_| true)?;
-    sweep_orphan_transaction_dirs(context)
+    Ok(())
 }
 
 /// Recovers only rows explicitly authorized by `select`. Unselected rows and
@@ -66,10 +65,8 @@ pub(crate) fn recover_pending_matching(
     }
     for candidate in candidates {
         match candidate {
-            PendingFileMutationRecoveryCandidate::OptiScaler(_) => {
-                return Err(crate::failed(
-                    "dedicated OptiScaler recovery is unavailable in the generic mutation boundary",
-                ));
+            PendingFileMutationRecoveryCandidate::OptiScaler(proof) => {
+                optiscaler::recover_pending_optiscaler(context, guard, *proof)?;
             }
             PendingFileMutationRecoveryCandidate::NotAggregate(row) => {
                 recover_pending_ordinary(context, guard, &row)?;
@@ -222,41 +219,6 @@ fn validate_manifest_format(manifest: &FileMutationManifest) -> Result<(), Servi
             "unsupported file transaction manifest version {}",
             manifest.format_version
         )));
-    }
-    Ok(())
-}
-
-fn sweep_orphan_transaction_dirs(context: &Context) -> Result<(), ServiceError> {
-    let root = context.file_mutation_root();
-    let entries = match fs::read_dir(root) {
-        Ok(entries) => entries,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
-        Err(error) => {
-            return Err(crate::failed(format!(
-                "failed to inspect file transaction root {}: {error}",
-                root.display()
-            )));
-        }
-    };
-    let active: HashSet<String> = context
-        .storage()
-        .all_pending_file_mutation_ids()?
-        .into_iter()
-        .collect();
-    for entry in entries {
-        let entry = entry
-            .map_err(|error| crate::failed(format!("failed to inspect transaction: {error}")))?;
-        if !entry
-            .file_type()
-            .map_err(|error| crate::failed(format!("failed to inspect transaction type: {error}")))?
-            .is_dir()
-        {
-            continue;
-        }
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if !active.contains(&name) {
-            super::remove_dir_if_exists(&entry.path())?;
-        }
     }
     Ok(())
 }

@@ -112,7 +112,7 @@ fn steamgriddb_url(path_segments: &[&str]) -> Result<Url, ServiceError> {
     let mut url = Url::parse(STEAMGRIDDB_API_BASE).map_err(|error| download_failed(&error))?;
 
     {
-        let mut segments = url.path_segments_mut().map_err(|_| {
+        let mut segments = url.path_segments_mut().map_err(|()| {
             ServiceError::CoverDownloadFailed("invalid SteamGridDB base URL".into())
         })?;
 
@@ -206,7 +206,6 @@ fn download_first_valid_grid(
             Ok(bytes) => return Ok(bytes),
             Err(ServiceError::CoverNotFound) => {
                 // Invalid candidate, missing URL, unsupported format, or failed validation.
-                continue;
             }
             Err(error) => {
                 // Keep trying other candidates, but do not completely hide real download failures.

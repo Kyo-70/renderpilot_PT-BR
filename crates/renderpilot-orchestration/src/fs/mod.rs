@@ -57,8 +57,8 @@ pub(crate) use atomic::{
     copy_file_atomically, move_file_no_replace, publish_staged_replace, write_file_atomically,
 };
 pub(crate) use authority::{
-    AuthorityMode, CreateFileNoReplace, EntryKind, EntryObservation, LeafName, VerifiedDir,
-    verified_parent,
+    AuthorityMode, ControlNamespace, CreateFileNoReplace, EntryKind, EntryObservation, LeafName,
+    PrivateNamespace, RenameNoReplace, VerifiedDir, verified_parent,
 };
 pub(crate) use cache::{
     CacheGeneration, CacheObservation, CachePublication, MatchingCurrentPolicy,

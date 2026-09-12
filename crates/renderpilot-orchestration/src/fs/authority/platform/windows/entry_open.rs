@@ -9,8 +9,10 @@ pub(crate) enum WindowsOpenIntent {
     MutateEntry,
     TraverseDirectory,
     MutateDirectoryChildren,
+    ReopenDirectory,
     DeleteDirectory,
     DeleteEntry,
+    PublishStagedEntry,
 }
 
 #[expect(unsafe_code, reason = "Windows retained-handle relative open")]
@@ -64,6 +66,7 @@ pub(crate) fn windows_open_entry_relative(
         intent,
         WindowsOpenIntent::TraverseDirectory
             | WindowsOpenIntent::MutateDirectoryChildren
+            | WindowsOpenIntent::ReopenDirectory
             | WindowsOpenIntent::DeleteDirectory
     ) {
         options |= FILE_DIRECTORY_FILE;
@@ -79,9 +82,25 @@ pub(crate) fn windows_open_entry_relative(
         WindowsOpenIntent::MutateDirectoryChildren => {
             FILE_TRAVERSE | FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE
         }
+        WindowsOpenIntent::ReopenDirectory => {
+            DELETE
+                | FILE_TRAVERSE
+                | FILE_LIST_DIRECTORY
+                | FILE_READ_ATTRIBUTES
+                | READ_CONTROL
+                | SYNCHRONIZE
+        }
         WindowsOpenIntent::DeleteDirectory => DELETE | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         WindowsOpenIntent::DeleteEntry => {
             DELETE | GENERIC_READ | FILE_READ_ATTRIBUTES | SYNCHRONIZE
+        }
+        WindowsOpenIntent::PublishStagedEntry => {
+            DELETE
+                | GENERIC_READ
+                | FILE_READ_ATTRIBUTES
+                | READ_CONTROL
+                | windows_sys::Win32::Storage::FileSystem::WRITE_DAC
+                | SYNCHRONIZE
         }
     };
     let status = unsafe {
@@ -102,10 +121,18 @@ pub(crate) fn windows_open_entry_relative(
                 WindowsOpenIntent::Observe => {
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
                 }
-                WindowsOpenIntent::MutateEntry | WindowsOpenIntent::DeleteEntry => FILE_SHARE_READ,
+                WindowsOpenIntent::MutateEntry
+                | WindowsOpenIntent::DeleteEntry
+                | WindowsOpenIntent::PublishStagedEntry => FILE_SHARE_READ,
                 WindowsOpenIntent::TraverseDirectory => {
                     // Retained handles may carry DELETE for exact cleanup. Grant sharing
                     // so traversal remains possible while a peer holds a narrower handle.
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+                }
+                WindowsOpenIntent::ReopenDirectory => {
+                    // Private namespace reopens need DELETE for dispose-by-handle.
+                    // Grant sharing because multiple overlapping reopens (e.g. custody
+                    // + observe in the same transaction) are common.
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
                 }
                 WindowsOpenIntent::MutateDirectoryChildren => FILE_SHARE_READ | FILE_SHARE_WRITE,

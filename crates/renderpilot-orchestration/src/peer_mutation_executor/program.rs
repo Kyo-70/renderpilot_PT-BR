@@ -350,22 +350,29 @@ impl ExactEndpointProgram {
         Ok(Self { endpoints })
     }
 
-    /// Constructs the endpoint-free RenoDX DLSS claim route. The typed
-    /// projection is still required by the specialized package and permit.
+    /// Constructs the sole endpoint-free peer program admitted by
+    /// orchestration. The caller must still bind a typed RenoDX DLSS
+    /// projection through the specialized package and storage preparation
+    /// APIs; generic package construction never calls this constructor.
     pub(crate) fn renodx_dlss_claim_only() -> Self {
         Self {
             endpoints: Vec::new(),
         }
     }
 
-    /// Adds one endpoint while retaining canonical path and duplicate checks.
+    /// Adds one endpoint while preserving the same canonical path and
+    /// duplicate checks as initial program construction. The typed
+    /// RenoDX/OptiScaler companion appends its enable transition after host
+    /// acquisition, so the domain contract can enforce the required order.
     pub(crate) fn append(self, endpoint: ExactEndpoint) -> Result<Self, PeerRouteError> {
         let mut endpoints = self.endpoints;
         endpoints.push(endpoint);
         Self::new(endpoints)
     }
 
-    /// Inserts one endpoint before existing effects for disable transitions.
+    /// Inserts one endpoint before every existing effect. The typed
+    /// RenoDX/OptiScaler companion uses this only for its disable transition,
+    /// which must happen before the downstream host is released.
     pub(crate) fn prepend(self, endpoint: ExactEndpoint) -> Result<Self, PeerRouteError> {
         let mut endpoints = self.endpoints;
         endpoints.insert(0, endpoint);

@@ -120,6 +120,497 @@ impl VerifiedDir {
         }
     }
 
+    /// Enumerate direct children through this retained directory handle. Every
+    /// child must be a listed reserved leaf; unknown names, malformed names,
+    /// and reparse/link entries fail closed.
+    pub(crate) fn enumerate_reserved_children(
+        &self,
+        reserved: &[LeafName],
+    ) -> Result<Vec<NamespaceChild>, ServiceError> {
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            let mut directory = rustix::fs::Dir::read_from(&self.fd).map_err(|error| {
+                crate::failed(format!("failed to enumerate retained directory: {error}"))
+            })?;
+            let mut names = Vec::new();
+            for result in &mut directory {
+                let entry = result.map_err(|error| {
+                    crate::failed(format!("failed to enumerate retained directory: {error}"))
+                })?;
+                let bytes = entry.file_name().to_bytes();
+                if bytes == b"." || bytes == b".." {
+                    continue;
+                }
+                let name = LeafName::parse(OsStr::from_bytes(bytes))?;
+                if !reserved.iter().any(|reserved| reserved == &name) {
+                    return Err(crate::failed(
+                        "private namespace contains an unknown direct child",
+                    ));
+                }
+                names.push(name);
+            }
+            let mut children = Vec::with_capacity(names.len());
+            for name in names {
+                let entry = self.open_leaf(&name)?;
+                let observation = entry.observe()?;
+                children.push(NamespaceChild { name, observation });
+            }
+            Ok(children)
+        }
+        #[cfg(windows)]
+        {
+            let names = windows_enumerate_directory_names(&self.handle)?;
+            let mut children = Vec::with_capacity(names.len());
+            for os_name in names {
+                let name = LeafName::parse(&os_name)?;
+                if !reserved.iter().any(|reserved| reserved == &name) {
+                    return Err(crate::failed(
+                        "private namespace contains an unknown direct child",
+                    ));
+                }
+                let entry = self.open_leaf(&name)?;
+                let observation = entry.observe()?;
+                children.push(NamespaceChild { name, observation });
+            }
+            Ok(children)
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            let mut children = Vec::new();
+            for result in std::fs::read_dir(&self.metadata_path)
+                .map_err(|error| crate::failed(error.to_string()))?
+            {
+                let entry = result.map_err(|error| crate::failed(error.to_string()))?;
+                let name = LeafName::parse(&entry.file_name())?;
+                if !reserved.iter().any(|reserved| reserved == &name) {
+                    return Err(crate::failed(
+                        "private namespace contains an unknown direct child",
+                    ));
+                }
+                let verified = self.open_leaf(&name)?;
+                children.push(NamespaceChild {
+                    name,
+                    observation: verified.observe()?,
+                });
+            }
+            Ok(children)
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            let _ = reserved;
+            Err(crate::failed(
+                "native directory enumeration is unsupported on this host",
+            ))
+        }
+    }
+
+    /// Create a private namespace. The caller supplies the complete 256-bit
+    /// capability used to derive the unpredictable leaf.
+    pub(crate) fn create_private_namespace(
+        &self,
+        name: &LeafName,
+        capability: &[u8; 32],
+    ) -> Result<PrivateNamespace, ServiceError> {
+        self.create_private_namespace_with_mode(name, capability, AuthorityMode::CooperativeSameUid)
+    }
+
+    pub(crate) fn create_private_namespace_with_mode(
+        &self,
+        name: &LeafName,
+        capability: &[u8; 32],
+        mode: AuthorityMode,
+    ) -> Result<PrivateNamespace, ServiceError> {
+        mode.preflight()?;
+        if capability.iter().all(|byte| *byte == 0) {
+            return Err(crate::failed(
+                "private namespace capability must be nonzero",
+            ));
+        }
+        if !name.is_bound_to_capability(capability) {
+            return Err(crate::failed(
+                "private namespace leaf is not cryptographically bound to its capability",
+            ));
+        }
+        let parent = self.clone_capability()?;
+        #[cfg(target_os = "linux")]
+        {
+            rustix::fs::mkdirat(
+                &self.fd,
+                name.as_os_str(),
+                rustix::fs::Mode::RUSR | rustix::fs::Mode::WUSR | rustix::fs::Mode::XUSR,
+            )
+            .map_err(|error| {
+                crate::failed(format!("failed to create private namespace: {error}"))
+            })?;
+            let fd = match rustix::fs::openat(
+                &self.fd,
+                name.as_os_str(),
+                rustix::fs::OFlags::RDONLY
+                    | rustix::fs::OFlags::DIRECTORY
+                    | rustix::fs::OFlags::CLOEXEC
+                    | rustix::fs::OFlags::NOFOLLOW,
+                rustix::fs::Mode::empty(),
+            ) {
+                Ok(fd) => fd,
+                Err(error) => {
+                    let cleanup = rustix::fs::unlinkat(
+                        &self.fd,
+                        name.as_os_str(),
+                        rustix::fs::AtFlags::REMOVEDIR,
+                    );
+                    return Err(crate::failed(match cleanup {
+                        Ok(()) => format!("failed to retain private namespace: {error}"),
+                        Err(cleanup_error) => format!(
+                            "failed to retain private namespace: {error}; cleanup also failed: {cleanup_error}"
+                        ),
+                    }));
+                }
+            };
+            let metadata = match rustix::fs::fstat(&fd) {
+                Ok(metadata) => metadata,
+                Err(error) => {
+                    drop(fd);
+                    let cleanup = rustix::fs::unlinkat(
+                        &self.fd,
+                        name.as_os_str(),
+                        rustix::fs::AtFlags::REMOVEDIR,
+                    );
+                    return Err(crate::failed(match cleanup {
+                        Ok(()) => format!("failed to inspect private namespace: {error}"),
+                        Err(cleanup_error) => format!(
+                            "failed to inspect private namespace: {error}; cleanup also failed: {cleanup_error}"
+                        ),
+                    }));
+                }
+            };
+            let mode_bits = metadata.st_mode & 0o777;
+            if mode_bits != 0o700 {
+                drop(fd);
+                let cleanup = rustix::fs::unlinkat(
+                    &self.fd,
+                    name.as_os_str(),
+                    rustix::fs::AtFlags::REMOVEDIR,
+                );
+                return Err(crate::failed(format!(
+                    "private namespace mode is not 0700: {mode_bits:o}; cleanup result: {cleanup:?}"
+                )));
+            }
+            if metadata.st_uid != linux_effective_uid() {
+                drop(fd);
+                let cleanup = rustix::fs::unlinkat(
+                    &self.fd,
+                    name.as_os_str(),
+                    rustix::fs::AtFlags::REMOVEDIR,
+                );
+                return Err(crate::failed(format!(
+                    "private namespace is not owned by the current effective UID; cleanup result: {cleanup:?}"
+                )));
+            }
+            if !linux_identity_is_stable(metadata.st_dev, metadata.st_ino) {
+                drop(fd);
+                let cleanup = rustix::fs::unlinkat(
+                    &self.fd,
+                    name.as_os_str(),
+                    rustix::fs::AtFlags::REMOVEDIR,
+                );
+                return Err(crate::failed(format!(
+                    "private namespace has an unstable filesystem identity; cleanup result: {cleanup:?}"
+                )));
+            }
+            let identity = linux_identity(metadata.st_dev, metadata.st_ino);
+            let child = VerifiedDir {
+                metadata_path: self.metadata_path.join(name.as_os_str()),
+                identity: identity.clone(),
+                fd,
+            };
+            Ok(PrivateNamespace {
+                metadata_path: child.metadata_path.clone(),
+                identity,
+                parent,
+                #[cfg(not(windows))]
+                leaf: name.clone(),
+                dir: child,
+            })
+        }
+        #[cfg(windows)]
+        {
+            let (handle, identity) = windows_create_owner_only_directory(&self.handle, name)?;
+            let path = self.metadata_path.join(name.as_os_str());
+            let dir = VerifiedDir {
+                metadata_path: path.clone(),
+                identity: identity.clone(),
+                handle,
+            };
+            if let Err(error) = windows_verify_private_security(&dir.handle) {
+                let cleanup = windows_dispose_by_handle(&dir.handle);
+                return Err(crate::failed(match cleanup {
+                    Ok(()) => error.to_string(),
+                    Err(cleanup_error) => {
+                        format!("{error}; cleanup also failed: {cleanup_error}")
+                    }
+                }));
+            }
+            Ok(PrivateNamespace {
+                metadata_path: path,
+                identity,
+                parent,
+                dir,
+            })
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            let path = self.metadata_path.join(name.as_os_str());
+            std::fs::create_dir(&path).map_err(|error| crate::failed(error.to_string()))?;
+            #[cfg(unix)]
+            std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o700))
+                .map_err(|error| crate::failed(error.to_string()))?;
+            Ok(PrivateNamespace {
+                metadata_path: path,
+                identity: String::new(),
+                parent,
+                #[cfg(not(windows))]
+                leaf: name.clone(),
+                dir: VerifiedDir {
+                    metadata_path: self.metadata_path.join(name.as_os_str()),
+                    identity: String::new(),
+                },
+            })
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            let _ = (name, capability);
+            Err(crate::failed(
+                "native private namespace is unsupported on this host",
+            ))
+        }
+    }
+
+    /// Native no-replace rename between retained directories.
+    pub(crate) fn rename_no_replace(
+        &self,
+        source: &LeafName,
+        destination_parent: &VerifiedDir,
+        destination: &LeafName,
+        expected: Option<&EntryObservation>,
+        mode: AuthorityMode,
+    ) -> Result<RenameNoReplace, ServiceError> {
+        mode.preflight()?;
+        #[cfg(windows)]
+        let source_handle =
+            windows_open_entry_relative(&self.handle, source, WindowsOpenIntent::DeleteEntry)
+                .map_err(|error| {
+                    crate::failed(format!("failed to retain rename source: {error}"))
+                })?;
+        #[cfg(windows)]
+        let source_entry = VerifiedEntry {
+            metadata_path: self.metadata_path.join(source.as_os_str()),
+            handle: source_handle,
+        };
+        if let Some(expected) = expected {
+            #[cfg(target_os = "linux")]
+            let observed = self
+                .observe_leaf(source)?
+                .ok_or_else(|| crate::failed("rename source is absent"))?;
+            #[cfg(windows)]
+            let observed = source_entry.observe()?;
+            if &observed != expected {
+                return Err(crate::failed("rename source identity or digest changed"));
+            }
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let result = rustix::fs::renameat_with(
+                &self.fd,
+                source.as_os_str(),
+                &destination_parent.fd,
+                destination.as_os_str(),
+                rustix::fs::RenameFlags::NOREPLACE,
+            );
+            if let Err(error) = result {
+                if error == rustix::io::Errno::EXIST {
+                    return Ok(RenameNoReplace::Occupied);
+                }
+                return Err(crate::failed(format!(
+                    "failed to rename entry without replacement: {error}"
+                )));
+            }
+            self.sync()?;
+            if !std::ptr::eq(self, destination_parent) {
+                destination_parent.sync()?;
+            }
+            Ok(RenameNoReplace::Moved)
+        }
+        #[cfg(windows)]
+        {
+            if let Err(error) = windows_rename_handle_no_replace(
+                &source_entry.handle,
+                &destination_parent.handle,
+                destination,
+            ) {
+                if matches!(
+                    error
+                        .raw_os_error()
+                        .and_then(|code| u32::try_from(code).ok()),
+                    Some(
+                        windows_sys::Win32::Foundation::ERROR_FILE_EXISTS
+                            | windows_sys::Win32::Foundation::ERROR_ALREADY_EXISTS,
+                    )
+                ) {
+                    return Ok(RenameNoReplace::Occupied);
+                }
+                return Err(crate::failed(format!(
+                    "failed to rename entry without replacement: {error}"
+                )));
+            }
+            self.sync()?;
+            if !std::ptr::eq(self, destination_parent) {
+                destination_parent.sync()?;
+            }
+            Ok(RenameNoReplace::Moved)
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            let source_path = self.metadata_path.join(source.as_os_str());
+            let destination_path = destination_parent
+                .metadata_path
+                .join(destination.as_os_str());
+            if destination_path.exists() {
+                return Err(crate::failed("rename destination is occupied"));
+            }
+            std::fs::rename(source_path, destination_path)
+                .map_err(|error| crate::failed(error.to_string()))?;
+            Ok(RenameNoReplace::Moved)
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            let _ = (source, destination_parent, destination);
+            Err(crate::failed(
+                "native rename authority is unsupported on this host",
+            ))
+        }
+    }
+
+    /// Publishes a private staged entry into a public directory without
+    /// replacement.  The ordinary rename API deliberately preserves the
+    /// source security descriptor for custody moves and rollback.  On Windows
+    /// only this publication boundary derives the destination parent's DACL
+    /// on the retained staged entry immediately before the native rename.
+    pub(crate) fn publish_staged_no_replace(
+        &self,
+        source: &LeafName,
+        destination_parent: &VerifiedDir,
+        destination: &LeafName,
+        expected: &EntryObservation,
+        mode: AuthorityMode,
+    ) -> Result<RenameNoReplace, ServiceError> {
+        mode.preflight()?;
+        #[cfg(target_os = "linux")]
+        {
+            self.rename_no_replace(
+                source,
+                destination_parent,
+                destination,
+                Some(expected),
+                mode,
+            )
+        }
+        #[cfg(windows)]
+        {
+            let source_handle = windows_open_entry_relative(
+                &self.handle,
+                source,
+                WindowsOpenIntent::PublishStagedEntry,
+            )
+            .map_err(|error| {
+                crate::failed(format!(
+                    "failed to retain staged publication source: {error}"
+                ))
+            })?;
+            let source_entry = VerifiedEntry {
+                metadata_path: self.metadata_path.join(source.as_os_str()),
+                handle: source_handle,
+            };
+            let observed = source_entry.observe()?;
+            if &observed != expected {
+                return Err(crate::failed(
+                    "staged publication source identity or digest changed",
+                ));
+            }
+            windows_prepare_staged_publish_security(
+                &destination_parent.handle,
+                &source_entry.handle,
+                observed.is_directory(),
+            )?;
+            if let Err(error) = windows_rename_handle_no_replace(
+                &source_entry.handle,
+                &destination_parent.handle,
+                destination,
+            ) {
+                if matches!(
+                    error
+                        .raw_os_error()
+                        .and_then(|code| u32::try_from(code).ok()),
+                    Some(
+                        windows_sys::Win32::Foundation::ERROR_FILE_EXISTS
+                            | windows_sys::Win32::Foundation::ERROR_ALREADY_EXISTS,
+                    )
+                ) {
+                    return Ok(RenameNoReplace::Occupied);
+                }
+                return Err(crate::failed(format!(
+                    "failed to publish staged entry without replacement: {error}"
+                )));
+            }
+            self.sync()?;
+            if !std::ptr::eq(self, destination_parent) {
+                destination_parent.sync()?;
+            }
+            Ok(RenameNoReplace::Moved)
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            self.rename_no_replace(
+                source,
+                destination_parent,
+                destination,
+                Some(expected),
+                mode,
+            )
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            let _ = (source, destination_parent, destination, expected);
+            Err(crate::failed(
+                "native staged publication is unsupported on this host",
+            ))
+        }
+    }
+
     /// Remove one exact entry. For directories the native remove operation is
     /// the authoritative emptiness check; no racy pre-check is used.
     pub(crate) fn remove_empty_dir(

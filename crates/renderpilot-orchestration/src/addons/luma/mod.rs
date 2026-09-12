@@ -36,6 +36,7 @@ pub mod manifest_store;
 pub(crate) mod matcher;
 pub(crate) mod mutation_targets;
 pub(crate) mod peer;
+pub(crate) mod prerequisite;
 pub(crate) mod reconciliation;
 mod source;
 pub(crate) mod tool;

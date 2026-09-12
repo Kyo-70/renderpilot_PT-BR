@@ -106,6 +106,59 @@ impl Read for PositionalReader<'_> {
 }
 
 impl VerifiedEntry {
+    /// Converts a retained ordinary directory entry into a directory
+    /// capability after proving that the same observed directory still backs
+    /// the handle.  Unlike private-namespace reopening this deliberately does
+    /// not impose owner-only ACL or mode requirements: game directories retain
+    /// their native access policy.
+    pub(in crate::fs::authority) fn into_observed_directory(
+        self,
+        expected: &EntryObservation,
+    ) -> Result<VerifiedDir, ServiceError> {
+        let observed = self.observe()?;
+        if &observed != expected || observed.kind != EntryKind::Directory {
+            return Err(crate::failed(
+                "retained entry changed before directory authority acquisition",
+            ));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            Ok(VerifiedDir {
+                metadata_path: self.metadata_path,
+                identity: observed.identity,
+                fd: self.fd,
+            })
+        }
+        #[cfg(windows)]
+        {
+            Ok(VerifiedDir {
+                metadata_path: self.metadata_path,
+                identity: observed.identity,
+                handle: self.handle,
+            })
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            Ok(VerifiedDir {
+                metadata_path: self.metadata_path,
+                identity: observed.identity,
+            })
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            let _ = expected;
+            Err(crate::failed(
+                "native directory authority is unsupported on this host",
+            ))
+        }
+    }
+
     /// Read a regular file through the retained entry handle and return the
     /// bytes together with the observation derived from that same handle.
     /// When `expected` is supplied, identity, kind, and digest must all match
@@ -115,6 +168,18 @@ impl VerifiedEntry {
         expected: Option<&EntryObservation>,
     ) -> Result<(Vec<u8>, EntryObservation), ServiceError> {
         self.read_regular_file_with_limit(expected, None)
+    }
+
+    /// Read a regular file through the retained entry while bounding the
+    /// returned allocation. The initial native length is checked before the
+    /// allocation, and one extra byte is sampled so growth during the read is
+    /// rejected rather than silently truncated.
+    pub(crate) fn read_regular_file_bounded(
+        &self,
+        expected: Option<&EntryObservation>,
+        max_bytes: usize,
+    ) -> Result<(Vec<u8>, EntryObservation), ServiceError> {
+        self.read_regular_file_with_limit(expected, Some(max_bytes))
     }
 
     fn read_regular_file_with_limit(
@@ -412,6 +477,59 @@ impl VerifiedEntry {
         {
             Err(crate::failed(
                 "native entry authority is unsupported on this host",
+            ))
+        }
+    }
+
+    pub(in crate::fs::authority) fn into_directory(
+        self,
+        expected_identity: &str,
+    ) -> Result<VerifiedDir, ServiceError> {
+        let observed = self.observe()?;
+        if observed.kind != EntryKind::Directory || observed.identity != expected_identity {
+            return Err(crate::failed(
+                "retained entry is not the expected directory",
+            ));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let stat = rustix::fs::fstat(&self.fd).map_err(|error| {
+                crate::failed(format!("failed to inspect retained directory: {error}"))
+            })?;
+            if stat.st_mode & 0o777 != 0o700 || stat.st_uid != linux_effective_uid() {
+                return Err(crate::failed("reopened private namespace security changed"));
+            }
+            Ok(VerifiedDir {
+                metadata_path: self.metadata_path,
+                identity: observed.identity,
+                fd: self.fd,
+            })
+        }
+        #[cfg(windows)]
+        {
+            Ok(VerifiedDir {
+                metadata_path: self.metadata_path,
+                identity: observed.identity,
+                handle: self.handle,
+            })
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            Ok(VerifiedDir {
+                metadata_path: self.metadata_path,
+                identity: observed.identity,
+            })
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            Err(crate::failed(
+                "native directory authority is unsupported on this host",
             ))
         }
     }

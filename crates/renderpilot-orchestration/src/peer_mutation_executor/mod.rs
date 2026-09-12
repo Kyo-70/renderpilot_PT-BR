@@ -4,6 +4,7 @@
 //! executor keeps the peer runtime private while exposing only the repository
 //! delegation needed by existing catalog/read paths.
 
+mod active_optiscaler;
 mod aggregate_membership;
 pub(crate) mod ancestor_io;
 mod ancestors;
@@ -41,6 +42,11 @@ use renderpilot_storage_sqlite::{
     AggregateBefore, GameAggregateMutation, InstalledAddonMutation, MetadataAggregatePreparation,
     MetadataAggregateTransition, PeerCommitPreparation, PeerStorageRuntime, PlannedAggregateAfter,
     PreparedPeerCommitPermit, SharedArtifactMutation, SharedPeerCommitPreparation, SqliteStorage,
+};
+pub(crate) use renderpilot_storage_sqlite::{
+    CommittedOptiScalerJournalAggregate, OptiScalerJournalAggregateBegin,
+    OptiScalerJournalAggregateCommit, PreparedOptiScalerJournalAggregate,
+    PreparingOptiScalerJournalAggregate,
 };
 
 use crate::addons::engine::apply::{PeerMutationPreflight, apply_peer_mutation};

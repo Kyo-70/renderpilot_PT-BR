@@ -98,6 +98,19 @@ impl VerifiedDir {
         self.open_leaf(name)?.read_regular_file(expected)
     }
 
+    /// Read one regular file through a retained child handle with a strict
+    /// allocation limit. The child is opened only after the directory
+    /// capability has been retained, matching [`Self::read_regular_file`].
+    pub(crate) fn read_regular_file_bounded(
+        &self,
+        name: &LeafName,
+        expected: Option<&EntryObservation>,
+        max_bytes: usize,
+    ) -> Result<(Vec<u8>, EntryObservation), ServiceError> {
+        self.open_leaf(name)?
+            .read_regular_file_bounded(expected, max_bytes)
+    }
+
     /// Rewrite the bytes of an already verified regular file through its
     /// retained native handle. The directory entry is never replaced, so a
     /// durable file identity remains stable across an Owned content update.

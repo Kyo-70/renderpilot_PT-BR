@@ -83,6 +83,7 @@ pub(crate) trait AddonTool: Send + Sync {
 pub(crate) static TOOLS: &[&dyn AddonTool] = &[
     &crate::addons::renodx::tool::RenoDxTool,
     &crate::addons::luma::tool::LumaTool,
+    &crate::addons::optiscaler::tool::OptiScalerTool,
 ];
 
 /// Lookup by kind. Returns `None` only if domain and registration have drifted
@@ -142,8 +143,8 @@ mod tests {
 
     #[test]
     fn tools_cover_every_addon_kind_exactly_once() {
-        for kind in [AddonKind::RenoDx, AddonKind::Luma] {
-            let matches: Vec<_> = TOOLS.iter().filter(|t| t.kind() == kind).collect();
+        for kind in AddonKind::ALL {
+            let matches: Vec<_> = TOOLS.iter().filter(|t| t.kind() == *kind).collect();
             assert_eq!(
                 matches.len(),
                 1,
@@ -151,7 +152,7 @@ mod tests {
                 matches.len()
             );
         }
-        assert_eq!(TOOLS.len(), 2);
+        assert_eq!(TOOLS.len(), AddonKind::ALL.len());
     }
 
     #[test]

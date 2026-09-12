@@ -16,11 +16,15 @@ use crate::ServiceError;
 
 mod dir;
 mod entry;
+mod namespaces;
 mod platform;
+#[cfg(test)]
+mod tests;
 mod types;
 
 pub(crate) use dir::core::*;
 pub(crate) use entry::VerifiedEntry;
+pub(crate) use namespaces::{ControlNamespace, PrivateNamespace};
 #[cfg(target_os = "linux")]
 pub(crate) use platform::linux::*;
 #[cfg(windows)]

@@ -1,5 +1,5 @@
 use crate::ServiceError;
-use crate::fs::authority::{LeafName, VerifiedDir};
+use crate::fs::authority::{LeafName, VerifiedDir, VerifiedEntry};
 use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Component, Path, PathBuf};
 
@@ -72,6 +72,18 @@ impl VerifiedDir {
             identity,
             handle,
         })
+    }
+
+    pub(in crate::fs::authority) fn open_directory_leaf(
+        &self,
+        name: &LeafName,
+    ) -> Result<VerifiedEntry, ServiceError> {
+        windows_open_entry_relative(&self.handle, name, WindowsOpenIntent::ReopenDirectory)
+            .map(|handle| VerifiedEntry {
+                metadata_path: self.metadata_path.join(name.as_os_str()),
+                handle,
+            })
+            .map_err(|error| crate::failed(format!("failed to open relative directory: {error}")))
     }
 }
 

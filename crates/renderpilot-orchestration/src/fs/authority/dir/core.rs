@@ -73,6 +73,58 @@ impl VerifiedDir {
         &self.identity
     }
 
+    /// Returns the native filesystem identity for this retained directory.
+    ///
+    /// A directory-entry identity is not sufficient for proving that an
+    /// atomic rename can cross neither a device nor a volume. Callers that
+    /// prepare a durable rename use this value for an explicit, fail-closed
+    /// same-filesystem proof.
+    pub(crate) fn filesystem_identity(&self) -> Result<String, ServiceError> {
+        #[cfg(target_os = "linux")]
+        {
+            let metadata = rustix::fs::fstat(&self.fd).map_err(|error| {
+                crate::failed(format!("failed to inspect directory filesystem: {error}"))
+            })?;
+            if metadata.st_dev == 0 {
+                return Err(crate::failed("directory filesystem identity is unstable"));
+            }
+            Ok(format!("linux:{:x}", metadata.st_dev))
+        }
+        #[cfg(windows)]
+        {
+            let identity = windows_identity(&self.handle)?;
+            let serial = identity
+                .strip_prefix("windows:")
+                .and_then(|value| value.split_once(':'))
+                .map(|(serial, _)| serial)
+                .filter(|serial| !serial.is_empty() && *serial != "0000000000000000")
+                .ok_or_else(|| {
+                    crate::failed("Windows directory filesystem identity is unstable")
+                })?;
+            Ok(format!("windows:{serial}"))
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            feature = "development-host-fallback"
+        ))]
+        {
+            let _ = self;
+            Err(crate::failed(
+                "filesystem identity is unavailable on the development fallback host",
+            ))
+        }
+        #[cfg(all(
+            not(any(target_os = "linux", windows)),
+            not(feature = "development-host-fallback")
+        ))]
+        {
+            let _ = self;
+            Err(crate::failed(
+                "native filesystem identity is unsupported on this host",
+            ))
+        }
+    }
+
     #[cfg(target_os = "linux")]
     pub(crate) fn as_fd(&self) -> &rustix::fd::OwnedFd {
         &self.fd
@@ -133,6 +185,52 @@ impl VerifiedDir {
                 "native entry authority is unsupported on this host",
             ))
         }
+    }
+
+    /// Observes an endpoint below this already-retained root without following
+    /// links or reparse points.  A missing descendant is represented by
+    /// `None`; a missing root, a non-directory ancestor, or any unsafe
+    /// traversal condition remains an error at the authority boundary.
+    pub(crate) fn observe_descendant(
+        &self,
+        path: &Path,
+    ) -> Result<Option<EntryObservation>, ServiceError> {
+        let relative = path.strip_prefix(&self.metadata_path).map_err(|_| {
+            crate::failed(format!(
+                "authority descendant is outside retained root: {}",
+                path.display()
+            ))
+        })?;
+        let components = relative
+            .components()
+            .map(|component| match component {
+                Component::Normal(value) => LeafName::parse(value),
+                _ => Err(crate::failed(
+                    "authority descendant is not a normal relative path",
+                )),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if components.is_empty() {
+            return Err(crate::failed(
+                "authority descendant cannot be its retained root",
+            ));
+        }
+        let mut parent = self.clone_capability()?;
+        for (index, leaf) in components.iter().enumerate() {
+            let Some(observed) = parent.observe_leaf(leaf)? else {
+                return Ok(None);
+            };
+            if index + 1 == components.len() {
+                return Ok(Some(observed));
+            }
+            if observed.kind != EntryKind::Directory {
+                return Err(crate::failed(
+                    "authority descendant has a non-directory ancestor",
+                ));
+            }
+            parent = parent.open_leaf(leaf)?.into_observed_directory(&observed)?;
+        }
+        unreachable!("nonempty descendant component vector always returns")
     }
 
     pub(in crate::fs::authority) fn open_leaf_for_update(

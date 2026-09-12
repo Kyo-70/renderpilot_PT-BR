@@ -1,10 +1,10 @@
 //! Safe removal of a user-managed game card from the catalog.
 
-use renderpilot_application::{GameRepository, InstalledAddonRepository};
+use renderpilot_application::GameRepository;
 use renderpilot_domain::{GameId, RootAuthority};
 
+use super::managed_state::ManagedCleanupBoundary;
 use crate::ServiceError;
-use crate::addons::renodx::use_cases::commands::uninstall as renodx_uninstall;
 
 /// Result of removing one user-managed game from the catalog.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,42 +25,36 @@ pub fn remove_game_from_catalog(
     game_id: &GameId,
 ) -> Result<RemoveGameFromCatalogResult, ServiceError> {
     let _catalog_guard = context.catalog_scan_guard();
-    let storage = context.storage();
     require_removable_game(context, game_id)?;
     loop {
         let game_guard = crate::mutation_boundary::enter_game_mutation_boundary(context, game_id)?;
-        let addon = storage.get_installed_addon(game_id)?;
-        let Some(addon) = addon else {
-            return remove_game_with_game_guard(context, game_id, &game_guard);
+        let cleanup =
+            super::managed_state::ManagedCleanupPlan::build_locked(context, &game_guard, game_id)?;
+        let ManagedCleanupBoundary::SharedRenoDx { registered_exe } = &cleanup.boundary else {
+            return remove_game_with_game_guard(context, game_id, &game_guard, &cleanup);
         };
-        let is_shared_vulkan =
-            renodx_uninstall::registered_vulkan_exe_for_uninstall(context, game_id, &addon)
-                .is_some();
-        if !is_shared_vulkan {
-            return remove_game_with_game_guard(context, game_id, &game_guard);
-        }
+        let expected_exe = registered_exe.clone();
 
         // Shared Vulkan cleanup must re-enter through game -> shared. The
-        // initial game-only snapshot is only a routing hint; the record is
-        // read again after both guards are held before any mutation begins.
+        // initial game-only plan is only a routing hint; the complete plan is
+        // rebuilt after both guards are held before any mutation begins.
         drop(game_guard);
         let guards =
             crate::mutation_boundary::enter_game_shared_mutation_boundary(context, game_id)?;
-        let current = storage.get_installed_addon(game_id)?;
-        let Some(current) = current else {
-            drop(guards);
-            continue;
-        };
-        let still_shared_vulkan =
-            renodx_uninstall::registered_vulkan_exe_for_uninstall(context, game_id, &current)
-                .is_some();
-        if !still_shared_vulkan {
+        let refreshed = super::managed_state::ManagedCleanupPlan::build_locked(
+            context,
+            guards.game(),
+            game_id,
+        )?;
+        if refreshed.boundary
+            != (ManagedCleanupBoundary::SharedRenoDx {
+                registered_exe: expected_exe,
+            })
+        {
             drop(guards);
             continue;
         }
-        renodx_uninstall::uninstall_shared_locked(context, &guards, game_id, &current)?;
-        let game_guard = guards.into_game();
-        return remove_game_with_game_guard(context, game_id, &game_guard);
+        return remove_game_with_shared_guards(context, game_id, guards, &refreshed);
     }
 }
 
@@ -68,10 +62,28 @@ fn remove_game_with_game_guard(
     context: &crate::Context,
     game_id: &GameId,
     game_guard: &crate::game_mutation_lock::GameMutationGuard,
+    cleanup: &super::managed_state::ManagedCleanupPlan,
 ) -> Result<RemoveGameFromCatalogResult, ServiceError> {
-    let cleanup =
-        super::managed_state::ManagedCleanupPlan::build_locked(context, game_guard, game_id)?;
     cleanup.execute_locked(context, game_guard, game_id)?;
+    remove_game_after_cleanup(context, game_id, game_guard)
+}
+
+fn remove_game_with_shared_guards(
+    context: &crate::Context,
+    game_id: &GameId,
+    guards: crate::mutation_boundary::GameSharedMutationGuards,
+    cleanup: &super::managed_state::ManagedCleanupPlan,
+) -> Result<RemoveGameFromCatalogResult, ServiceError> {
+    cleanup.execute_shared_locked(context, &guards, game_id)?;
+    let game_guard = guards.into_game();
+    remove_game_after_cleanup(context, game_id, &game_guard)
+}
+
+fn remove_game_after_cleanup(
+    context: &crate::Context,
+    game_id: &GameId,
+    _game_guard: &crate::game_mutation_lock::GameMutationGuard,
+) -> Result<RemoveGameFromCatalogResult, ServiceError> {
     let remaining = super::managed_state::inventory(context, game_id)?;
     if !remaining.is_empty() {
         return Err(ServiceError::GameRemovalCleanupFailed {
@@ -113,11 +125,16 @@ fn require_removable_game(
 
 #[cfg(test)]
 mod tests {
-    use renderpilot_application::{ComponentRepository, GameRepository, InstalledAddonRepository};
+    use renderpilot_application::{
+        ComponentRepository, GameRepository, InstalledAddonRepository, OptiScalerStateRepository,
+        ProxyTopologyRepository,
+    };
     use renderpilot_domain::{
         AddonKind, ComponentFile, ComponentId, ComponentKind, ComponentRollbackBaseline,
-        GameIdentity, GameInstallation, GameRuntime, InstalledAddon, Launcher, LibraryComponent,
-        LibraryTechnology, PathRef, Platform, Swappability,
+        GameIdentity, GameInstallation, GameProxyTopology, GameRuntime, InstalledAddon, Launcher,
+        LibraryComponent, LibraryTechnology, OptiScalerAdoptionState, OptiScalerFileReceipt,
+        OptiScalerFileRole, OptiScalerInstallStateParts, OptiScalerPrerequisiteBinding, PathRef,
+        Platform, ProxyImplementation, ProxyLink, ProxyRootPrestate, Sha256Hash, Swappability,
     };
 
     use super::*;
@@ -573,6 +590,202 @@ mod tests {
                 .find_game(game.id())
                 .expect("game lookup")
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn dedicated_optiscaler_is_removed_before_its_luma_prerequisite() {
+        let temp = tempfile::tempdir().expect("temp");
+        let install = temp.path().join("Opti Luma Game");
+        std::fs::create_dir_all(&install).expect("install");
+        let outer = install.join("dxgi.dll");
+        let config = install.join("OptiScaler.ini");
+        let luma_addon = install.join("Luma.addon64");
+        std::fs::write(&luma_addon, b"luma").expect("luma addon");
+        let context = crate::Context::open_at(temp.path().join("catalog.sqlite")).expect("context");
+        let game = game(&install, RootAuthority::UserConfirmed);
+        context.storage().upsert_game(&game).expect("game");
+
+        let topology_id = format!("optiscaler:{}", game.id().as_str());
+        let outer_receipt = renderpilot_domain::FileReceipt::reused(
+            "missing-optiscaler-outer",
+            Sha256Hash::new("0".repeat(64)).expect("digest"),
+        )
+        .expect("outer receipt");
+        let topology = GameProxyTopology {
+            id: topology_id.clone(),
+            game_id: game.id().clone(),
+            root_slot: path_ref(&outer),
+            outer: ProxyLink {
+                implementation: ProxyImplementation::OptiScaler,
+                path: path_ref(&outer),
+                receipt: outer_receipt,
+            },
+            downstream: None,
+            downstream_origin: None,
+            root_prestate: ProxyRootPrestate::Absent,
+        };
+        let config_receipt = renderpilot_domain::FileReceipt::reused(
+            "reused-config",
+            renderpilot_detection::sha256_bytes(b"user config").expect("digest"),
+        )
+        .expect("config receipt");
+        let state = renderpilot_domain::from_new_adoption(
+            OptiScalerInstallStateParts {
+                game_id: game.id().clone(),
+                release_id: "adopted".to_owned(),
+                manifest_revision: "test".to_owned(),
+                archive_sha256: None,
+                source: None,
+                target_exe_path: path_ref(&install.join("Game.exe")),
+                target_dir: path_ref(&install),
+                modules: vec!["core".to_owned()],
+                release_files: vec![OptiScalerFileReceipt {
+                    path: path_ref(&config),
+                    installed: config_receipt.clone(),
+                    role: OptiScalerFileRole::Configuration,
+                    cleanup: renderpilot_domain::OptiScalerFileCleanup::PreserveUnchanged,
+                    baseline: renderpilot_domain::OptiScalerReleaseFileBaseline::Absent,
+                }],
+                runtime_bindings: Vec::new(),
+                directory_receipts: Vec::new(),
+                proxy_topology_id: Some(topology_id),
+                config_schema: 1,
+                config_base_release: "adopted".to_owned(),
+                adoption_state: OptiScalerAdoptionState::AdoptedExact,
+                prerequisite_binding: OptiScalerPrerequisiteBinding::Luma,
+                created_at: None,
+                updated_at: None,
+            },
+            renderpilot_domain::OptiScalerConfigurationBaseline::present(
+                config_receipt,
+                b"user config".to_vec(),
+            )
+            .expect("configuration baseline"),
+        )
+        .expect("state");
+        let luma = InstalledAddon::new(game.id().clone(), AddonKind::Luma, path_ref(&luma_addon))
+            .with_created_file(path_ref(&luma_addon));
+        context
+            .storage()
+            .upsert_installed_addon(&luma)
+            .expect("install Luma");
+        context
+            .storage()
+            .commit_game_mutation(renderpilot_storage_sqlite::GameMutationCommit {
+                game_id: game.id(),
+                component_set: None,
+                baseline_mutations: &[],
+                addon: renderpilot_storage_sqlite::InstalledAddonMutation::OptiScaler(
+                    renderpilot_storage_sqlite::OptiScalerAggregateMutation::AdoptExactMetadata {
+                        state: &state,
+                        topology: &topology,
+                    },
+                ),
+                mutation_id: None,
+            })
+            .expect("adopt OptiScaler");
+
+        remove_game_from_catalog(&context, game.id()).expect("remove");
+
+        assert!(!outer.exists(), "OptiScaler outer must be removed first");
+        assert!(
+            !luma_addon.exists(),
+            "Luma must be removed after OptiScaler"
+        );
+        assert!(
+            context
+                .storage()
+                .get_optiscaler_install_state(game.id())
+                .expect("state lookup")
+                .is_none()
+        );
+        assert!(
+            context
+                .storage()
+                .get_proxy_topology(game.id())
+                .expect("topology")
+                .is_none()
+        );
+        assert!(
+            context
+                .storage()
+                .get_installed_addon(game.id())
+                .expect("addon")
+                .is_none()
+        );
+        assert!(
+            context
+                .storage()
+                .find_game(game.id())
+                .expect("game")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn malformed_shared_renodx_is_rejected_before_any_cleanup() {
+        let temp = tempfile::tempdir().expect("temp");
+        let install = temp.path().join("Malformed Shared Game");
+        std::fs::create_dir_all(&install).expect("install");
+        let addon_path = install.join("renodx.addon64");
+        std::fs::write(&addon_path, b"renodx").expect("addon");
+        let context = crate::Context::open_at(temp.path().join("catalog.sqlite")).expect("context");
+        let game = game(&install, RootAuthority::UserConfirmed);
+        context.storage().upsert_game(&game).expect("seed game");
+        context
+            .storage()
+            .upsert_installed_addon(
+                &InstalledAddon::new(game.id().clone(), AddonKind::RenoDx, path_ref(&addon_path))
+                    .with_host_kind(renderpilot_domain::InstalledAddonHostKind::SharedVulkanLayer),
+            )
+            .expect("seed malformed shared record");
+
+        let error = remove_game_from_catalog(&context, game.id())
+            .expect_err("shared RenoDX without executable must be rejected");
+
+        assert!(matches!(
+            error,
+            ServiceError::GameRemovalCleanupFailed { .. }
+        ));
+        assert!(
+            addon_path.exists(),
+            "preflight must not mutate the addon file"
+        );
+    }
+
+    #[test]
+    fn luma_shared_vulkan_record_is_rejected_before_any_cleanup() {
+        let temp = tempfile::tempdir().expect("temp");
+        let install = temp.path().join("Malformed Luma Shared Game");
+        std::fs::create_dir_all(&install).expect("install");
+        let addon_path = install.join("luma.addon64");
+        std::fs::write(&addon_path, b"luma").expect("addon");
+        let context = crate::Context::open_at(temp.path().join("catalog.sqlite")).expect("context");
+        let game = game(&install, RootAuthority::UserConfirmed);
+        context.storage().upsert_game(&game).expect("seed game");
+        context
+            .storage()
+            .upsert_installed_addon(
+                &InstalledAddon::new(game.id().clone(), AddonKind::Luma, path_ref(&addon_path))
+                    .with_host_kind(renderpilot_domain::InstalledAddonHostKind::SharedVulkanLayer),
+            )
+            .expect("seed malformed shared record");
+
+        let error = remove_game_from_catalog(&context, game.id())
+            .expect_err("shared Luma must be rejected before cleanup");
+
+        assert!(matches!(
+            error,
+            ServiceError::GameRemovalCleanupFailed { .. }
+        ));
+        assert!(addon_path.exists(), "preflight must not mutate Luma");
+        assert!(
+            context
+                .storage()
+                .find_game(game.id())
+                .expect("game")
+                .is_some()
         );
     }
 
