@@ -264,7 +264,11 @@ mod tests {
         );
         assert_eq!(
             missing.addons,
-            vec![String::from("renodx"), String::from("luma")]
+            vec![
+                String::from("renodx"),
+                String::from("luma"),
+                String::from("optiscaler"),
+            ]
         );
         assert_eq!(
             missing.launchers,
@@ -311,7 +315,11 @@ mod tests {
 
         assert_eq!(
             parsed.addons,
-            vec![String::from("renodx"), String::from("luma")]
+            vec![
+                String::from("renodx"),
+                String::from("luma"),
+                String::from("optiscaler"),
+            ]
         );
     }
 
@@ -327,7 +335,11 @@ mod tests {
         );
         assert_eq!(
             parsed.addons,
-            vec![String::from("renodx"), String::from("luma")]
+            vec![
+                String::from("renodx"),
+                String::from("luma"),
+                String::from("optiscaler"),
+            ]
         );
     }
 

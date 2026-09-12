@@ -10,6 +10,7 @@ mod commands;
 mod error;
 mod hash;
 mod luma;
+mod optiscaler;
 mod output;
 mod renodx;
 

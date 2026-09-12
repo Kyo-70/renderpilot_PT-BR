@@ -526,3 +526,33 @@ fn luma_check_updates_parses() {
         Command::LumaCheckUpdates
     );
 }
+
+#[test]
+fn optiscaler_status_parses_game_argument() {
+    assert_eq!(
+        parse_args(args(&[
+            "optiscaler",
+            "status",
+            "--game",
+            "manual:C:/Games/OptiScalerGame",
+        ]))
+        .expect("valid args"),
+        Command::OptiScalerStatus {
+            game_id: GameId::new("manual:C:/Games/OptiScalerGame").expect("game id should parse"),
+        }
+    );
+}
+
+#[test]
+fn optiscaler_check_update_rejects_deep() {
+    let error = parse_args(args(&[
+        "optiscaler",
+        "check-update",
+        "--game",
+        "manual:C:/Games/OptiScalerGame",
+        "--deep",
+    ]))
+    .expect_err("OptiScaler has no deep check mode");
+
+    assert_eq!(error, CliError::UnexpectedArgument("--deep".to_owned()));
+}

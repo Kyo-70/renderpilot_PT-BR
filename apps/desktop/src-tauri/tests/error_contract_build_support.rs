@@ -57,9 +57,10 @@ fn access_denied_has_the_generic_desktop_contract() {
         .iter()
         .map(|action| action.code.as_str())
         .collect::<Vec<_>>();
-    assert_eq!(action_codes.len(), 10);
+    assert_eq!(action_codes.len(), 11);
     assert!(action_codes.contains(&"inspect_logs"));
     assert!(action_codes.contains(&"reload_file_safety"));
+    assert!(action_codes.contains(&"rescan_or_repair_addon"));
 }
 
 #[test]

@@ -58,7 +58,7 @@ fn empty_bootstrap_returns_typed_filters_and_catalog_result() {
     );
     assert_eq!(
         output["filters"]["addons"],
-        serde_json::json!(["renodx", "luma"])
+        serde_json::json!(["renodx", "luma", "optiscaler"])
     );
     assert!(output.get("catalogRevision").is_none());
     assert!(output.get("syncState").is_none());

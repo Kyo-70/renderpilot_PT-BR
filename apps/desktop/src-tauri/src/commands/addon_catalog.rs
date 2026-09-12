@@ -10,7 +10,7 @@ use renderpilot_orchestration::Context;
 use renderpilot_orchestration::addons::capabilities;
 use renderpilot_orchestration::domain::GameId;
 
-/// Rebuilds catalog add-on capability flags from cached tool manifests.
+/// Rebuilds catalog add-on capability flags from loaded tool policies.
 ///
 /// Callers decide how to surface failures; startup records them as best-effort issues.
 pub(crate) async fn refresh_catalog_addon_capabilities(

@@ -6,7 +6,7 @@ use crate::{
     args::command::Command,
     catalog,
     error::CliError,
-    luma,
+    luma, optiscaler,
     output::{
         render_candidates_output, render_help, render_list_artifacts_output,
         render_list_operations_output, render_plan_rollback_output, render_summary, render_version,
@@ -24,7 +24,7 @@ mod add_game;
 
 use add_game::add_game;
 
-type CliOutput = Result<String, CliError>;
+pub(crate) type CliOutput = Result<String, CliError>;
 
 pub(crate) fn render_command(command: Command, info: AppInfo) -> CliOutput {
     render_command_with_context(command, info, Context::open)
@@ -104,6 +104,12 @@ fn render_stateful_command(command: Command, context: &Context) -> CliOutput {
         Command::LumaUninstall { game_id } => luma_uninstall(context, &game_id),
         Command::LumaCheckUpdate { game_id, deep } => luma_check_update(context, &game_id, deep),
         Command::LumaCheckUpdates => luma_check_updates(context),
+        Command::OptiScalerStatus { game_id } => optiscaler::render_status(context, &game_id),
+        Command::OptiScalerUninstall { game_id } => optiscaler::render_uninstall(context, &game_id),
+        Command::OptiScalerCheckUpdate { game_id } => {
+            optiscaler::render_check_update(context, &game_id)
+        }
+        Command::OptiScalerCheckUpdates => optiscaler::render_check_updates(context),
 
         Command::Summary | Command::Help | Command::Version => Err(ServiceError::invalid_input(
             "stateless command reached the stateful command dispatcher",
@@ -298,7 +304,7 @@ fn statuses_to_map(
     map
 }
 
-fn block_on<F, T>(future: F) -> Result<T, ServiceError>
+pub(crate) fn block_on<F, T>(future: F) -> Result<T, ServiceError>
 where
     F: std::future::Future<Output = Result<T, ServiceError>>,
 {
@@ -320,6 +326,6 @@ where
 
 /// Renders a serializable value as pretty JSON, mapping a serialization failure
 /// into a [`CliError`].
-fn render_json<T: serde::Serialize>(value: &T) -> CliOutput {
+pub(crate) fn render_json<T: serde::Serialize>(value: &T) -> CliOutput {
     render_output(serde_json::to_string_pretty(value))
 }

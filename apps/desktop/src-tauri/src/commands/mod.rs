@@ -10,6 +10,7 @@ mod error;
 mod file_safety;
 mod luma;
 mod nvapi;
+mod optiscaler;
 mod query_game_cards;
 mod renodx;
 mod validation;
@@ -19,6 +20,7 @@ pub use error::CommandError;
 pub use file_safety::*;
 pub use luma::*;
 pub use nvapi::*;
+pub use optiscaler::*;
 pub use renodx::*;
 
 use std::sync::Arc;

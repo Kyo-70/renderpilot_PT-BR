@@ -34,6 +34,7 @@ pub(crate) mod luma;
 pub(crate) mod manifests;
 pub(crate) mod nvapi;
 pub(crate) mod operations;
+pub(crate) mod optiscaler;
 pub(crate) mod renodx;
 pub(crate) mod scan;
 pub(crate) mod utils;
@@ -81,6 +82,10 @@ pub use self::nvapi::{
     set_game_executable_override, set_global_nvapi_setting_value, set_nvapi_setting_value,
 };
 pub use self::operations::{apply_swap, plan_rollback, plan_swap, rollback_component};
+pub use self::optiscaler::{
+    check_optiscaler_update, get_optiscaler_availability, install_optiscaler, relocate_optiscaler,
+    repair_optiscaler, set_optiscaler_modules, uninstall_optiscaler, update_optiscaler,
+};
 pub use self::renodx::{
     renodx_apply_vulkan_layer, renodx_availability, renodx_check_update,
     renodx_dlss_fix_availability, renodx_install, renodx_install_dlss_fix,

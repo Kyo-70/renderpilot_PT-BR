@@ -182,7 +182,7 @@ fn configure_cover_protocol(builder: DesktopBuilder) -> DesktopBuilder {
         let context = ctx
             .app_handle()
             .try_state::<Arc<Context>>()
-            .map(|state| state.inner().clone());
+            .map(|state| Arc::clone(state.inner()));
         let path = request.uri().path().to_owned();
 
         tauri::async_runtime::spawn_blocking(move || {
@@ -289,6 +289,15 @@ fn configure_commands(builder: DesktopBuilder) -> DesktopBuilder {
         commands::luma_uninstall,
         commands::luma_check_update,
         commands::luma_update,
+        // OptiScaler (card/settings surface; CLI status/bulk stay off IPC)
+        commands::get_optiscaler_availability,
+        commands::install_optiscaler,
+        commands::check_optiscaler_update,
+        commands::update_optiscaler,
+        commands::repair_optiscaler,
+        commands::set_optiscaler_modules,
+        commands::relocate_optiscaler,
+        commands::uninstall_optiscaler,
         // Application updater (Rust-owned trust boundary)
         commands::app_update_check,
         commands::app_update_download,

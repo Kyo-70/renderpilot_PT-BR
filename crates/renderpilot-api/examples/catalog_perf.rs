@@ -1,6 +1,6 @@
 //! Repeatable catalog-query and automatic-scan performance probe.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use renderpilot_api::{QueryGameCardsRequest, bootstrap_games_catalog, query_game_cards};
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn measure_queries(database: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn measure_queries(database: &Path) -> Result<(), Box<dyn std::error::Error>> {
     // Normalize/migrate outside the samples.
     drop(Context::open_at(database)?);
 
@@ -69,7 +69,7 @@ fn measure_queries(database: &PathBuf) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-fn measure_scan(database: &PathBuf, background: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn measure_scan(database: &Path, background: bool) -> Result<(), Box<dyn std::error::Error>> {
     let context = Context::open_at(database)?;
     let started = Instant::now();
     if background {

@@ -70,4 +70,14 @@ pub(crate) enum Command {
         deep: bool,
     },
     LumaCheckUpdates,
+    OptiScalerStatus {
+        game_id: GameId,
+    },
+    OptiScalerUninstall {
+        game_id: GameId,
+    },
+    OptiScalerCheckUpdate {
+        game_id: GameId,
+    },
+    OptiScalerCheckUpdates,
 }

@@ -3,7 +3,7 @@
 //! - [`command`] -- parsed `Command` enum
 //! - [`cursor`] -- raw argv cursor + identifier helpers
 //! - [`catalog`] -- scan/list/candidates/plan/apply/rollback
-//! - [`addon`] -- renodx/luma subcommands
+//! - [`addon`] -- add-on lifecycle queries and uninstall commands
 
 mod addon;
 mod catalog;
@@ -48,6 +48,7 @@ pub(crate) fn parse_args(
         "rollback" => parse_rollback_command(&mut args),
         "renodx" => parse_addon_command(&mut args, AddonKind::RenoDx),
         "luma" => parse_addon_command(&mut args, AddonKind::Luma),
+        "optiscaler" => parse_addon_command(&mut args, AddonKind::OptiScaler),
         _ => Err(CliError::UnknownArgument(first)),
     }
 }
