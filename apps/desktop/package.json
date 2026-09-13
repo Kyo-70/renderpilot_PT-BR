@@ -24,7 +24,7 @@
     "i18n:source-check": "node scripts/check-external-source-contracts.mjs",
     "i18n:review": "node scripts/i18n-review.mjs",
     "i18n:test": "node --test scripts/i18n-contracts.test.mjs scripts/external-source-contracts.test.mjs scripts/i18n-review.test.mjs scripts/i18n-bundle-boundaries.test.mjs scripts/accessibility-contracts.test.mjs",
-    "docs:check": "markdownlint-cli2 --config ../../.markdownlint-cli2.jsonc ../../README.md ../../CONTRIBUTING.md \"../../docs/**/*.md\" && node --test scripts/check-docs.test.mjs && node scripts/check-docs.mjs",
+    "docs:check": "markdownlint-cli2 --config ../../.markdownlint-cli2.jsonc ../../README.md ../../CONTRIBUTING.md ../../CHANGELOG.md \"../../docs/**/*.md\" \"../../crates/**/README.md\" && node --test scripts/check-docs.test.mjs && node scripts/check-docs.mjs",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "pnpm run lint:oxlint && pnpm run lint:eslint",

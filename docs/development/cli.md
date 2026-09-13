@@ -22,13 +22,15 @@ cargo run -p renderpilot-cli -- --help
 | `renodx check-update`, `check-updates` | Check one or all supported RenoDX installations |
 | `luma status`, `uninstall` | Inspect or remove a managed Luma installation |
 | `luma check-update [--deep]`, `check-updates` | Check one or all supported Luma installations |
+| `optiscaler status`, `uninstall` | Inspect or remove a managed OptiScaler installation |
+| `optiscaler check-update`, `check-updates` | Check one game or all managed OptiScaler installations |
 | `--version`, `--help` | Print version or the complete command summary |
 
 Use the top-level `--help` output from the exact source revision for required IDs, paths, confirmation values, and cursors. Subcommands do not currently expose separate help pages. Mutating commands preserve the same planning, current-state verification, locking, baseline, and recovery rules as the desktop application; the CLI is not a bypass for unsupported targets.
 
 ## JSON output
 
-Operational commands return JSON on stdout; help and version output are plain text. A `plan-swap` result includes blockers, warnings, the complete file mutation list, an optional D3D12 executable action, and a fresh `confirmation_token`. If the action requires confirmation, pass that token unchanged to `apply --confirmation-token`; apply rebuilds the current preflight and rejects a token whose bound state changed. `plan-rollback` provides the equivalent affected-file preview for managed rollback.
+Operational commands return JSON on stdout; help and version output are plain text. A `plan-swap` result includes blockers, warnings, the complete file mutation list, an optional D3D12 executable action, a `confirmation_token`, and a `safety_context_token`. Pass the safety token to `apply --safety-context-token`. If the D3D12 action requires confirmation, also pass its confirmation token to `apply --confirmation-token`; the two tokens are independent. Apply rebuilds the current preflight and rejects tokens whose bound state changed. `plan-rollback` provides the equivalent affected-file preview for managed rollback.
 
 Treat stderr as diagnostics. For example, capture and inspect a command at the current revision:
 

@@ -11,7 +11,7 @@ Thank you for improving RenderPilot. Keep changes focused, explain user-visible 
 
 ## Quality gates
 
-Run the checks that match your change. Before opening a pull request, the expected complete set is documented in [Quality and release](docs/development/quality-and-release.md#local-quality-gates). It covers Rust formatting, build, Clippy, tests and documentation, plus frontend formatting, linting, tests, build, and documentation checks.
+Run the checks that match your change. Before opening a pull request, the expected complete set is documented in [Quality and release](docs/development/quality-and-release.md#local-quality-gates). It covers Rust formatting, Clippy, tests, doctests and documentation, plus frontend formatting, linting, tests, build, and documentation checks.
 
 Add focused tests for changed contracts and failure cases. Update user documentation when behavior changes and developer documentation when a maintained boundary changes. Public Rust APIs need Rustdoc; private implementation details belong in code rather than duplicated prose.
 

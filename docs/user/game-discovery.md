@@ -4,7 +4,7 @@ RenderPilot can discover games from supported launcher libraries and from folder
 
 ## Launcher scan
 
-Launcher discovery supports Steam, Epic Games, GOG, EA App/Origin, and Ubisoft Connect. Start a scan from the Games page and review the resulting titles. A game's current location, launcher metadata, executable candidates, detected rendering components, and add-on capabilities are resolved from the installation that exists on disk.
+Launcher discovery supports Steam, Epic Games, GOG, EA App/Origin, Ubisoft Connect, and Xbox App/Microsoft Store. Start a scan from the Games page and review the resulting titles. A game's current location, launcher metadata, executable candidates, detected rendering components, and add-on capabilities are resolved from the installation that exists on disk.
 
 Launcher metadata is useful evidence, not an instruction to trust a stale path. If a game was moved or imported, RenderPilot inspects the real folder and can retain its launcher identity when the files support that match.
 

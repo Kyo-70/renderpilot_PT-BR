@@ -9,7 +9,7 @@ Standard installations use the Windows local application-data directory, with th
 Network access is used for these explicit product functions:
 
 - library catalogs and library payloads from the configured RenderPilot CDN;
-- RenoDX, Luma, ReShade, and other supported add-on sources;
+- RenoDX, Luma, OptiScaler, ReShade, and other supported add-on sources;
 - application update metadata and assets from GitHub Releases;
 - Steam, GOG, SteamGridDB, or other enabled cover sources.
 

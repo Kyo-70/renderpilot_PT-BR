@@ -1,10 +1,10 @@
 # Installation and updates
 
-RenderPilot is distributed for Windows x64 as an installer and a portable build. Official files are available only from the project's [GitHub Releases](https://github.com/osyka-yuri/renderpilot/releases) page.
+RenderPilot is distributed for Windows x64 as an installer and a portable build. The project's [GitHub Releases](https://github.com/osyka-yuri/renderpilot/releases) page is the authoritative place to find official downloads; follow its links when downloading a file.
 
 ## Installer
 
-The NSIS installer is the recommended option. Download the `x64-setup.exe` asset from the latest release, run it, and choose whether to install for the current user or for all users when Windows offers that choice. The installed app requests an administrator token when Windows creates its process; this is required for protected game folders and graphics settings. If you cancel, deny, or Windows blocks that consent, RenderPilot does not start or make any changes. Start it again after administrator access is available.
+The NSIS installer is the recommended option. Download the `RenderPilot-setup.exe` asset from the latest release, run it, and choose whether to install for the current user or for all users when Windows offers that choice. The installed app requests an administrator token when Windows creates its process; this is required for protected game folders and graphics settings. If you cancel, deny, or Windows blocks that consent, RenderPilot does not start or make any changes. Start it again after administrator access is available.
 
 RenderPilot uses Microsoft Edge WebView2 for its interface. The configured minimum runtime is 136.0.3240.44. Current Windows installations normally service WebView2 automatically; if the window cannot start, install or repair the Evergreen WebView2 Runtime from Microsoft, then reopen RenderPilot.
 
@@ -20,9 +20,7 @@ Close RenderPilot completely before moving a portable installation, then move th
 
 ### Updating an existing portable installation
 
-If you are specifically installing 1.9.0 from an earlier 1.x release, close RenderPilot, download `RenderPilot_1.9.0_x64-portable.zip`, and extract it into the existing portable folder. Keep the `data` folder unchanged. The first launch upgrades the preserved data, and keeping the existing executable filename preserves shortcuts and intentionally renamed launchers.
-
-The first release using the current portable runtime requires one complete package replacement. You do not need to install 1.9.0 first. Fully close every RenderPilot process, download the new portable ZIP, and extract the complete archive into the existing folder, replacing the shipped files when prompted. Do not delete `data` or the hidden `.renderpilot-runtime-authority`, `.renderpilot-generations`, and `.renderpilot-update` directories. The 1.9.0 in-app updater cannot perform this one transition. After the compatible package has started successfully, later compatible portable updates work normally from the application.
+Portable copies running 1.9.3 or earlier need a one-time full-package manual ZIP replacement. Fully close every RenderPilot process, download the current/latest portable ZIP, and extract the complete archive into the existing folder, replacing the shipped files when prompted. Keep `data` and the hidden `.renderpilot-runtime-authority`, `.renderpilot-generations`, and `.renderpilot-update` directories unchanged; no intermediate version is required. Once a compatible package (1.9.4 or later) has started successfully, normal compatible portable updates work from the application.
 
 If a portable startup or update is interrupted, close every RenderPilot process and retry with the same complete package. Do not delete the data or recovery directories listed above. If the retry still fails, keep the folder unchanged so its retained recovery information can be included in a support report.
 

@@ -20,9 +20,9 @@ cargo test -p renderpilot-orchestration \
 
 ## Add-on manifests
 
-Versioned add-on manifests live at `addons/v1/renodx.json`, `addons/v1/luma.json`, and `addons/v1/reshade.json`. They define supported profiles, source locations, expected files, hashes, compatibility evidence, dependencies, and stable localization identifiers. Every user-visible catalog message needs a stable ID and a reviewed English fallback.
+Versioned add-on manifests live at `addons/v1/renodx.json`, `addons/v1/luma.json`, `addons/v1/reshade.json`, and `addons/v1/optiscaler.json`. OptiScaler compatibility knowledge is published separately at `addons/v1/optiscaler-compatibility.json`. These documents define supported profiles, source locations, expected files, hashes, compatibility evidence, dependencies, and stable localization identifiers. Every user-visible catalog message needs a stable ID and a reviewed English fallback.
 
-ReShade source data may use a bundled last-resort fallback after the CDN contract fails. Luma and RenoDX catalogs do not gain trust from a generic bundled fallback. Source-specific refresh policies may keep prior data available after a transient error; callers must preserve the distinction between cached, refreshed, and unavailable state.
+ReShade source data may use a bundled last-resort fallback after the CDN contract fails. OptiScaler's release manifest and compatibility catalog use their validated bundled snapshots or last-admitted cache after a remote failure, according to each store's immutable-history rules. Luma and RenoDX catalogs do not gain trust from a generic bundled fallback. Source-specific refresh policies may keep prior data available after a transient error; callers must preserve the distinction between cached, refreshed, and unavailable state.
 
 ## Producer change checklist
 

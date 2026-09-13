@@ -15,6 +15,16 @@
         },
         "MD041": false
       }
+    },
+    {
+      // Release headings repeat the standard Added/Changed/Fixed siblings.
+      "filter": ["CHANGELOG.md"],
+      "combine": "merge",
+      "config": {
+        "MD024": {
+          "siblings_only": true
+        }
+      }
     }
   ]
 }

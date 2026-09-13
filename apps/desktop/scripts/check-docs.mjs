@@ -3,7 +3,10 @@ import path from 'node:path';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../../..');
 const documentationRoot = path.join(repositoryRoot, 'docs');
+const cratesRoot = path.join(repositoryRoot, 'crates');
 const readmePath = path.join(repositoryRoot, 'README.md');
+const contributingPath = path.join(repositoryRoot, 'CONTRIBUTING.md');
+const changelogPath = path.join(repositoryRoot, 'CHANGELOG.md');
 
 const failures = [];
 
@@ -179,10 +182,15 @@ async function main() {
   const documentationFiles = (await Array.fromAsync(glob('**/*.md', { cwd: documentationRoot })))
     .map((filePath) => path.join(documentationRoot, filePath))
     .toSorted();
+  const crateReadmeFiles = (await Array.fromAsync(glob('**/README.md', { cwd: cratesRoot })))
+    .map((filePath) => path.join(cratesRoot, filePath))
+    .toSorted();
   const markdownFiles = [
     readmePath,
-    path.join(repositoryRoot, 'CONTRIBUTING.md'),
+    contributingPath,
+    changelogPath,
     ...documentationFiles,
+    ...crateReadmeFiles,
   ];
   const markdownByPath = new Map();
 

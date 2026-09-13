@@ -14,7 +14,7 @@
     <a href="https://github.com/osyka-yuri/renderpilot/attestations"><img src="https://img.shields.io/badge/Build%20provenance-attested-0078d4?style=flat-square&logo=github&logoColor=white" alt="GitHub artifact attestations"></a>
     <a href="LICENSE.txt"><img src="https://img.shields.io/badge/License-GPLv3-0078d4?style=flat-square" alt="GPLv3 license"></a>
   </p>
-  <p>Official downloads are published only through GitHub Releases.</p>
+  <p>GitHub Releases is the authoritative page for official downloads.</p>
 </div>
 
 ![RenderPilot library catalog showing detected games, installed rendering components, available versions, and reversible update controls](docs/screenshot.webp)
@@ -26,11 +26,11 @@ RenderPilot brings the rendering libraries used by your games into one focused c
 - **Finds your games.** Scan supported launchers, add your own folders, and keep manually installed titles in the same library.
 - **Manages rendering components.** Review DLSS, FSR, XeSS, DirectStorage, D3D12, OpenVR, Ogg/Vorbis, and other supported libraries without hunting for individual files.
 - **Updates, downgrades, and restores.** Choose an available version, review the planned changes, and return to the original files when needed.
-- **Supports RenoDX and Luma.** Install, inspect, update, or remove supported add-ons for HDR, upscaling, and shader features.
+- **Supports RenoDX, Luma, and OptiScaler.** Install, inspect, update, repair, configure, or remove supported add-ons for HDR, upscaling, and shader features.
 - **Controls NVIDIA DLSS settings.** Adjust supported Super Resolution, Frame Generation, and Ray Reconstruction settings for individual games.
 - **Keeps your library local.** No account is required, and RenderPilot does not collect telemetry.
 
-RenoDX, Luma, ReShade, and the libraries managed by RenderPilot are independent third-party projects. Their licenses, compatibility requirements, and risks still apply; RenderPilot does not replace their documentation or guarantees.
+RenoDX, Luma, OptiScaler, ReShade, and the libraries managed by RenderPilot are independent third-party projects. Their licenses, compatibility requirements, and risks still apply; RenderPilot does not replace their documentation or guarantees.
 
 ## How it works
 
@@ -62,7 +62,7 @@ Read [Data, network access, recovery, and troubleshooting](docs/user/data-and-tr
 | Intel | XeSS, XeSS Frame Generation, and Xe Low Latency |
 | Other | DirectStorage, Microsoft DXC, D3D12 Agility SDK, OpenVR, and Xiph Ogg/Vorbis |
 
-Launcher discovery supports **Steam, Epic Games, GOG, EA App/Origin, and Ubisoft Connect**. You can also add manual folders, including games installed outside a launcher. Detection and compatibility depend on the files and executable that are present; RenderPilot asks you to review uncertain matches rather than treating every similarly named file as interchangeable.
+Launcher discovery supports **Steam, Epic Games, GOG, EA App/Origin, Ubisoft Connect, and Xbox App/Microsoft Store**. You can also add manual folders, including games installed outside a launcher. Detection and compatibility depend on the files and executable that are present; RenderPilot asks you to review uncertain matches rather than treating every similarly named file as interchangeable.
 
 ## Get started
 
@@ -84,4 +84,4 @@ See the [installation guide](docs/user/installation.md) for WebView2, Windows la
 - [Support development on Boosty](https://boosty.to/osyka.yuri/donate) — an optional way to support the project.
 - [GNU GPLv3 license](LICENSE.txt) — terms for using, modifying, and distributing RenderPilot.
 
-For installation and update safety, download RenderPilot only from this repository's GitHub Releases page. Third-party components remain subject to their own licenses and support policies.
+For installation and update safety, start from this repository's GitHub Releases page and follow its download links. Third-party components remain subject to their own licenses and support policies.

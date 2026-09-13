@@ -1,6 +1,6 @@
 # Game-file safety
 
-RenderPilot can replace rendering libraries, install optional components, and manage RenoDX or Luma. These features all change files that a game may load, so their safety guidance belongs to the game installation rather than to one component or add-on.
+RenderPilot can replace rendering libraries, install optional components, and manage RenoDX, Luma, or OptiScaler. These features all change files that a game may load, so their safety guidance belongs to the game installation rather than to one component or add-on.
 
 ## The Game Details notice
 
