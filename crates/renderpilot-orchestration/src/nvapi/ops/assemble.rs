@@ -34,7 +34,7 @@ pub(super) fn assemble_response(
             let baseline_row = storage.get_nvapi_baseline(game_id, setting.key())?;
             let effective_exe = ctx.effective_exe.clone();
             let effective_exe_source =
-                resolve_effective_exe_source(storage, game_id, &effective_exe)?;
+                resolve_effective_exe_source(storage, game_id, effective_exe.as_deref())?;
             (baseline_row, effective_exe, effective_exe_source)
         }
         None => (None, None, None),
@@ -236,7 +236,7 @@ fn build_baseline_dto(
 fn resolve_effective_exe_source(
     storage: &renderpilot_storage_sqlite::SqliteStorage,
     game_id: &str,
-    effective_exe: &Option<String>,
+    effective_exe: Option<&str>,
 ) -> Result<Option<String>, ServiceError> {
     if effective_exe.is_none() {
         return Ok(None);

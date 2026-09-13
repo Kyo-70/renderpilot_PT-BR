@@ -21,12 +21,11 @@ WHEN NEW.updated_at = OLD.updated_at
 BEGIN
     UPDATE {table_name}
        SET updated_at = max(
-           {default},
+           {MS_UNIXEPOCH_DEFAULT},
            OLD.updated_at + 1
        )
      WHERE {pk_column} = NEW.{pk_column};
 END;
-"#,
-        default = MS_UNIXEPOCH_DEFAULT,
+"#
     )
 }

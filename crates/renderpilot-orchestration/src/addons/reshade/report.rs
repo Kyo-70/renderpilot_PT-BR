@@ -15,7 +15,7 @@ use super::dto::{
 };
 use super::host_policy::{HostAssessment, HostLifecycle};
 use super::scan::{ReshadeAddonSupport, ReshadeHost, ReshadeHostAction, SlotActivity};
-use super::types::{ReshadeChannel, ReshadeSourceCatalog};
+use super::types::{RecordedChannelParse, ReshadeChannel, ReshadeSourceCatalog};
 
 /// How first-install conflict / lifecycle are applied for a host path.
 #[derive(Debug, Clone, Copy)]
@@ -133,13 +133,11 @@ pub(crate) fn host_facts(
         active: present.is_some_and(|host| host.active.state == SlotActivity::Active),
         path: present.map(|host| host.path.to_path_buf()),
         version: present.and_then(|host| host.version.map(ToString::to_string)),
-        addon_support: present
-            .map(|host| match host.addon_support {
-                ReshadeAddonSupport::Full => HostAddonSupport::Full,
-                ReshadeAddonSupport::None => HostAddonSupport::Limited,
-                ReshadeAddonSupport::Unknown => HostAddonSupport::Unknown,
-            })
-            .unwrap_or(HostAddonSupport::Unknown),
+        addon_support: present.map_or(HostAddonSupport::Unknown, |host| match host.addon_support {
+            ReshadeAddonSupport::Full => HostAddonSupport::Full,
+            ReshadeAddonSupport::None => HostAddonSupport::Limited,
+            ReshadeAddonSupport::Unknown => HostAddonSupport::Unknown,
+        }),
         channel: HostChannelFacts {
             selected,
             detected: detected_channel,
@@ -348,7 +346,7 @@ pub(crate) fn recorded_channel(record: Option<&InstalledAddon>) -> Option<Reshad
             channel::installed_channel(record)
                 .ok()
                 .flatten()
-                .and_then(|c| c.into_parsed())
+                .and_then(RecordedChannelParse::into_parsed)
         }
     })
 }

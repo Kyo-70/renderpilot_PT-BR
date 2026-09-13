@@ -357,18 +357,15 @@ async fn compute_layer_verdict(
     let actual_digest = vulkan::current_layer_digest();
 
     // Step 2: Fetch upstream for comparison.
-    let download = match fetch_reshade_from_source(&source, Architecture::X64, None).await {
-        Ok(download) => download,
-        Err(_) => {
-            return LayerUpdateVerdict {
-                status: if channel == ReshadeChannel::Nightly {
-                    UpdateStatus::UnknownNeedsValidation
-                } else {
-                    UpdateStatus::Unknown
-                },
-                diagnostics: Vec::new(),
-            };
-        }
+    let Ok(download) = fetch_reshade_from_source(&source, Architecture::X64, None).await else {
+        return LayerUpdateVerdict {
+            status: if channel == ReshadeChannel::Nightly {
+                UpdateStatus::UnknownNeedsValidation
+            } else {
+                UpdateStatus::Unknown
+            },
+            diagnostics: Vec::new(),
+        };
     };
 
     // Step 3: Decide based on digests. Actual DLL wins; DB is advisory only.

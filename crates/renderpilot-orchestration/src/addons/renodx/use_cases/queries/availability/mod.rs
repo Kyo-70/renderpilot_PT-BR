@@ -45,7 +45,7 @@ pub async fn load_availability(
         analyze_and_resolve,
     )?;
     reconcile::maybe_adopt(context, &mut preflight, reshade_sources, game_id)?;
-    build_report(preflight, manifest, reshade_sources)
+    Ok(build_report(preflight, manifest, reshade_sources))
 }
 
 /// Pure preview of whether RenoDX can be installed for the game. Never changes
@@ -65,30 +65,28 @@ pub(crate) fn availability(
         manifest,
         analyze_and_resolve,
     )?;
-    build_report(preflight, manifest, reshade_sources)
+    Ok(build_report(preflight, manifest, reshade_sources))
 }
 
 fn build_report(
     preflight: AvailabilityPreflight<RenoDxResolution>,
     manifest: &RenoDxManifest,
     reshade_sources: &ReshadeSourceCatalog,
-) -> Result<AvailabilityReport, ServiceError> {
+) -> AvailabilityReport {
     let AvailabilityPreflight {
         record,
-        game,
         blocked,
         analysis,
         resolution,
         roots: install_roots,
     } = preflight;
-    let _game = game;
     let host_report =
         host_report::reshade_report(&analysis, &resolution, record.as_ref(), reshade_sources);
 
-    let state = record
-        .as_ref()
-        .map(tracking::install_state_from_record)
-        .unwrap_or(RenoDxInstallState::NotInstalled);
+    let state = record.as_ref().map_or(
+        RenoDxInstallState::NotInstalled,
+        tracking::install_state_from_record,
+    );
     let install_torn = install_roots
         .as_ref()
         .is_some_and(|roots| engine::is_install_torn(roots.sentinel_dir(), AddonKind::RenoDx));
@@ -139,7 +137,7 @@ fn build_report(
         }
     };
 
-    Ok(AvailabilityReport {
+    AvailabilityReport {
         state,
         host_detection: host_report.detection,
         host_facts: host_report.facts,
@@ -150,7 +148,7 @@ fn build_report(
         outcome,
         manual_install,
         vulkan_layer: vulkan::layer_report(),
-    })
+    }
 }
 
 /// The manual file-install escape hatch for the availability preview: offered only

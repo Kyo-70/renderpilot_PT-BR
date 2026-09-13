@@ -9,7 +9,7 @@ use crate::portable_runtime::{
 
 const MAX_RPU_BYTES: u64 = 1024 * 1024 * 1024;
 const LOGICAL_PROGRESS_BYTES: u64 = 64 * 1024;
-const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(10 * 60);
+const DOWNLOAD_TIMEOUT: Duration = Duration::from_mins(10);
 
 #[derive(Debug)]
 pub(in crate::portable_runtime) enum DownloadStageError {

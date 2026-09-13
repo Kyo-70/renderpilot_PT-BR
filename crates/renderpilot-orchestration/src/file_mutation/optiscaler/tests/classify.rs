@@ -1,7 +1,7 @@
 use super::*;
 
 fn test_hash(val: &str) -> Sha256Hash {
-    Sha256Hash::new(format!("{:0>64}", val)).expect("valid hash")
+    Sha256Hash::new(format!("{val:0>64}")).expect("valid hash")
 }
 
 fn file_obs(identity: &str, digest_val: &str) -> DiskObservation {

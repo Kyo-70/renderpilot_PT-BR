@@ -5,7 +5,8 @@ use super::cascade::{
 };
 use super::effects::{LumaPeerEffectAccumulator, LumaPeerEffects, LumaPeerOperationOrder};
 use crate::peer_mutation_executor::{
-    EndpointExpectation, EndpointPostcondition, PeerPathSnapshot, observe_peer_path_snapshot,
+    EndpointExpectation, EndpointPostcondition, ExactEndpoint, PeerPathSnapshot,
+    observe_peer_path_snapshot,
 };
 use renderpilot_domain::{PathRef, PeerEndpointRole, Sha256Hash, managed_sidecar_path};
 
@@ -107,7 +108,7 @@ fn present_baseline_restores_live_then_removes_sidecar() {
             .program()
             .endpoints()
             .iter()
-            .map(|endpoint| endpoint.path())
+            .map(ExactEndpoint::path)
             .collect::<Vec<_>>(),
         [&live, &sidecar]
     );

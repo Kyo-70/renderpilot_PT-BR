@@ -165,6 +165,7 @@ impl GameInstallation {
     }
 
     /// Adds an executable candidate and returns the updated installation.
+    #[must_use]
     pub fn with_executable_candidate(mut self, candidate: PathRef) -> Self {
         self.executable_candidates.push(candidate);
         self

@@ -160,20 +160,14 @@ pub(crate) fn host_status_from_digests(
     match lifecycle {
         // Missing host is handled by the caller; treat InstallNew defensively
         // as available (empty slot that still needs a write).
-        HostLifecycle::InstallNew | HostLifecycle::RepairEmpty => {
-            if current_digest != nightly_digest {
-                UpdateStatus::Available
-            } else {
-                // Empty/under-min lifecycle still wants a rewrite even if digests
-                // already match (rare: file present but lifecycle says repair).
-                UpdateStatus::Available
-            }
-        }
+        // Empty/under-min lifecycle still wants a rewrite even if digests
+        // already match (rare: file present but lifecycle says repair).
+        HostLifecycle::InstallNew | HostLifecycle::RepairEmpty => UpdateStatus::Available,
         HostLifecycle::AdoptEmpty => {
-            if current_digest != nightly_digest {
-                UpdateStatus::Available
-            } else {
+            if current_digest == nightly_digest {
                 UpdateStatus::Current
+            } else {
+                UpdateStatus::Available
             }
         }
         // User content is never rewritten. Digest match means the host is fine;

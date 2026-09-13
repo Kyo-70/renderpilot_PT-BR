@@ -102,7 +102,7 @@ pub(super) fn compose_host(
                             before,
                             before_bytes,
                             effects,
-                        )?;
+                        );
                         let mut after = input.topology.clone();
                         after.downstream = None;
                         after.downstream_origin = None;
@@ -138,7 +138,7 @@ pub(super) fn compose_host(
                             &baseline,
                             restored,
                             effects,
-                        )?;
+                        );
                         let sidecar = managed_sidecar_path(host.path()).map_err(|_| {
                             RenoDxActiveUninstallError::Invalid("host sidecar path is invalid")
                         })?;
@@ -148,7 +148,7 @@ pub(super) fn compose_host(
                             present_image(backup.path(), backup.snapshot())?,
                             present_bytes(backup.path(), backup.snapshot())?,
                             effects,
-                        )?;
+                        );
                         let mut after = input.topology.clone();
                         after.downstream = None;
                         after.downstream_origin = None;

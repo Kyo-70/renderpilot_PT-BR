@@ -122,12 +122,11 @@ fn build_mismatch_plan_files(
 
     for artifact_file in transition_members {
         let install_name = crate::resolve_transition_install_target(component, artifact_file);
-        match current_by_name.get(&install_name.to_ascii_lowercase()) {
-            Some(current) => files.push(OperationPlanFile::replace(current, artifact_file)),
-            None => {
-                let target = join_dir_file(&target_dir, &install_name)?;
-                files.push(OperationPlanFile::add(target, artifact_file));
-            }
+        if let Some(current) = current_by_name.get(&install_name.to_ascii_lowercase()) {
+            files.push(OperationPlanFile::replace(current, artifact_file));
+        } else {
+            let target = join_dir_file(&target_dir, &install_name)?;
+            files.push(OperationPlanFile::add(target, artifact_file));
         }
     }
 

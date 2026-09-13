@@ -203,7 +203,7 @@ async fn check_host_passive_matches_recorded_digest_without_deep_download() {
     assert!(
         matches!(
             status,
-            Some(UpdateStatus::Current) | Some(UpdateStatus::Available)
+            Some(UpdateStatus::Current | UpdateStatus::Available)
         ),
         "passive host check must use install digest without downloading nightly, got {status:?}"
     );

@@ -184,10 +184,10 @@ pub(crate) fn build_nvidia_dlss_pe(version: [u16; 4]) -> Vec<u8> {
     // root -> RT_VERSION(16) directory -> name directory -> language data entry
     section_body[14..16].copy_from_slice(&1u16.to_le_bytes());
     section_body[16..20].copy_from_slice(&16u32.to_le_bytes());
-    section_body[20..24].copy_from_slice(&(0x8000_0000u32 | 24).to_le_bytes());
+    section_body[20..24].copy_from_slice(&(0x8000_0000u32 | 0x18).to_le_bytes());
     section_body[24 + 14..24 + 16].copy_from_slice(&1u16.to_le_bytes());
     section_body[40..44].copy_from_slice(&1u32.to_le_bytes());
-    section_body[44..48].copy_from_slice(&(0x8000_0000u32 | 48).to_le_bytes());
+    section_body[44..48].copy_from_slice(&(0x8000_0000u32 | 0x30).to_le_bytes());
     section_body[48 + 14..48 + 16].copy_from_slice(&1u16.to_le_bytes());
     section_body[64..68].copy_from_slice(&1033u32.to_le_bytes());
     section_body[68..72].copy_from_slice(&72u32.to_le_bytes());

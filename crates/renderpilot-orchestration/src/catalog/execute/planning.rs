@@ -151,8 +151,7 @@ pub(super) fn rebuild_component_set_after_transition(
     let applied_files = next_components
         .iter()
         .find(|entry| entry.id() == component_id)
-        .map(|entry| entry.files())
-        .unwrap_or(&[]);
+        .map_or(&[][..], LibraryComponent::files);
     let to_version = component_version_report(applied_files, component.technology())
         .known_version()
         .map(|version| version.as_str().to_owned());

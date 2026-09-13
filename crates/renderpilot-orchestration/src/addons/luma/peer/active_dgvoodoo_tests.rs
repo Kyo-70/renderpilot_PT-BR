@@ -13,7 +13,9 @@ use crate::addons::luma::dgvoodoo::{
 use crate::peer_mutation_executor::{
     EndpointExpectation, PeerPathSnapshot, observe_peer_path_snapshot,
 };
-use renderpilot_domain::{PathRef, PeerEndpointRole, TrackedSourceRole, managed_sidecar_path};
+use renderpilot_domain::{
+    PathRef, PeerEndpointRole, TrackedSource, TrackedSourceRole, managed_sidecar_path,
+};
 
 fn path_ref(path: &Path) -> PathRef {
     PathRef::new(path.to_string_lossy().into_owned()).expect("path")
@@ -163,7 +165,7 @@ fn managed_runtime_and_absent_config_create_only_owned_files() {
     assert_eq!(projection.created_files().len(), 3);
     assert!(projection.backed_up_files().is_empty());
     assert_eq!(
-        projection.tracked_source().map(|source| source.role()),
+        projection.tracked_source().map(TrackedSource::role),
         Some(TrackedSourceRole::DgVoodooWrapper)
     );
     assert!(

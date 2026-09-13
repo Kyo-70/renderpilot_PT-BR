@@ -7,7 +7,9 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use renderpilot_domain::{Architecture, InstalledAddon, TrackedSource, TrackedSourceRole};
+use renderpilot_domain::{
+    Architecture, InstalledAddon, ManagedAddonFile, TrackedSource, TrackedSourceRole,
+};
 
 use crate::addons::renodx::{arch_from_addon_file, source};
 use crate::file_mutation::{V2DiskObservation, observe};
@@ -55,9 +57,10 @@ pub(crate) fn resolve(record: &InstalledAddon) -> DlssFixBinding {
     let addon = Path::new(record.addon_file().as_str());
     let parent = addon.parent().unwrap_or_else(|| Path::new(""));
     let arch = arch_from_addon_file(record.addon_file().as_str());
-    let target = arch
-        .map(|arch| parent.join(source::dlss_fix_file_name(arch)))
-        .unwrap_or_else(|| parent.join("renodx-dlssfix.invalid"));
+    let target = arch.map_or_else(
+        || parent.join("renodx-dlssfix.invalid"),
+        |arch| parent.join(source::dlss_fix_file_name(arch)),
+    );
     let observation = observe(&target);
 
     let mut sources = record
@@ -78,7 +81,7 @@ pub(crate) fn resolve(record: &InstalledAddon) -> DlssFixBinding {
     let auxiliary_candidate_paths: Vec<PathBuf> = record
         .backed_up_files()
         .iter()
-        .chain(record.managed_files().iter().map(|managed| managed.path()))
+        .chain(record.managed_files().iter().map(ManagedAddonFile::path))
         .filter_map(|path| {
             path.file_name()
                 .filter(|name| source::is_dlss_fix_candidate_file_name(name))?;

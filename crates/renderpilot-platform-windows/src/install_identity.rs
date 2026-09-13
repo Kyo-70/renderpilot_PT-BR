@@ -228,8 +228,7 @@ fn epic_manifests_dir() -> PathBuf {
     }
 
     std::env::var_os("PROGRAMDATA")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(r"C:\ProgramData"))
+        .map_or_else(|| PathBuf::from(r"C:\ProgramData"), PathBuf::from)
         .join("Epic")
         .join("EpicGamesLauncher")
         .join("Data")
@@ -258,7 +257,7 @@ fn normalize_dir(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex as StdMutex;
+    use std::sync::{Mutex as StdMutex, PoisonError};
     use tempfile::tempdir;
 
     /// Serializes tests that touch the process-global Epic manifests override.
@@ -272,10 +271,10 @@ mod tests {
         fn set(path: PathBuf) -> Self {
             let guard = EPIC_TEST_LOCK
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+                .unwrap_or_else(PoisonError::into_inner);
             *EPIC_MANIFESTS_DIR_OVERRIDE
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(path);
+                .unwrap_or_else(PoisonError::into_inner) = Some(path);
             Self { _guard: guard }
         }
     }
@@ -284,7 +283,7 @@ mod tests {
         fn drop(&mut self) {
             *EPIC_MANIFESTS_DIR_OVERRIDE
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+                .unwrap_or_else(PoisonError::into_inner) = None;
         }
     }
 

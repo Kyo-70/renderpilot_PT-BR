@@ -93,7 +93,7 @@ mod tests {
 
         match state {
             LumaInstallState::Installed { launch_args, .. } => assert!(launch_args.is_empty()),
-            other => panic!("expected Installed, got {other:?}"),
+            LumaInstallState::NotInstalled => panic!("expected Installed, got NotInstalled"),
         }
     }
 }

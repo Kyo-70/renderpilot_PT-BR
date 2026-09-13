@@ -1,6 +1,7 @@
 use std::fs;
 
 use renderpilot_orchestration::application::ComponentRepository;
+use renderpilot_orchestration::domain::Sha256Hash;
 
 use crate::hash::sha256_hex;
 
@@ -41,9 +42,7 @@ fn rollback_restores_original_file_and_updates_catalog() {
     assert_eq!(components.len(), 1);
     assert_eq!(components[0].files().len(), 1);
     assert_eq!(
-        components[0].files()[0]
-            .sha256()
-            .map(|sha256| sha256.as_str()),
+        components[0].files()[0].sha256().map(Sha256Hash::as_str),
         Some(scenario.original_sha256.as_str())
     );
 }
@@ -76,8 +75,7 @@ fn rollback_consumes_bak_on_first_restore_and_second_fails() {
 
     assert!(
         second_error.to_string().contains("no swap to roll back"),
-        "expected no-baseline error, got: {}",
-        second_error
+        "expected no-baseline error, got: {second_error}"
     );
 }
 

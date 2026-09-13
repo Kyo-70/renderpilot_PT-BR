@@ -12,9 +12,10 @@ pub(super) fn load_config_inputs(
         .find(|member| member.target == "OptiScaler.ini")
         .ok_or_else(|| failed("release has no OptiScaler.ini"))?;
     let new_config = archive.bytes(&member.archive_path)?.to_vec();
-    let source_path = old_state
-        .map(|state| Path::new(state.target_dir.as_str()).join("OptiScaler.ini"))
-        .unwrap_or_else(|| target_dir.join("OptiScaler.ini"));
+    let source_path = old_state.map_or_else(
+        || target_dir.join("OptiScaler.ini"),
+        |state| Path::new(state.target_dir.as_str()).join("OptiScaler.ini"),
+    );
     let destination_path = target_dir.join("OptiScaler.ini");
     let target_mode = if crate::paths::same_path(&source_path, &destination_path) {
         ConfigTargetMode::InPlace
@@ -41,7 +42,7 @@ pub(super) fn load_config_inputs(
         None => (
             old_state
                 .and_then(|state| state.configuration_baseline().bytes())
-                .map_or_else(|| new_config.clone(), |bytes| bytes.to_vec()),
+                .map_or_else(|| new_config.clone(), <[u8]>::to_vec),
             None,
         ),
     };

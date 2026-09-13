@@ -105,9 +105,10 @@ impl ReshadeConfigSnapshot {
         &self,
         raw_addon_path: Option<&str>,
     ) -> PathBuf {
-        raw_addon_path
-            .map(|raw| resolve_config_path(&self.paths.effective_base_path, raw))
-            .unwrap_or_else(|| self.paths.effective_addon_path.clone())
+        raw_addon_path.map_or_else(
+            || self.paths.effective_addon_path.clone(),
+            |raw| resolve_config_path(&self.paths.effective_base_path, raw),
+        )
     }
 
     pub(crate) fn assess_content(
@@ -321,10 +322,10 @@ fn resolve_paths_from_ini(
     let addon_path_is_absolute = addon_raw
         .as_deref()
         .is_some_and(|raw| Path::new(raw.trim().trim_matches('"')).is_absolute());
-    let effective_addon_path = addon_raw
-        .as_deref()
-        .map(|raw| resolve_config_path(&effective_base_path, raw))
-        .unwrap_or_else(|| effective_base_path.clone());
+    let effective_addon_path = addon_raw.as_deref().map_or_else(
+        || effective_base_path.clone(),
+        |raw| resolve_config_path(&effective_base_path, raw),
+    );
 
     ReshadePaths {
         ini_path,
@@ -424,7 +425,7 @@ pub(super) fn reshade_log_paths(base_path: &Path) -> impl Iterator<Item = PathBu
     let entries = fs::read_dir(base_path).ok();
     entries
         .into_iter()
-        .flat_map(|entries| entries.flatten())
+        .flat_map(Iterator::flatten)
         .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_file()))
         .filter_map(|entry| {
             let name = entry.file_name().to_string_lossy().to_ascii_lowercase();

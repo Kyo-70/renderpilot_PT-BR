@@ -7,6 +7,7 @@
 use renderpilot_application::{
     ComponentReplacementCandidates, CoordinatedCandidateOption, D3d12ExecutableAction,
     InstalledReleaseState, OperationPlan, OperationPlanFile, ReplacementCandidate,
+    UnixTimestampMillis,
 };
 use renderpilot_domain::{
     Architecture, CatalogLegalDocumentReceipt, CatalogPackageAvailability,
@@ -532,7 +533,7 @@ impl From<&OperationListCatalogEntry> for OperationSummaryOutput {
             completed_at: entry
                 .operation
                 .completed_at
-                .map(|timestamp| timestamp.as_i64()),
+                .map(UnixTimestampMillis::as_i64),
             item_count: entry.item_count,
             component_id: entry.component_ids.first().cloned().unwrap_or_default(),
             metadata,
@@ -641,7 +642,7 @@ mod tests {
                     version: PackageVersion::parse("1.9.2602.17").expect("package version"),
                     channel: ReleaseChannel::Stable,
                     label: Some("SDK".to_owned()),
-                    components: Default::default(),
+                    components: std::collections::BTreeMap::default(),
                 },
                 availability: CatalogPackageAvailability::Available,
                 automatic_selection_allowed: true,
@@ -723,7 +724,7 @@ mod tests {
                         version: PackageVersion::parse("1.721.2-preview").expect("package version"),
                         channel: ReleaseChannel::Preview,
                         label: Some("SDK".to_owned()),
-                        components: Default::default(),
+                        components: std::collections::BTreeMap::default(),
                     }),
                 },
                 json!({

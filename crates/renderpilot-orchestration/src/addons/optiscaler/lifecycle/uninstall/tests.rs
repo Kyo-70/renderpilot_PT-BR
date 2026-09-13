@@ -646,12 +646,11 @@ fn real_builder_relocates_an_owned_downstream_with_its_peer_receipt_transition()
 fn real_builder_rejects_edited_and_replaced_owned_configuration_before_row() {
     for mutation in [0, 2] {
         let fixture = plan_fixture();
-        match mutation {
-            0 => fs::write(&fixture.config, b"edited").expect("edit config"),
-            _ => {
-                fs::remove_file(&fixture.config).expect("remove config");
-                fs::write(&fixture.config, b"replacement").expect("replace config");
-            }
+        if mutation == 0 {
+            fs::write(&fixture.config, b"edited").expect("edit config");
+        } else {
+            fs::remove_file(&fixture.config).expect("remove config");
+            fs::write(&fixture.config, b"replacement").expect("replace config");
         }
         assert!(
             super::plan::build_uninstall_plan(
@@ -695,12 +694,11 @@ fn real_builder_rejects_drifted_and_replaced_owned_runtime_before_row() {
             .path
             .clone();
         let runtime = PathBuf::from(runtime.as_str());
-        match mutation {
-            0 => fs::write(&runtime, b"edited runtime").expect("edit runtime"),
-            _ => {
-                fs::remove_file(&runtime).expect("remove runtime");
-                fs::write(&runtime, b"replacement runtime").expect("replace runtime");
-            }
+        if mutation == 0 {
+            fs::write(&runtime, b"edited runtime").expect("edit runtime");
+        } else {
+            fs::remove_file(&runtime).expect("remove runtime");
+            fs::write(&runtime, b"replacement runtime").expect("replace runtime");
         }
         assert!(
             super::plan::build_uninstall_plan(

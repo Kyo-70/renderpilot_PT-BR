@@ -125,7 +125,7 @@ jobs:
 
       - name: Build docs
         if: runner.os == 'Linux'
-        run: cargo doc --workspace --all-features --no-deps --locked
+        run: cargo doc --profile ci --workspace --all-features --no-deps --locked
         env:
           RUSTDOCFLAGS: "-D warnings"
 

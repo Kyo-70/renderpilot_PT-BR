@@ -305,7 +305,7 @@ fn vendor_aliases<'a>(files: impl Iterator<Item = &'a ComponentFile>) -> BTreeSe
     files
         .filter_map(|file| file.path().file_name())
         .filter_map(|name| xiph::parse_runtime_file_name(name).ok().flatten())
-        .filter(|name| name.is_vendor())
+        .filter(xiph::XiphRuntimeFileName::is_vendor)
         .map(|name| name.normalized_name().to_owned())
         .collect()
 }

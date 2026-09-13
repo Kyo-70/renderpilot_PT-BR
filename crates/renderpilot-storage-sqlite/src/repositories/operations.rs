@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use renderpilot_application::{
     AppResult, OperationItemRecord, OperationJournalEntry, OperationRecord, OperationRepository,
+    UnixTimestampMillis,
 };
-use renderpilot_domain::{GameId, OperationId};
+use renderpilot_domain::{ArtifactId, GameId, OperationId, PathRef};
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::{
@@ -269,7 +270,7 @@ fn upsert_operation_within_transaction(
                 operation.kind.as_str(),
                 operation.status.as_str(),
                 operation.created_at.as_i64(),
-                operation.completed_at.map(|timestamp| timestamp.as_i64()),
+                operation.completed_at.map(UnixTimestampMillis::as_i64),
                 operation.metadata_json.as_deref(),
                 updated_at_ms,
             ],
@@ -314,9 +315,9 @@ fn insert_operation_items_within_transaction(
                 operation.id.as_str(),
                 operation.game_id.as_str(),
                 item.component_id.as_str(),
-                item.artifact_id.as_ref().map(|id| id.as_str()),
+                item.artifact_id.as_ref().map(ArtifactId::as_str),
                 item.source_path.as_str(),
-                item.target_path.as_ref().map(|path| path.as_str()),
+                item.target_path.as_ref().map(PathRef::as_str),
                 item.status.as_str(),
                 item.metadata_json.as_deref(),
             ])

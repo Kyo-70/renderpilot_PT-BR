@@ -111,7 +111,7 @@ pub(super) fn classify_relationship(
     launcher_contained.sort();
     launcher_contained.dedup();
 
-    let catalog_proven_contained = contained.to_vec();
+    let catalog_proven_contained = contained.clone();
     let mut proven_root_keys = launcher_contained
         .iter()
         .map(|root| root.key().clone())

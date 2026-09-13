@@ -31,8 +31,11 @@ impl UnixTimestampMillis {
                 AppError::provider_failed(format!("failed to get system time: {error}"))
             })?;
 
-        Self::new(duration.as_millis() as i64)
-            .map_err(|error| AppError::provider_failed(error.to_string()))
+        let millis = i64::try_from(duration.as_millis()).map_err(|_| {
+            AppError::provider_failed("system time exceeds the supported Unix timestamp range")
+        })?;
+
+        Self::new(millis).map_err(|error| AppError::provider_failed(error.to_string()))
     }
 
     /// Returns the raw timestamp value.

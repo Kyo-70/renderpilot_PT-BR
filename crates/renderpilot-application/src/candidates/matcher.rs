@@ -432,17 +432,14 @@ impl CandidateArtifactLookup {
     }
 }
 
-fn compare_versions(
-    current: Option<&Version>,
-    candidate: Option<&Version>,
-) -> Option<CandidateComparison> {
+fn compare_versions(current: Option<&Version>, candidate: Option<&Version>) -> CandidateComparison {
     match (current, candidate) {
         (Some(current), Some(candidate)) => match current.cmp(candidate) {
-            std::cmp::Ordering::Less => Some(CandidateComparison::NewerVersion),
-            std::cmp::Ordering::Equal => Some(CandidateComparison::UnknownVersion),
-            std::cmp::Ordering::Greater => Some(CandidateComparison::OlderVersion),
+            std::cmp::Ordering::Less => CandidateComparison::NewerVersion,
+            std::cmp::Ordering::Equal => CandidateComparison::UnknownVersion,
+            std::cmp::Ordering::Greater => CandidateComparison::OlderVersion,
         },
-        _ => Some(CandidateComparison::UnknownVersion),
+        _ => CandidateComparison::UnknownVersion,
     }
 }
 
@@ -497,7 +494,7 @@ fn candidate_comparison(
     require_compatible_graphics_api(component, artifact)?;
     require_version_compatible(component.technology(), current_version, artifact.version())?;
 
-    compare_versions(current_version, artifact.version())
+    Some(compare_versions(current_version, artifact.version()))
 }
 
 /// Prevents cross-API FSR replacements (e.g., offering a DX12 artifact to a Vulkan game).

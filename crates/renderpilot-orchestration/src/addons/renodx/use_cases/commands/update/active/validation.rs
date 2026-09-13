@@ -3,8 +3,8 @@
 use std::path::Path;
 
 use renderpilot_domain::{
-    FileOwnership, GameProxyTopology, InstalledAddon, InstalledAddonHostKind, PathRef,
-    ProxyImplementation,
+    FileOwnership, GameProxyTopology, InstalledAddon, InstalledAddonHostKind, ManagedAddonFile,
+    PathRef, ProxyImplementation,
 };
 
 use crate::ServiceError;
@@ -54,7 +54,7 @@ pub(super) fn record_paths(
         .created_files()
         .iter()
         .chain(record.backed_up_files())
-        .chain(record.managed_files().iter().map(|file| file.path()))
+        .chain(record.managed_files().iter().map(ManagedAddonFile::path))
     {
         authority.authorized_root(path).map_err(|_| {
             invalid(format!(

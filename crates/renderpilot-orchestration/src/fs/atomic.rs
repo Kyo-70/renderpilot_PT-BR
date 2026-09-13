@@ -255,7 +255,7 @@ impl Drop for NoReplaceTestFaultGuard {
 
 #[cfg(test)]
 fn no_replace_test_fault(fault: NoReplaceTestFault) -> Result<(), ServiceError> {
-    if NO_REPLACE_TEST_FAULT.with(|current| current.get()) == Some(fault) {
+    if NO_REPLACE_TEST_FAULT.with(Cell::get) == Some(fault) {
         Err(crate::failed(format!(
             "injected no-replace publication fault at {fault:?}"
         )))

@@ -39,9 +39,9 @@ where
     F: FnOnce() -> Result<Context, ServiceError>,
 {
     match command {
-        Command::Summary => render_summary_command(info),
-        Command::Help => render_help_command(info),
-        Command::Version => render_version_command(info),
+        Command::Summary => Ok(render_summary(info)),
+        Command::Help => Ok(render_help(info)),
+        Command::Version => Ok(render_version(info)),
         other => {
             let context = open_context()?;
             render_stateful_command(other, &context)
@@ -116,18 +116,6 @@ fn render_stateful_command(command: Command, context: &Context) -> CliOutput {
         )
         .into()),
     }
-}
-
-fn render_summary_command(info: AppInfo) -> CliOutput {
-    Ok(render_summary(info))
-}
-
-fn render_help_command(info: AppInfo) -> CliOutput {
-    Ok(render_help(info))
-}
-
-fn render_version_command(info: AppInfo) -> CliOutput {
-    Ok(render_version(info))
 }
 
 fn list_artifacts(

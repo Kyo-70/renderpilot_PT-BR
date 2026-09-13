@@ -368,7 +368,7 @@ mod tests {
                 from_key: "Enabled".to_owned(),
                 to_section: "OptiScaler".to_owned(),
                 to_key: "Fakenvapi".to_owned(),
-                value_map: Default::default(),
+                value_map: std::collections::BTreeMap::default(),
             },
             ConfigKeyMigration {
                 from_schema: 1,
@@ -377,7 +377,7 @@ mod tests {
                 from_key: "Enabled".to_owned(),
                 to_section: "NvngxFG".to_owned(),
                 to_key: "Enabled".to_owned(),
-                value_map: Default::default(),
+                value_map: std::collections::BTreeMap::default(),
             },
         ];
         let current = b"; user note\r\n[Fakenvapi]\r\nEnabled=false\r\nCustom=yes\r\n[Nukem]\r\nEnabled=true\r\n";

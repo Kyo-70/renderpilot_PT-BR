@@ -27,7 +27,7 @@ pub(crate) fn windows_enumerate_directory_names(
         let mut io_status = IO_STATUS_BLOCK::default();
         let status = unsafe {
             NtQueryDirectoryFile(
-                handle.as_raw_handle() as _,
+                handle.as_raw_handle().cast(),
                 std::ptr::null_mut(),
                 None,
                 std::ptr::null(),
@@ -65,13 +65,19 @@ pub(crate) fn windows_enumerate_directory_names(
                     "Windows directory enumeration returned an invalid record offset",
                 ));
             }
-            let record = unsafe {
-                buffer
-                    .as_ptr()
-                    .cast::<u8>()
-                    .add(offset)
-                    .cast::<FILE_BOTH_DIR_INFORMATION>()
-            };
+            let record_address = unsafe { buffer.as_ptr().cast::<u8>().add(offset) };
+            if !(record_address as usize)
+                .is_multiple_of(std::mem::align_of::<FILE_BOTH_DIR_INFORMATION>())
+            {
+                return Err(crate::failed(
+                    "Windows directory enumeration returned an unaligned record offset",
+                ));
+            }
+            #[expect(
+                clippy::cast_ptr_alignment,
+                reason = "the record address was checked against FILE_BOTH_DIR_INFORMATION alignment"
+            )]
+            let record = record_address.cast::<FILE_BOTH_DIR_INFORMATION>();
             let record_length = unsafe { (*record).NextEntryOffset as usize };
             let name_length = unsafe { (*record).FileNameLength as usize };
             let name_offset = std::mem::offset_of!(FILE_BOTH_DIR_INFORMATION, FileName);

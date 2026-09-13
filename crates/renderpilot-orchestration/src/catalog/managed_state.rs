@@ -356,7 +356,7 @@ fn cleanup_associated_paths(
 ) -> Vec<PathBuf> {
     let mut paths = component_plans
         .iter()
-        .flat_map(|plan| plan.affected_files())
+        .flat_map(super::execute::ManagedComponentRollbackPlan::affected_files)
         .map(|path| PathBuf::from(path.as_str()))
         .collect::<Vec<_>>();
     if let Some(addon) = addon {

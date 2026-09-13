@@ -297,7 +297,7 @@ impl<'a> ArtifactSqlRow<'a> {
             files_json: mapping::serialize_json(artifact.files())?,
             metadata_json: mapping::serialize_json(artifact.metadata())?,
             source: artifact.source(),
-            source_game_id: artifact.source_game_id().map(|game_id| game_id.as_str()),
+            source_game_id: artifact.source_game_id().map(GameId::as_str),
             trust_level: mapping::enum_to_text(&artifact.trust_level())?,
         })
     }
@@ -747,7 +747,7 @@ mod tests {
                 version: PackageVersion::parse("3.10.0").expect("package version"),
                 channel: ReleaseChannel::Stable,
                 label: None,
-                components: Default::default(),
+                components: std::collections::BTreeMap::default(),
             },
             target: CatalogTargetReceipt {
                 os: "windows".to_owned(),

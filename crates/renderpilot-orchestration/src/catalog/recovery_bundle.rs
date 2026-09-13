@@ -1,5 +1,6 @@
 //! Durable, atomically published recovery bundles for lossy consolidation.
 
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -147,11 +148,12 @@ fn build_managed_cleanup_bundle(
     protected.sort();
     let mut checksums = String::new();
     for relative in protected {
-        checksums.push_str(&format!(
-            "{}  {}\n",
+        let _ = writeln!(
+            checksums,
+            "{}  {}",
             sha256_file(&temporary.join(&relative))?,
             relative.to_string_lossy().replace('\\', "/")
-        ));
+        );
     }
     write_and_sync(&temporary.join("checksums.sha256"), checksums.as_bytes())?;
 
@@ -197,7 +199,7 @@ fn build_root_correction_bundle(
     let mut checksums = String::new();
     for relative in ["catalog.db", "manifest.json"] {
         let digest = sha256_file(&temporary.join(relative))?;
-        checksums.push_str(&format!("{digest}  {relative}\n"));
+        let _ = writeln!(checksums, "{digest}  {relative}");
     }
     write_and_sync(&temporary.join("checksums.sha256"), checksums.as_bytes())?;
 
@@ -291,10 +293,11 @@ fn build_bundle(
     let mut checksums = String::new();
     for relative in protected_files {
         let digest = sha256_file(&temporary.join(&relative))?;
-        checksums.push_str(&format!(
-            "{digest}  {}\n",
+        let _ = writeln!(
+            checksums,
+            "{digest}  {}",
             relative.to_string_lossy().replace('\\', "/")
-        ));
+        );
     }
     write_and_sync(&temporary.join("checksums.sha256"), checksums.as_bytes())?;
 

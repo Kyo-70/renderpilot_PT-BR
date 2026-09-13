@@ -120,7 +120,7 @@ mod tests {
 
     fn component(technology: LibraryTechnology, file_names: &[&str]) -> LibraryComponent {
         let id =
-            ComponentId::new(format!("component:game:{:?}:dir", technology)).expect("component id");
+            ComponentId::new(format!("component:game:{technology:?}:dir")).expect("component id");
         let game = game_id();
         let mut component = LibraryComponent::new(
             id,

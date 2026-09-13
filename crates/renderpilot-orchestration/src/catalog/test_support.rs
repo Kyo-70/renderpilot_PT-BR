@@ -23,7 +23,7 @@ pub(crate) fn d3d12_preview_artifact_at(source: &Path, sdk_line: u32) -> Library
             version: PackageVersion::parse(&package_version).expect("package version"),
             channel: ReleaseChannel::Preview,
             label: None,
-            components: Default::default(),
+            components: std::collections::BTreeMap::default(),
         },
         target: CatalogTargetReceipt {
             os: "windows".to_owned(),
@@ -108,10 +108,10 @@ pub(crate) fn synthetic_versioned_d3d12_runtime(sdk_line: u32) -> Vec<u8> {
     resource.extend_from_slice(&version_blob);
     resource[14..16].copy_from_slice(&1u16.to_le_bytes());
     resource[16..20].copy_from_slice(&16u32.to_le_bytes());
-    resource[20..24].copy_from_slice(&(0x8000_0000u32 | 24).to_le_bytes());
+    resource[20..24].copy_from_slice(&(0x8000_0000u32 | 0x18).to_le_bytes());
     resource[24 + 14..24 + 16].copy_from_slice(&1u16.to_le_bytes());
     resource[40..44].copy_from_slice(&1u32.to_le_bytes());
-    resource[44..48].copy_from_slice(&(0x8000_0000u32 | 48).to_le_bytes());
+    resource[44..48].copy_from_slice(&(0x8000_0000u32 | 0x30).to_le_bytes());
     resource[48 + 14..48 + 16].copy_from_slice(&1u16.to_le_bytes());
     resource[64..68].copy_from_slice(&1033u32.to_le_bytes());
     resource[68..72].copy_from_slice(&72u32.to_le_bytes());

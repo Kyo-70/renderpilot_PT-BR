@@ -7,7 +7,7 @@ use renderpilot_application::{
 };
 use renderpilot_domain::{
     ComponentId, ComponentRollbackBaseline, GameInstallation, InstalledAddon, LibraryComponent,
-    LibraryTechnology, PathRef, Swappability,
+    LibraryTechnology, PathRef, PeCompatibilityProfile, Swappability,
 };
 
 use crate::ServiceError;
@@ -60,7 +60,7 @@ pub(super) fn card_dynamic_facts<'components>(
                 game.id(),
                 components,
                 installed_addon,
-            )?;
+            );
             let d3d12_component = components
                 .iter()
                 .find(|component| component.technology() == LibraryTechnology::D3D12Agility);
@@ -92,7 +92,7 @@ fn durable_card_target_profile(
         .iter()
         .flat_map(LibraryComponent::files)
         .filter_map(|file| file.pe_compatibility())
-        .map(|profile| profile.architecture())
+        .map(PeCompatibilityProfile::architecture)
         .next();
     let d3d12_component = components
         .iter()
@@ -176,7 +176,7 @@ pub(super) fn card_metrics(
             Swappability::Unsafe | Swappability::IntegratedIntoEngine => CatalogCardRiskLevel::High,
             Swappability::BundleOnly | Swappability::ReadOnly => CatalogCardRiskLevel::Medium,
             Swappability::Swappable => CatalogCardRiskLevel::Low,
-            _ => CatalogCardRiskLevel::Unknown,
+            Swappability::Unknown => CatalogCardRiskLevel::Unknown,
         })
         .max()
         .unwrap_or(CatalogCardRiskLevel::Unknown);
@@ -295,7 +295,7 @@ mod tests {
             version: PackageVersion::parse("3.7.0").expect("package version"),
             channel: ReleaseChannel::Stable,
             label: None,
-            components: Default::default(),
+            components: std::collections::BTreeMap::default(),
         }
     }
 }

@@ -1,5 +1,5 @@
 use renderpilot_application::{AppResult, GameRepository};
-use renderpilot_domain::{GameId, GameInstallation};
+use renderpilot_domain::{GameId, GameInstallation, PathRef};
 use rusqlite::{Connection, OptionalExtension, Statement, Transaction, named_params};
 
 use crate::{error::storage_error, mapping, sqlite_clock};
@@ -291,7 +291,7 @@ impl<'a> GameSqlParams<'a> {
             install_path: game.install_path().as_str(),
             install_key: game.install_key().as_str(),
             root_authority: mapping::enum_to_text(&game.root_authority())?,
-            confirmed_executable_path: game.confirmed_executable().map(|path| path.as_str()),
+            confirmed_executable_path: game.confirmed_executable().map(PathRef::as_str),
             executable_candidates_json: mapping::serialize_json(game.executable_candidates())?,
         })
     }

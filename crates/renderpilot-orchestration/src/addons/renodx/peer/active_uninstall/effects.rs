@@ -88,7 +88,7 @@ pub(super) fn emit_remove(
     before: crate::peer_mutation_executor::VerifiedPeerFile,
     before_bytes: Vec<u8>,
     effects: &mut ActiveUninstallEffects,
-) -> Result<(), RenoDxActiveUninstallError> {
+) {
     effects.endpoints.push(ExactEndpoint::new(
         path.clone(),
         role,
@@ -101,7 +101,6 @@ pub(super) fn emit_remove(
         before: Some(before_bytes),
         after: None,
     });
-    Ok(())
 }
 
 pub(super) fn emit_replace(
@@ -112,7 +111,7 @@ pub(super) fn emit_replace(
     after: &crate::peer_mutation_executor::VerifiedPeerFile,
     restored: Vec<u8>,
     effects: &mut ActiveUninstallEffects,
-) -> Result<(), RenoDxActiveUninstallError> {
+) {
     effects.endpoints.push(ExactEndpoint::new(
         path.clone(),
         role,
@@ -125,5 +124,4 @@ pub(super) fn emit_replace(
         before: Some(before_bytes),
         after: Some(restored),
     });
-    Ok(())
 }

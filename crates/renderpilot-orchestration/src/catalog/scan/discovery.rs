@@ -242,9 +242,7 @@ fn scan_install_paths_in_parallel(
 }
 
 fn effective_worker_count(install_path_count: usize) -> usize {
-    let cpu_workers = thread::available_parallelism()
-        .map(|nz| nz.get())
-        .unwrap_or(1);
+    let cpu_workers = thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
 
     effective_worker_count_with_cpu(install_path_count, cpu_workers)
 }

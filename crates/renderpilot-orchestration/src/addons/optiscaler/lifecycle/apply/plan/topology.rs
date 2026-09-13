@@ -141,10 +141,10 @@ pub(super) fn plan_topology(
             .iter()
             .find(|release| release.id == state.release_id)
     });
-    let old_proxy_path = existing_topology
-        .as_ref()
-        .map(|topology| PathBuf::from(topology.root_slot.as_str()))
-        .unwrap_or_else(|| targets.proxy_path.clone());
+    let old_proxy_path = existing_topology.as_ref().map_or_else(
+        || targets.proxy_path.clone(),
+        |topology| PathBuf::from(topology.root_slot.as_str()),
+    );
     let mut old_expected = match (old_release, old_state.as_ref()) {
         (Some(release), Some(state)) => {
             expected_target_hashes(release, &state.modules, state, &old_proxy_path)?

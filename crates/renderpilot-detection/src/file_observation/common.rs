@@ -29,7 +29,7 @@ pub(super) fn read_and_hash(
                 hasher.update(&buffer[..read]);
                 bytes.extend_from_slice(&buffer[..read]);
             }
-            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
             Err(error) => return Err(error),
         }
     }

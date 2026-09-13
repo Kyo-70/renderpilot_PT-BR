@@ -1,5 +1,7 @@
 //! Rollback-side orchestration for catalog components.
 
+use renderpilot_domain::Version;
+
 use super::*;
 
 pub(crate) const ROLLBACK_TARGET_LABEL: &str = "Original";
@@ -134,7 +136,7 @@ pub(crate) fn rollback_component_locked(
                         component: &component,
                         to_version: component_version_report(&baseline, component.technology())
                             .known_version()
-                            .map(|v| v.as_str())
+                            .map(Version::as_str)
                             .or(Some(ROLLBACK_TARGET_LABEL)),
                         items: journal_items,
                         d3d12_executable_action: d3d12_executable_action.clone(),

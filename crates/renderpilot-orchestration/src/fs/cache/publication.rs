@@ -213,7 +213,7 @@ pub(super) fn quarantine_snapshot_at_locked(
         };
         match write_snapshot_no_replace(&candidate, &snapshot) {
             Ok(DiagnosticWrite::Written) => return retire_snapshot_if_current(path, snapshot),
-            Ok(DiagnosticWrite::Occupied) => continue,
+            Ok(DiagnosticWrite::Occupied) => {}
             Err(error) => return Err(error),
         }
     }

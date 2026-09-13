@@ -90,10 +90,10 @@ async fn update_with_intent(
         Some(download_config_base(old_release, request.progress).await?)
     };
     crate::addons::progress::emit_tool_finalizing(request.progress, AddonKind::OptiScaler);
-    let proxy_path = topology
-        .as_ref()
-        .map(|topology| PathBuf::from(topology.root_slot.as_str()))
-        .unwrap_or_else(|| Path::new(old_state.target_dir.as_str()).join("dxgi.dll"));
+    let proxy_path = topology.as_ref().map_or_else(
+        || Path::new(old_state.target_dir.as_str()).join("dxgi.dll"),
+        |topology| PathBuf::from(topology.root_slot.as_str()),
+    );
     let target = ApplyTarget {
         exe: PathBuf::from(old_state.target_exe_path.as_str()),
         dir: PathBuf::from(old_state.target_dir.as_str()),

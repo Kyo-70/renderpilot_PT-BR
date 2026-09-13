@@ -122,9 +122,8 @@ fn occupied_diagnostics_remain_invalid_and_allow_bounded_candidate_cas() {
 
     let observation = observe_cache_file(&path, |bytes, _| parse_doc(bytes))
         .expect("full immutable diagnostic set retains an invalid observation");
-    let generation = match observation {
-        CacheObservation::Invalid { generation, .. } => generation,
-        _ => panic!("full diagnostic set must retain the invalid cache for CAS repair"),
+    let CacheObservation::Invalid { generation, .. } = observation else {
+        panic!("full diagnostic set must retain the invalid cache for CAS repair");
     };
     #[cfg(target_os = "linux")]
     let occupied_metadata = fs::metadata(&path).expect("snapshot invalid active cache metadata");

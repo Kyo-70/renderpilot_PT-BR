@@ -115,7 +115,7 @@ fn owned_record(mode: renderpilot_domain::ManagedFileMode) -> InstalledAddon {
             renderpilot_domain::ManagedFileMode::Reused => {
                 ManagedAddonFile::reused(path("C:/Games/Phase3/nvngx_dlss.dll"), hash('c'))
             }
-            _ => ManagedAddonFile::owned(
+            renderpilot_domain::ManagedFileMode::Owned => ManagedAddonFile::owned(
                 path("C:/Games/Phase3/nvngx_dlss.dll"),
                 ManagedFileBaseline::Absent,
                 hash('c'),

@@ -1,3 +1,5 @@
+use renderpilot_orchestration::domain::Sha256Hash;
+
 use super::*;
 
 #[test]
@@ -281,7 +283,7 @@ fn apply_then_rollback_native_fsr_upscaler_only_touches_that_dll() {
     assert_eq!(
         upscaler_component.files()[0]
             .sha256()
-            .map(|sha| sha.as_str()),
+            .map(Sha256Hash::as_str),
         Some(sha256_hex(b"native-upscaler-b").as_str()),
         "the catalog should track the replaced upscaler only"
     );

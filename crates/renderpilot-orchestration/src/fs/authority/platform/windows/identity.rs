@@ -40,9 +40,9 @@ pub(crate) fn windows_identity(file: &File) -> Result<String, ServiceError> {
     };
     let ok = unsafe {
         GetFileInformationByHandleEx(
-            file.as_raw_handle() as _,
+            file.as_raw_handle().cast(),
             FileIdInfo,
-            (&mut info as *mut FILE_ID_INFO).cast(),
+            (&raw mut info).cast(),
             u32::try_from(std::mem::size_of::<FILE_ID_INFO>())
                 .map_err(|_| crate::failed("Windows identity buffer is too large"))?,
         )

@@ -1,9 +1,10 @@
 use std::path::Path;
 
 use renderpilot_domain::{
-    InstalledAddon, NormalizedPathRelation, PathRef, PeerEndpointRole, PeerTransitionError,
-    PlannedGameProxyTopology, RenoDxDlssClaim, RenoDxDlssProjection, RenoDxReshadeIniAuthority,
-    RenoDxReshadeIniFeature, TrackedSourceRole, normalized_path_key, normalized_path_relation,
+    InstalledAddon, ManagedAddonFile, NormalizedPathRelation, PathRef, PeerEndpointRole,
+    PeerTransitionError, PlannedGameProxyTopology, RenoDxDlssClaim, RenoDxDlssProjection,
+    RenoDxReshadeIniAuthority, RenoDxReshadeIniFeature, TrackedSourceRole, normalized_path_key,
+    normalized_path_relation,
 };
 
 use crate::addons::renodx::source;
@@ -388,7 +389,7 @@ fn reject_noncanonical_candidates(
         .created_files()
         .iter()
         .chain(peer.backed_up_files())
-        .chain(peer.managed_files().iter().map(|file| file.path()))
+        .chain(peer.managed_files().iter().map(ManagedAddonFile::path))
     {
         if path
             .file_name()

@@ -17,7 +17,9 @@ use crate::catalog::cascade::cascade_for_managed_paths;
 use crate::coordinated_files::CoordinatedFilePlan;
 
 use super::root_authority::LumaPeerRootAuthority;
-use super::uninstall::{PlannedManagedDlssRelease, compose_active_uninstall};
+use super::uninstall::{
+    LumaActiveUninstallComposition, PlannedManagedDlssRelease, compose_active_uninstall,
+};
 use crate::peer_mutation_executor::{EndpointExpectation, EndpointPostcondition};
 
 type UninstallCompositionParts = (
@@ -137,7 +139,7 @@ fn compose(
 ) -> Result<UninstallCompositionParts, crate::ServiceError> {
     let cascade = empty_cascade(game_id);
     compose_active_uninstall(record, topology, authority, &cascade, releases)
-        .map(|composition| composition.into_parts())
+        .map(LumaActiveUninstallComposition::into_parts)
 }
 
 #[test]

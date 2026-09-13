@@ -71,8 +71,12 @@ fn map_platform_report(
         architecture: map_architecture(report.facts.architecture),
         loader_visibility: map_visibility(report.facts.loader_visibility),
     };
-    let mut diagnostics: Vec<LayerDiagnosticReason> =
-        report.diagnostics.iter().map(map_diagnostic).collect();
+    let mut diagnostics: Vec<LayerDiagnosticReason> = report
+        .diagnostics
+        .iter()
+        .copied()
+        .map(map_diagnostic)
+        .collect();
 
     match report.state {
         VulkanLayerState::Absent => VulkanLayerReport {
@@ -193,7 +197,7 @@ fn map_visibility(
 
 #[cfg(windows)]
 fn map_diagnostic(
-    diag: &renderpilot_platform_windows::vulkan_layer::VulkanLayerDiagnostic,
+    diag: renderpilot_platform_windows::vulkan_layer::VulkanLayerDiagnostic,
 ) -> LayerDiagnosticReason {
     use renderpilot_platform_windows::vulkan_layer::VulkanLayerDiagnostic as D;
     match diag {

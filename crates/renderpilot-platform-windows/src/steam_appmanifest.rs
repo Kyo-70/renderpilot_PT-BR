@@ -300,7 +300,7 @@ fn parse_acf_quoted_value(content: &str, key: &str) -> Option<String> {
             Some(AcfToken::Quoted(value)) if candidate_key.eq_ignore_ascii_case(key) => {
                 return Some(value);
             }
-            Some(_) => continue,
+            Some(_) => {}
             None => break,
         }
     }

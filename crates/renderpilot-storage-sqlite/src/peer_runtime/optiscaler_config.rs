@@ -233,16 +233,12 @@ pub(super) fn bind_recovery(
         .iter()
         .enumerate()
         .filter(|(_, intent)| intent.role() == PeerEndpointRole::TopologyDownstream);
-    let (downstream_ordinal, downstream) = match (
-        downstream_matches.next(),
-        downstream_matches.next(),
-    ) {
-        (Some((ordinal, downstream)), None) => (ordinal, downstream),
-        _ => {
-            return Err(invalid(
-                "typed OptiScaler configuration recovery requires exactly one topology downstream endpoint",
-            ));
-        }
+    let (Some((downstream_ordinal, downstream)), None) =
+        (downstream_matches.next(), downstream_matches.next())
+    else {
+        return Err(invalid(
+            "typed OptiScaler configuration recovery requires exactly one topology downstream endpoint",
+        ));
     };
     let ordered = match feature {
         renderpilot_domain::mutation_features::RENODX_INSTALL
@@ -282,13 +278,10 @@ pub(super) fn successor_from_evidence(
         .iter()
         .enumerate()
         .filter(|(_, intent)| intent.role() == PeerEndpointRole::OptiScalerConfig);
-    let (ordinal, intent) = match (matching.next(), matching.next()) {
-        (Some((ordinal, intent)), None) => (ordinal, intent),
-        _ => {
-            return Err(AppError::storage_failed(
-                "sealed OptiScaler configuration companion has no exact endpoint",
-            ));
-        }
+    let (Some((ordinal, intent)), None) = (matching.next(), matching.next()) else {
+        return Err(AppError::storage_failed(
+            "sealed OptiScaler configuration companion has no exact endpoint",
+        ));
     };
     let Some(observed) = evidence.get(ordinal) else {
         return Err(AppError::storage_failed(

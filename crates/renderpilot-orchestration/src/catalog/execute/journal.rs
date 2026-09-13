@@ -153,7 +153,7 @@ pub(crate) fn record_operation_journal_entry(
     if let Ok(entry) = OperationJournalEntry::try_new(operation_record, item_records)
         && let Err(e) = OperationRepository::save_operation_entry(storage, &entry)
     {
-        log::warn!("Failed to save operation journal entry: {}", e);
+        log::warn!("Failed to save operation journal entry: {e}");
     }
 }
 
@@ -166,12 +166,10 @@ fn build_metadata_json(
     to_version: Option<&str>,
     d3d12_executable_action: Option<D3d12ExecutableActionResult>,
 ) -> AppResult<MetadataJson> {
-    let game_name = storage
-        .find_game(game_id)
-        .ok()
-        .flatten()
-        .map(|g| g.identity().title().to_string())
-        .unwrap_or_else(|| UNKNOWN_GAME_NAME.to_owned());
+    let game_name = storage.find_game(game_id).ok().flatten().map_or_else(
+        || UNKNOWN_GAME_NAME.to_owned(),
+        |g| g.identity().title().to_string(),
+    );
 
     let metadata = OperationMetadata {
         game_name,
@@ -242,7 +240,7 @@ pub(crate) fn journal_item_is_component_file(item: &OperationItemRecord) -> bool
 
 #[cfg(test)]
 mod tests {
-    use renderpilot_application::{D3d12ExecutableAction, D3d12ExecutableProfile};
+    use renderpilot_application::{D3d12ExecutableAction, D3d12ExecutableProfile, MetadataJson};
     use renderpilot_domain::{ComponentId, OperationId, PathRef};
 
     use super::{
@@ -284,10 +282,7 @@ mod tests {
         assert!(journal_item_is_component_file(&records[0]));
         assert!(!journal_item_is_component_file(&records[1]));
         assert_eq!(
-            records[1]
-                .metadata_json
-                .as_ref()
-                .map(|metadata| metadata.as_str()),
+            records[1].metadata_json.as_ref().map(MetadataJson::as_str),
             Some(r#"{"kind":"d3d12_executable","from_sdk_version":606,"to_sdk_version":619}"#)
         );
     }

@@ -1214,7 +1214,7 @@ fn exact_adoption_accepts_only_a_unique_owned_luma_or_renodx_managed_downstream_
         let label = match kind {
             AddonKind::Luma => "owned-luma-downstream",
             AddonKind::RenoDx => "owned-renodx-downstream",
-            _ => unreachable!("only supported peer kinds are exercised"),
+            AddonKind::OptiScaler => unreachable!("only supported peer kinds are exercised"),
         };
         let (game_id, game, state, mut topology, root) = adoption_fixture(label);
         let downstream_path = root.join("ReShade64.dll");

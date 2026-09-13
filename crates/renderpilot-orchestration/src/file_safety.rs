@@ -6,7 +6,7 @@
 //! while holding their final resource lock; validation always re-observes the
 //! resource instead of trusting a cached assessment or a boolean confirmation.
 
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -493,30 +493,34 @@ fn shared_vulkan_context_token_from(
         shared_visibility_id(report.layer_facts.loader_visibility),
     );
     let version = report.layer_facts.version.as_deref().unwrap_or("");
-    payload.push_str(&format!(
+    let _ = write!(
+        payload,
         "\nversion_length={}\nversion_hash={}",
         version.len(),
         opaque_token(version.as_bytes())
-    ));
+    );
 
     for (label, file) in [
         ("dll", &observation.dll),
         ("manifest", &observation.manifest),
         ("apps_ini", &observation.apps),
     ] {
-        payload.push_str(&format!(
+        let _ = write!(
+            payload,
             "\n{label}_observation={}",
             file_observation_token(file)
-        ));
+        );
     }
-    payload.push_str(&format!(
+    let _ = write!(
+        payload,
         "\nregistry_observation={}",
         registry_observation_token(&observation.registry)
-    ));
-    payload.push_str(&format!(
+    );
+    let _ = write!(
+        payload,
         "\ndirectory_observation={}",
         directory_observation_token(&observation.directory)
-    ));
+    );
 
     let mut diagnostics = report
         .diagnostic_reasons
@@ -525,7 +529,7 @@ fn shared_vulkan_context_token_from(
         .map(shared_diagnostic_id)
         .collect::<Vec<_>>();
     diagnostics.sort_unstable();
-    payload.push_str(&format!("\ndiagnostics={}", diagnostics.join(";")));
+    let _ = write!(payload, "\ndiagnostics={}", diagnostics.join(";"));
 
     let scope_hash = shared_vulkan_scope_hash(&observation.layer_dir);
     framed_token(

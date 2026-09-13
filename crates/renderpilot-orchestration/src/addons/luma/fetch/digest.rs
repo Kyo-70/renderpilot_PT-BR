@@ -114,11 +114,7 @@ fn digest_payload_entries<'a>(entries: impl Iterator<Item = (&'a str, &'a [u8])>
         digest.update((bytes.len() as u64).to_le_bytes());
         digest.update(bytes);
     }
-    digest
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
+    hex::encode(digest.finalize())
 }
 
 #[cfg(test)]

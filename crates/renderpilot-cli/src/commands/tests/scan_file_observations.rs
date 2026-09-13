@@ -2,7 +2,11 @@
 
 use std::{fs, path::Path};
 
-use renderpilot_orchestration::{application::ComponentRepository, catalog, domain::GameId};
+use renderpilot_orchestration::{
+    application::ComponentRepository,
+    catalog,
+    domain::{GameId, LibraryComponent},
+};
 use renderpilot_storage_sqlite::{CatalogReadiness, ObservationOwner};
 
 use crate::commands::test_support::{CatalogFixture, TempGameFolder, path_string};
@@ -50,7 +54,7 @@ fn first_scan_publishes_owner_scoped_complete_observation() {
                 .list_components_for_game(&game_id)
                 .expect("components")
                 .iter()
-                .flat_map(|component| component.files())
+                .flat_map(LibraryComponent::files)
                 .any(
                     |file| file.path().as_str() == normalized_dll_path(folder.path())
                         && file

@@ -296,9 +296,8 @@ mod tests {
             }),
         };
 
-        let failure = match prepared.apply() {
-            Ok(_) => panic!("directory slot cannot be replaced"),
-            Err(failure) => failure,
+        let Err(failure) = prepared.apply() else {
+            panic!("directory slot cannot be replaced");
         };
 
         assert!(failure.rollback_complete);

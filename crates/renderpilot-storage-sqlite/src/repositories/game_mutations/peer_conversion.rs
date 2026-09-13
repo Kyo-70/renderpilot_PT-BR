@@ -228,9 +228,9 @@ pub(super) fn ensure_exact_luma_out_managed_to_native(
         ));
     }
     let append_backed = match (source.mode(), source.baseline()) {
-        (ManagedFileMode::Owned, ManagedFileBaseline::Absent) => false,
         (ManagedFileMode::Owned, ManagedFileBaseline::Present { .. }) => true,
-        (ManagedFileMode::Reused, ManagedFileBaseline::Present { .. }) => false,
+        (ManagedFileMode::Owned, ManagedFileBaseline::Absent)
+        | (ManagedFileMode::Reused, ManagedFileBaseline::Present { .. }) => false,
         (ManagedFileMode::Reused, ManagedFileBaseline::Absent) => {
             return Err(renderpilot_application::AppError::invalid_input(
                 "Luma reverse peer conversion rejects a Reused/Absent source",

@@ -133,12 +133,7 @@ fn build_install_plan(
     };
 
     match host_decision(detected) {
-        None => {
-            return Err(IncompatibilityReason::ApiUnsupported {
-                detected: raw_detected,
-            });
-        }
-        Some(HostKind::Vulkan) => {
+        None | Some(HostKind::Vulkan) => {
             return Err(IncompatibilityReason::ApiUnsupported {
                 detected: raw_detected,
             });
@@ -196,8 +191,10 @@ fn generic_ue_d3d12_can_be_switched(
         && title.is_generic_unreal()
         && matches!(
             facts.engine,
-            Some(crate::addons::matching::Engine::Unreal)
-                | Some(crate::addons::matching::Engine::UnrealExtended)
+            Some(
+                crate::addons::matching::Engine::Unreal
+                    | crate::addons::matching::Engine::UnrealExtended
+            )
         )
 }
 

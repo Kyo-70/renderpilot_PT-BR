@@ -23,7 +23,7 @@ pub(crate) fn windows_rename_handle_no_replace(
     match windows_rename_handle_no_replace_outcome(source, destination_parent, destination) {
         WindowsRenameNoReplaceOutcome::Moved => Ok(()),
         WindowsRenameNoReplaceOutcome::Occupied => Err(std::io::Error::from_raw_os_error(
-            windows_sys::Win32::Foundation::ERROR_FILE_EXISTS as i32,
+            windows_sys::Win32::Foundation::ERROR_FILE_EXISTS.cast_signed(),
         )),
         WindowsRenameNoReplaceOutcome::Indeterminate(error) => Err(error),
     }
@@ -84,7 +84,7 @@ fn windows_rename_handle_no_replace_outcome(
         let mut io_status = IO_STATUS_BLOCK::default();
         let status = NtSetInformationFile(
             source.as_raw_handle(),
-            &mut io_status,
+            &raw mut io_status,
             rename.cast(),
             required_bytes,
             FileRenameInformation,
@@ -153,7 +153,7 @@ pub(crate) fn windows_dispose_by_handle(file: &File) -> std::io::Result<()> {
     let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
     let ok = unsafe {
         SetFileInformationByHandle(
-            file.as_raw_handle() as _,
+            file.as_raw_handle().cast(),
             FileDispositionInfo,
             (&raw const disposition).cast(),
             u32::try_from(std::mem::size_of::<FILE_DISPOSITION_INFO>()).map_err(|_| {

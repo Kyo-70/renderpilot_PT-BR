@@ -36,9 +36,7 @@ pub(super) fn vcredist_installer_url(arch: Architecture) -> &'static str {
 }
 
 fn windows_dir() -> PathBuf {
-    env::var_os("SystemRoot")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(r"C:\Windows"))
+    env::var_os("SystemRoot").map_or_else(|| PathBuf::from(r"C:\Windows"), PathBuf::from)
 }
 
 fn vcredist_present_under(windows_dir: &Path, arch: Architecture) -> Option<bool> {

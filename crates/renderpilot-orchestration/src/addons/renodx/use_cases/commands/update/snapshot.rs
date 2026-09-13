@@ -91,7 +91,7 @@ pub(super) fn resolve_update_snapshot(
             }),
         }
     };
-    let host_target = match host_channel.and_then(|channel| channel.into_parsed()) {
+    let host_target = match host_channel.and_then(RecordedChannelParse::into_parsed) {
         Some(channel) => {
             resolve_host_update_target(context, manifest, reshade_sources, game_id, channel)?
         }

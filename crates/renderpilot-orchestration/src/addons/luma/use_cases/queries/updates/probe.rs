@@ -263,29 +263,26 @@ pub(super) async fn check_host(
     if !host_path.is_file() {
         return Some(UpdateStatus::Available);
     }
-    let min_version = match manifest.min_reshade_version_parsed() {
-        Ok(version) => version,
-        Err(_) => return Some(UpdateStatus::Unknown),
+    let Ok(min_version) = manifest.min_reshade_version_parsed() else {
+        return Some(UpdateStatus::Unknown);
     };
-    let assessment = match update_target::assess_host_for_update(target, &min_version) {
-        Some(assessment) => assessment,
-        // The only `None` path is a known custom build. The proxy still belongs
-        // to this record, but its current bytes are no longer safe to compare
-        // against or replace with Luma's nightly.
-        None => return Some(UpdateStatus::Unknown),
+    // The only `None` path is a known custom build. The proxy still belongs
+    // to this record, but its current bytes are no longer safe to compare
+    // against or replace with Luma's nightly.
+    let Some(assessment) = update_target::assess_host_for_update(target, &min_version) else {
+        return Some(UpdateStatus::Unknown);
     };
     if assessment.conflict {
         return Some(UpdateStatus::Unknown);
     }
 
-    let current = match std::fs::read(&host_path) {
-        Ok(bytes) => sha256_hex(&bytes),
-        Err(_) => return Some(UpdateStatus::Unknown),
+    let Ok(bytes) = std::fs::read(&host_path) else {
+        return Some(UpdateStatus::Unknown);
     };
-    let source = match require_reshade_source(reshade_sources, ReshadeChannel::Nightly, target.arch)
-    {
-        Ok(source) => source,
-        Err(_) => return Some(UpdateStatus::Unknown),
+    let current = sha256_hex(&bytes);
+    let Ok(source) = require_reshade_source(reshade_sources, ReshadeChannel::Nightly, target.arch)
+    else {
+        return Some(UpdateStatus::Unknown);
     };
 
     // Cheap HEAD/ETag path before downloading the full nightly archive.
@@ -323,9 +320,8 @@ pub(super) async fn check_host(
         return Some(UpdateStatus::Unknown);
     }
 
-    let download = match fetch_reshade_from_source(&source, target.arch, None).await {
-        Ok(download) => download,
-        Err(_) => return Some(UpdateStatus::Unknown),
+    let Ok(download) = fetch_reshade_from_source(&source, target.arch, None).await else {
+        return Some(UpdateStatus::Unknown);
     };
 
     let status = host_status_from_digests(assessment.lifecycle, &current, &download.digest);

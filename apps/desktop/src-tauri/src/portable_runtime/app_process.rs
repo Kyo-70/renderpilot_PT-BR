@@ -258,7 +258,7 @@ fn private_pipe() -> Result<(File, File)> {
     };
     // SAFETY: output pointers and security attributes are valid. The pipe ends
     // become owned `File`s exactly once below.
-    if unsafe { CreatePipe(&mut read, &mut write, &attributes, 0) } == 0 {
+    if unsafe { CreatePipe(&raw mut read, &raw mut write, &raw const attributes, 0) } == 0 {
         return Err(PortableRuntimeError::new(
             "portable_pipe_create",
             "CreatePipe failed",
@@ -287,7 +287,7 @@ impl<'a> AttributeList<'a> {
         let mut bytes = 0;
         // SAFETY: the sizing call intentionally receives null storage.
         unsafe {
-            InitializeProcThreadAttributeList(ptr::null_mut(), 2, 0, &mut bytes);
+            InitializeProcThreadAttributeList(ptr::null_mut(), 2, 0, &raw mut bytes);
         }
         if bytes == 0 {
             return Err(PortableRuntimeError::new(
@@ -298,7 +298,7 @@ impl<'a> AttributeList<'a> {
         let mut storage = vec![0_u8; bytes];
         let list = storage.as_mut_ptr().cast();
         // SAFETY: storage has the exact size returned by the sizing call.
-        if unsafe { InitializeProcThreadAttributeList(list, 2, 0, &mut bytes) } == 0 {
+        if unsafe { InitializeProcThreadAttributeList(list, 2, 0, &raw mut bytes) } == 0 {
             return Err(PortableRuntimeError::new(
                 "portable_app_attributes",
                 "could not initialize process attribute list",

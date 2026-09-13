@@ -8,7 +8,7 @@ use renderpilot_domain::{
     Launcher, ManagedAddonFile, ManagedFileBaseline, OptiScalerAdoptionState,
     OptiScalerConfigurationBaseline, OptiScalerFileCleanup, OptiScalerFileReceipt,
     OptiScalerFileRole, OptiScalerInstallStateParts, PathRef, PlannedGameProxyTopology, Platform,
-    ProxyLink, ProxyRootPrestate,
+    ProxyLink, ProxyRootPrestate, Sha256Hash,
 };
 use sha2::Digest as _;
 
@@ -73,7 +73,7 @@ fn seed_managed_optiscaler_aggregate(
                 state.game_id.as_str(),
                 &state.release_id,
                 &state.manifest_revision,
-                state.archive_sha256.as_ref().map(|value| value.as_str()),
+                state.archive_sha256.as_ref().map(Sha256Hash::as_str),
                 state.source.as_deref(),
                 state.target_exe_path.as_str(),
                 state.target_dir.as_str(),

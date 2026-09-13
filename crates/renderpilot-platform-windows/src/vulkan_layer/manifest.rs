@@ -387,8 +387,8 @@ pub(crate) fn resolve_library_path(manifest_path: &Path, library_path: &str) -> 
 
 fn architecture_from_manifest(library_arch: Option<&str>) -> VulkanLayerArchitecture {
     match library_arch.map(str::trim) {
-        Some("64") | Some("x64") | Some("X64") => VulkanLayerArchitecture::X64,
-        Some("32") | Some("x86") | Some("X86") => VulkanLayerArchitecture::X86,
+        Some("64" | "x64" | "X64") => VulkanLayerArchitecture::X64,
+        Some("32" | "x86" | "X86") => VulkanLayerArchitecture::X86,
         _ => VulkanLayerArchitecture::Unknown,
     }
 }

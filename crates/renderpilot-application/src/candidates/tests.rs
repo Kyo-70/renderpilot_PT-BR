@@ -17,7 +17,7 @@ use crate::{
 use super::automatic::is_automatic_catalog_candidate;
 use super::dto::{
     ActiveCatalogPackage, CandidateComparison, CandidateSelection, ComponentReplacementCandidates,
-    InstalledReleaseState,
+    InstalledReleaseState, ReplacementCandidate,
 };
 use super::matcher::{
     CandidateContext, find_replacement_candidate_selection, find_replacement_candidates,
@@ -117,7 +117,7 @@ fn vendor_xiph_candidates_are_listed_and_catalog_release_is_retained() {
             LibraryTechnology::XiphVorbis,
             Swappability::BundleOnly,
         ),
-        |component, file| component.with_file(file),
+        LibraryComponent::with_file,
     );
     let artifact = LibraryArtifact::new(
         ArtifactId::new("artifact:xiph-dide").expect("artifact id"),
@@ -191,7 +191,7 @@ fn vendor_xiph_candidates_are_listed_and_catalog_release_is_retained() {
                 LibraryTechnology::XiphVorbis,
                 Swappability::BundleOnly,
             ),
-            |component, file| component.with_file(file),
+            LibraryComponent::with_file,
         )
     };
     let installed_component = post_transition_component(18);
@@ -737,7 +737,7 @@ fn distinct_payloads_with_the_same_version_are_not_deduplicated() {
         groups[0]
             .candidates()
             .iter()
-            .any(|candidate| candidate.is_downloaded())
+            .any(ReplacementCandidate::is_downloaded)
     );
 }
 
@@ -1742,7 +1742,7 @@ fn openvr_installed_release_is_resolved_by_full_catalog_content() {
                 version: PackageVersion::parse("1.1.0").expect("package version"),
                 channel: ReleaseChannel::Stable,
                 label: Some("revision b".to_owned()),
-                components: Default::default(),
+                components: std::collections::BTreeMap::default(),
             }),
         }
     );
@@ -1854,7 +1854,7 @@ fn installed_catalog_release_resolution_is_not_openvr_specific() {
                 version: PackageVersion::parse("4.1.1.2740").expect("package version"),
                 channel: ReleaseChannel::Stable,
                 label: Some("FSR 3.1.4".to_owned()),
-                components: Default::default(),
+                components: std::collections::BTreeMap::default(),
             }),
         },
         "stable package identity must win over a preview with the same technical version"
@@ -1970,7 +1970,7 @@ fn test_catalog_receipt(
             version: PackageVersion::parse(release).expect("package version"),
             channel: ReleaseChannel::Stable,
             label: label.map(str::to_owned),
-            components: Default::default(),
+            components: std::collections::BTreeMap::default(),
         },
         target: CatalogTargetReceipt {
             os: "windows".to_owned(),
@@ -2335,7 +2335,7 @@ fn cohesive_fsr_candidate_group_uses_entry_point_as_display_path() {
         groups[0]
             .installed_release()
             .known_version()
-            .map(|version| version.as_str()),
+            .map(Version::as_str),
         Some("4.0.3")
     );
 }
@@ -2384,7 +2384,7 @@ fn mixed_fsr_component_reports_the_entry_points_version() {
         groups[0]
             .installed_release()
             .known_version()
-            .map(|version| version.as_str()),
+            .map(Version::as_str),
         Some("1.0.1.41314"),
         "the leftover upscaler must not hijack the current version"
     );

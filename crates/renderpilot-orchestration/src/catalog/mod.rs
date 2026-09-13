@@ -13,8 +13,8 @@ use renderpilot_application::{
 };
 use renderpilot_detection::DetectedLibraryFile;
 use renderpilot_domain::{
-    AddonKind, ComponentFile, GameId, GameInstallation, LibraryArtifact, LibraryComponent,
-    LibraryTechnology,
+    AddonKind, ComponentFile, GameId, GameInstallation, InstalledAddon, LibraryArtifact,
+    LibraryComponent, LibraryTechnology,
 };
 use renderpilot_storage_sqlite::SqliteStorage;
 
@@ -437,7 +437,7 @@ pub(crate) fn get_game_details_with_universe(
         crate::addons::capabilities::DurableProfileCapabilities::load_for_game(context, game_id)?;
     let addon_capabilities = merge_addon_capabilities(
         &profile_capabilities,
-        installed_addon.as_ref().map(|a| a.kind()),
+        installed_addon.as_ref().map(InstalledAddon::kind),
         optiscaler_installed,
     );
     let backup_component_ids =
@@ -465,7 +465,7 @@ pub(crate) fn get_game_details_with_universe(
         game_id,
         &components,
         installed_addon.as_ref(),
-    )?;
+    );
     let candidate_selection = find_replacement_candidate_selection_indexed(
         &matching_components,
         &universe.artifact_index,
@@ -563,9 +563,9 @@ pub(crate) fn components_for_candidate_matching_with_installed(
     game_id: &GameId,
     components: &[LibraryComponent],
     installed_addon: Option<&renderpilot_domain::InstalledAddon>,
-) -> Result<Vec<LibraryComponent>, ServiceError> {
+) -> Vec<LibraryComponent> {
     let managed_files = crate::coordinated_files::managed_files_of(installed_addon);
-    Ok(components
+    components
         .iter()
         .filter_map(|component| {
             match crate::coordinated_files::current_component_snapshot(component, managed_files) {
@@ -580,7 +580,7 @@ pub(crate) fn components_for_candidate_matching_with_installed(
                 }
             }
         })
-        .collect())
+        .collect()
 }
 
 /// Returns full game details including components, candidates, and operations.
@@ -724,9 +724,8 @@ fn update_game_ui_state(
     let storage = context.storage();
     let generation_before = storage.catalog_generation();
     let current = storage.get_game_ui_state(game_id.as_str())?;
-    let (prev_favorite, prev_hidden) = current
-        .map(|state| (state.is_favorite, state.is_hidden))
-        .unwrap_or((false, false));
+    let (prev_favorite, prev_hidden) =
+        current.map_or((false, false), |state| (state.is_favorite, state.is_hidden));
     let (is_favorite, is_hidden) = f(prev_favorite, prev_hidden);
     if (is_favorite, is_hidden) == (prev_favorite, prev_hidden) {
         return Ok(());
@@ -994,8 +993,7 @@ mod tests {
         std::fs::write(&dll, b"externally-replaced").expect("replace DLL");
 
         let refreshed =
-            components_for_candidate_matching_with_installed(&game_id, &[component], None)
-                .expect("live refresh");
+            components_for_candidate_matching_with_installed(&game_id, &[component], None);
 
         assert!(
             refreshed.is_empty(),

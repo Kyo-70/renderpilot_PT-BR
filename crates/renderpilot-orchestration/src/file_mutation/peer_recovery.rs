@@ -108,7 +108,7 @@ fn restore_prepared(
     crate::peer_mutation_executor::ancestor_io::cleanup_recovery(
         program.declared_ancestors(),
         &roots,
-    )?;
+    );
     context
         .storage()
         .complete_prepared_file_mutation_restored(fence)?;

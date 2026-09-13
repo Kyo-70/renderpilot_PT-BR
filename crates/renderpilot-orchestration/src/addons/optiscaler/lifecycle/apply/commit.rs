@@ -352,7 +352,7 @@ pub(in crate::addons::optiscaler) fn apply_release(
         plan.preservations
             .iter()
             .flat_map(|preservation| [&preservation.destination, &preservation.source])
-            .map(|path| path.as_path()),
+            .map(PathBuf::as_path),
     );
     preferred_paths.push(prepared.target.proxy.slot.as_path());
     // A removed endpoint with a sealed Absent preimage is a terminal
@@ -363,14 +363,9 @@ pub(in crate::addons::optiscaler) fn apply_release(
         plan.cleanup
             .exact_removed_paths
             .iter()
-            .map(|path| path.as_path()),
+            .map(PathBuf::as_path),
     );
-    preferred_paths.extend(
-        plan.layout
-            .removed_old_paths
-            .iter()
-            .map(|path| path.as_path()),
-    );
+    preferred_paths.extend(plan.layout.removed_old_paths.iter().map(PathBuf::as_path));
     preferred_paths.extend(
         selected_members(&prepared.release, &prepared.modules)
             .filter(|member| member.target != "$proxy")
@@ -378,7 +373,7 @@ pub(in crate::addons::optiscaler) fn apply_release(
                 plan.layout
                     .new_paths
                     .get(&member.archive_path.to_ascii_lowercase())
-                    .map(|path| path.as_path())
+                    .map(PathBuf::as_path)
             }),
     );
     preferred_paths.extend(

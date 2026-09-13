@@ -6,6 +6,8 @@
 //! future schema changes while retaining the SQLite semantics needed to reject
 //! a look-alike database.
 
+use std::fmt::Write as _;
+
 use renderpilot_application::AppResult;
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -54,7 +56,11 @@ const V16_DIGEST: &str = "9c052a4d42ae4d9cd83f2760a1df9b3ea062e44da3a3937424b8c2
 fn projection_digest(connection: &Connection) -> AppResult<String> {
     let projection = schema_projection(connection)?;
     let digest = Sha256::digest(projection.as_bytes());
-    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        let _ = write!(hex, "{byte:02x}");
+    }
+    Ok(hex)
 }
 
 fn schema_projection(connection: &Connection) -> AppResult<String> {

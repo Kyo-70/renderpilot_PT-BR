@@ -393,7 +393,7 @@ impl DurableFileTransaction {
             .iter()
             .map(PathBuf::from)
             .collect::<Vec<_>>();
-        crate::peer_mutation_executor::ancestor_io::cleanup(&self.manifest.peer_ancestors, &roots)?;
+        crate::peer_mutation_executor::ancestor_io::cleanup(&self.manifest.peer_ancestors, &roots);
         storage.complete_prepared_file_mutation_restored(fence)?;
         if let Err(error) = cleanup_manifest(&self.manifest) {
             log::warn!(

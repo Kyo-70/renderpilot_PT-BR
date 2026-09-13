@@ -7,6 +7,7 @@
 //! treated as Xbox evidence.
 
 use std::{
+    borrow::Cow,
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
@@ -430,7 +431,7 @@ fn attribute_value(element: &quick_xml::events::BytesStart<'_>, expected: &str) 
             attribute
                 .normalized_value(XmlVersion::Implicit1_0)
                 .ok()
-                .map(|value| value.into_owned())
+                .map(Cow::into_owned)
         })
 }
 

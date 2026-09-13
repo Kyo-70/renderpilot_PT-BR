@@ -93,6 +93,7 @@ impl LibraryComponent {
     }
 
     /// Adds a component file and returns the updated component.
+    #[must_use]
     pub fn with_file(mut self, file: ComponentFile) -> Self {
         self.files.push(file);
         self
@@ -105,6 +106,7 @@ impl LibraryComponent {
     /// component's files from disk (baseline resolution, post-overlay rebind,
     /// freshness checks): the identity stays stable while the files are
     /// recomputed.
+    #[must_use]
     pub fn rebuild_with_files(&self, files: Vec<ComponentFile>) -> Self {
         Self {
             id: self.id.clone(),
@@ -172,18 +174,21 @@ impl ComponentFile {
     }
 
     /// Sets a file version and returns the updated file.
+    #[must_use]
     pub fn with_version(mut self, version: Version) -> Self {
         self.version = Some(version);
         self
     }
 
     /// Sets a SHA-256 hash and returns the updated file.
+    #[must_use]
     pub fn with_sha256(mut self, sha256: Sha256Hash) -> Self {
         self.sha256 = Some(sha256);
         self
     }
 
     /// Sets the install-as target basename and returns the updated file.
+    #[must_use]
     pub fn with_install_as(mut self, install_as: impl Into<String>) -> Self {
         self.install_as = Some(install_as.into());
         self
@@ -377,6 +382,7 @@ impl LibraryArtifact {
     }
 
     /// Associates the artifact with the game it was discovered in.
+    #[must_use]
     pub fn with_source_game_id(mut self, source_game_id: GameId) -> Self {
         self.source_game_id = Some(source_game_id);
         self

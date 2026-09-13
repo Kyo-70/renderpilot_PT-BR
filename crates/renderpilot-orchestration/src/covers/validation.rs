@@ -52,9 +52,7 @@ pub(crate) fn validate_cover_bytes(bytes: &[u8]) -> Result<CoverFormat, ServiceE
 }
 
 pub(crate) fn mime_for_bytes(bytes: &[u8]) -> &'static str {
-    validate_cover_bytes(bytes)
-        .map(CoverFormat::mime)
-        .unwrap_or("application/octet-stream")
+    validate_cover_bytes(bytes).map_or("application/octet-stream", CoverFormat::mime)
 }
 
 fn validate_cover_size(bytes: &[u8]) -> Result<(), ServiceError> {

@@ -156,7 +156,7 @@ fn rename_open_handle_no_replace(
         let mut io_status = IO_STATUS_BLOCK::default();
         let status = NtSetInformationFile(
             source.as_raw_handle(),
-            &mut io_status,
+            &raw mut io_status,
             rename.cast(),
             required_bytes,
             FileRenameInformation,
@@ -318,7 +318,7 @@ impl PreparedNoReplaceWrite {
             let mut io_status = IO_STATUS_BLOCK::default();
             let direct_status = NtSetInformationFile(
                 file.as_raw_handle(),
-                &mut io_status,
+                &raw mut io_status,
                 rename.cast(),
                 required_bytes,
                 FileRenameInformation,

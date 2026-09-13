@@ -187,7 +187,7 @@ impl SqliteStorage {
                         game_id,
                         setting_key,
                         baseline_dword,
-                        if baseline_was_predefined { 1 } else { 0 },
+                        i32::from(baseline_was_predefined),
                         predefined_dword,
                         captured_exe,
                     ],

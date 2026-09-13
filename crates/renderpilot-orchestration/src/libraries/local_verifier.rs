@@ -98,9 +98,8 @@ impl LocalArtifactVerifier {
         if let Some(state) = self.files.get(&key) {
             return state.clone();
         }
-        let normalized_path = match PathRef::new(path.to_string_lossy().replace('\\', "/")) {
-            Ok(path) => path,
-            Err(_) => return FileState::Corrupt,
+        let Ok(normalized_path) = PathRef::new(path.to_string_lossy().replace('\\', "/")) else {
+            return FileState::Corrupt;
         };
         if let Some(observation) = self
             .persisted
@@ -127,8 +126,9 @@ impl LocalArtifactVerifier {
                     self.files.insert(key, FileState::Corrupt);
                     return FileState::Corrupt;
                 }
-                Ok(FileIdentityProbeResult::Available(_))
-                | Ok(FileIdentityProbeResult::Uncacheable) => {}
+                Ok(
+                    FileIdentityProbeResult::Available(_) | FileIdentityProbeResult::Uncacheable,
+                ) => {}
             }
         }
         let result = match self.observation_source.observe(path) {
@@ -152,8 +152,7 @@ impl LocalArtifactVerifier {
                 });
                 FileState::Verified(Box::new(observation))
             }
-            Ok(FileObservationResult::Available(_))
-            | Ok(FileObservationResult::Unavailable)
+            Ok(FileObservationResult::Available(_) | FileObservationResult::Unavailable)
             | Err(_) => FileState::Corrupt,
         };
         self.files.insert(key, result.clone());

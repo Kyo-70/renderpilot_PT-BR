@@ -60,9 +60,8 @@ pub(super) fn normalize_library_name(value: &str) -> Option<String> {
     }
 
     match parse_library_technology(trimmed) {
-        Some(LibraryTechnology::Unknown) => None,
+        Some(LibraryTechnology::Unknown) | None => None,
         Some(technology) => Some(technology.as_slug().to_owned()),
-        None => None,
     }
 }
 

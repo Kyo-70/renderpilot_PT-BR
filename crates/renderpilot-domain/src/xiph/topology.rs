@@ -185,8 +185,10 @@ pub(super) const fn is_allowed_edge(source: XiphMember, target: XiphMember) -> b
     matches!(
         (source, target),
         (XiphMember::Vorbis, XiphMember::Ogg)
-            | (XiphMember::VorbisFile, XiphMember::Vorbis | XiphMember::Ogg)
-            | (XiphMember::VorbisEnc, XiphMember::Vorbis | XiphMember::Ogg)
+            | (
+                XiphMember::VorbisFile | XiphMember::VorbisEnc,
+                XiphMember::Vorbis | XiphMember::Ogg,
+            )
     )
 }
 

@@ -484,12 +484,12 @@ mod tests {
         let condition_only = bundled_facts("2795230");
         let resolved =
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &condition_only);
-        let (entry, variant) = match resolved {
-            crate::addons::optiscaler::compatibility_catalog::ResolvedCompatibility::Match {
-                entry,
-                variant,
-            } => (entry, variant),
-            _ => panic!("ODDRoom must resolve exactly"),
+        let crate::addons::optiscaler::compatibility_catalog::ResolvedCompatibility::Match {
+            entry,
+            variant,
+        } = resolved
+        else {
+            panic!("ODDRoom must resolve exactly");
         };
         assert_eq!(entry.guidance.len(), 1);
         assert!(variant.launch.is_none());

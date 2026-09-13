@@ -494,7 +494,7 @@ fn collect_raw_candidates(
             structural_files.push(path.clone());
             continue;
         }
-        let size_bytes = path.metadata().map(|m| m.len()).unwrap_or(0);
+        let size_bytes = path.metadata().map_or(0, |m| m.len());
         let relative_path = relative_path_from(root, path);
         let depth = Path::new(&relative_path)
             .parent()
@@ -502,8 +502,7 @@ fn collect_raw_candidates(
             .unwrap_or(0);
         let file_name_no_ext = file_name
             .rsplit_once('.')
-            .map(|(stem, _)| stem.to_owned())
-            .unwrap_or_else(|| file_name.to_owned());
+            .map_or_else(|| file_name.to_owned(), |(stem, _)| stem.to_owned());
 
         out.push(RawCandidate {
             absolute_path: path.clone(),
@@ -857,7 +856,11 @@ mod tests {
     fn larger_binaries_outrank_tiny_ones_when_other_signals_tie() {
         let tmp = TempDir::new().unwrap();
         // Both at root, same level, neither matches folder name.
-        write_file(&tmp.path().join("BigGame.exe"), &[0u8; 110 * 1024 * 1024]);
+        let big_game = tmp.path().join("BigGame.exe");
+        let big_file = File::create(&big_game).expect("create BigGame.exe");
+        big_file
+            .set_len(110 * 1024 * 1024)
+            .expect("set BigGame.exe length");
         write_file(&tmp.path().join("TinyGame.exe"), &[0u8; 1024]);
 
         let results = detect_executable_candidates(tmp.path());

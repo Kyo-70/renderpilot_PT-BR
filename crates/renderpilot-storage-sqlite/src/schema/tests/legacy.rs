@@ -184,7 +184,7 @@ fn apply_backs_up_and_rebuilds_malformed_current_pending_mutations() {
 
     let backups: Vec<PathBuf> = fs::read_dir(&dir)
         .expect("list temp")
-        .filter_map(|entry| entry.ok())
+        .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {
             path.file_name()

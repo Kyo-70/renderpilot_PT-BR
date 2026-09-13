@@ -74,7 +74,7 @@ pub(crate) fn compose_active_uninstall(
             before,
             before_bytes,
             &mut effects,
-        )?;
+        );
     }
 
     let mut backed = input.record.backed_up_files().to_vec();
@@ -124,7 +124,7 @@ pub(crate) fn compose_active_uninstall(
             &baseline,
             restored,
             &mut effects,
-        )?;
+        );
         let sidecar = managed_sidecar_path(endpoint.path()).map_err(|_| {
             RenoDxActiveUninstallError::Path(std::path::PathBuf::from(endpoint.path().as_str()))
         })?;
@@ -134,7 +134,7 @@ pub(crate) fn compose_active_uninstall(
             present_image(backup.path(), backup.snapshot())?,
             present_bytes(backup.path(), backup.snapshot())?,
             &mut effects,
-        )?;
+        );
     }
 
     let planned_topology = compose_host(&input, &mut effects)?;

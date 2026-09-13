@@ -6,6 +6,7 @@
 //! emits for that flow (`Replace` and `UpdateText`).  It deliberately never
 //! enumerates the game directory or reads an unrelated file.
 
+use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -88,8 +89,7 @@ pub(crate) fn build(
                 let current = before
                     .as_deref()
                     .map(String::from_utf8_lossy)
-                    .map(|text| text.into_owned())
-                    .unwrap_or_else(|| default.clone());
+                    .map_or_else(|| default.clone(), Cow::into_owned);
                 let after = strategy.apply(&current).into_bytes();
                 let record_as_created = before.is_none();
                 (path, before, Some(after), record_as_created)

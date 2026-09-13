@@ -15,8 +15,10 @@ pub fn status(context: &Context, game_id: &GameId) -> Result<RenoDxInstallState,
     Ok(
         records::active_record_of_kind(context, game_id, AddonKind::RenoDx)?
             .as_ref()
-            .map(tracking::install_state_from_record)
-            .unwrap_or(RenoDxInstallState::NotInstalled),
+            .map_or(
+                RenoDxInstallState::NotInstalled,
+                tracking::install_state_from_record,
+            ),
     )
 }
 

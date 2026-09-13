@@ -224,8 +224,7 @@ fn is_cache_expired(metadata: &fs::Metadata, ttl: Option<Duration>) -> bool {
     };
     SystemTime::now()
         .duration_since(modified)
-        .map(|elapsed| elapsed > ttl)
-        .unwrap_or(false)
+        .is_ok_and(|elapsed| elapsed > ttl)
 }
 
 fn cache_path(file_name: &str) -> Result<PathBuf, ServiceError> {
@@ -347,7 +346,7 @@ mod tests {
     fn no_ttl_cache_never_goes_stale() {
         let dir = tempdir().expect("temp dir");
         let path = write_cache(dir.path(), "ok");
-        age_file(&path, Duration::from_secs(10 * 365 * 24 * 60 * 60));
+        age_file(&path, Duration::from_hours(10 * 365 * 24));
         assert_matches!(
             read_cached_at(&path, None, &parse_doc).expect("classify"),
             CachedManifest::Fresh(_)

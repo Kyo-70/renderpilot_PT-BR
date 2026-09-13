@@ -250,7 +250,7 @@ mod tests {
         );
         assert_eq!(record.reshade_channel(), Some("stable"));
         assert_eq!(
-            record.registered_exe_path().map(|path| path.as_str()),
+            record.registered_exe_path().map(PathRef::as_str),
             Some(expected_exe.as_str())
         );
         assert_eq!(record.created_files().len(), 2);

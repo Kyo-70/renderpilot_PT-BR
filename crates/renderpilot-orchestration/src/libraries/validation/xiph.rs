@@ -82,10 +82,10 @@ pub(super) fn validate_identity(package: &LibraryPackage) -> Result<(), ServiceE
         || &package.release.version != vorbis_version
         || package.release.channel != ReleaseChannel::Stable
         || package.package_id != expected_package_id
-        || !toolchain
+        || toolchain
             .runner_image
             .strip_prefix("windows-2025-vs2026@")
-            .is_some_and(|version| !version.is_empty())
+            .is_none_or(str::is_empty)
         || sources.len() != 2
         || patches
             .values()
@@ -197,12 +197,11 @@ pub(super) fn validate_artifact_contract(
     let topology = package.variant.split('.').next().unwrap_or_default();
     let mut expected_imports = match component {
         "vorbis" if topology == "shared" => vec![member_name("ogg")?],
-        "vorbis" => Vec::new(),
         "vorbisfile" if topology == "shared" => {
             vec![member_name("ogg")?, member_name("vorbis")?]
         }
         "vorbisfile" | "vorbisenc" => vec![member_name("vorbis")?],
-        "ogg" => Vec::new(),
+        "vorbis" | "ogg" => Vec::new(),
         _ => return Err(noncanonical_package(package)),
     };
     expected_imports.sort_unstable();

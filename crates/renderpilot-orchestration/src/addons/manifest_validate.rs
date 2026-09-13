@@ -28,7 +28,7 @@ pub(crate) fn ensure_semver(context: &str, field: &str, value: &str) -> Result<(
     let ok = !value.is_empty()
         && value
             .split('.')
-            .map(|part| part.parse::<u32>())
+            .map(str::parse::<u32>)
             .all(|part| part.is_ok());
     if !ok {
         return Err(failed(format!(

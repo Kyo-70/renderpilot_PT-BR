@@ -27,7 +27,7 @@ const INCOMPATIBLE_RUNTIME_EXIT_CODE: i32 = 2;
 
 include!(concat!(env!("OUT_DIR"), "/webview_runtime_contract.rs"));
 
-/// Pins the WebView2 user-data folder before Tauri creates a WebView.
+/// Pins the WebView2 user-data folder before Tauri creates a `WebView`.
 ///
 /// The authenticated portable runtime path takes precedence. Installed builds
 /// retain the existing compatible `%LOCALAPPDATA%\\RenderPilot\\WebView2`

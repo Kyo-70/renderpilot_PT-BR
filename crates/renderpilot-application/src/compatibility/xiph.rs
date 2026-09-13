@@ -665,7 +665,7 @@ mod tests {
                 LibraryTechnology::XiphVorbis,
                 Swappability::BundleOnly,
             ),
-            |component, file| component.with_file(file),
+            LibraryComponent::with_file,
         )
     }
 

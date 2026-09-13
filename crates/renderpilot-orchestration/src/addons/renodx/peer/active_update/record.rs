@@ -1,6 +1,6 @@
 use renderpilot_domain::{
-    AddonKind, GameProxyTopology, InstalledAddon, ManagedFileMode, NormalizedPathRelation, PathRef,
-    normalized_path_relation,
+    AddonKind, GameProxyTopology, InstalledAddon, ManagedAddonFile, ManagedFileMode,
+    NormalizedPathRelation, PathRef, normalized_path_relation,
 };
 
 use super::error::RenoDxActiveUpdateError;
@@ -45,7 +45,7 @@ pub(super) fn validate_record_paths(
         .created_files()
         .iter()
         .chain(record.backed_up_files())
-        .chain(record.managed_files().iter().map(|file| file.path()))
+        .chain(record.managed_files().iter().map(ManagedAddonFile::path))
     {
         require_under_roots(path, canonical_game_root, payload_root)?;
     }

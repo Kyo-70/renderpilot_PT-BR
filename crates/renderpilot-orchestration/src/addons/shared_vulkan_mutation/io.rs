@@ -186,13 +186,11 @@ fn remove_owned_snapshot(
     sha256: &str,
     len: u64,
 ) -> Result<(), MutationError> {
-    match file_state(absolute).map_err(MutationError::io)? {
-        None => Ok(()),
-        Some(_) => {
-            read_verified_snapshot(transaction_root, relative, sha256, len)?;
-            remove_if_file(absolute)
-        }
+    if file_state(absolute).map_err(MutationError::io)?.is_some() {
+        read_verified_snapshot(transaction_root, relative, sha256, len)?;
+        return remove_if_file(absolute);
     }
+    Ok(())
 }
 
 fn remove_if_file(path: &Path) -> Result<(), MutationError> {
@@ -255,9 +253,8 @@ fn classify_directory(
         if metadata.file_type().is_symlink() {
             return Ok(ParticipantState::Third);
         }
-        let child = match roots.authorize(&entry.path()) {
-            Ok(child) => child,
-            Err(_) => return Ok(ParticipantState::Third),
+        let Ok(child) = roots.authorize(&entry.path()) else {
+            return Ok(ParticipantState::Third);
         };
         if !allowed.contains(&child.normalized_key()) {
             return Ok(ParticipantState::Third);

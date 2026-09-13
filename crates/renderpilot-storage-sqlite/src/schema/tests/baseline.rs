@@ -63,7 +63,7 @@ fn g_obs_01_healthy_current_apply_is_authorizer_observational() {
 
     let backups: Vec<PathBuf> = fs::read_dir(&dir)
         .expect("list temp")
-        .filter_map(|entry| entry.ok())
+        .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| path.extension().is_some_and(|extension| extension == "bak"))
         .collect();

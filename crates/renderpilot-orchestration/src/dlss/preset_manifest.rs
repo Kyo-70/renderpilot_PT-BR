@@ -299,9 +299,7 @@ pub fn supported_presets_for<'a>(
     manifest: &'a DlssPresetManifest,
     version: &DlssVersion,
 ) -> &'a [u32] {
-    resolve_entry(manifest, version)
-        .map(|entry| entry.supported_presets.as_slice())
-        .unwrap_or(&[])
+    resolve_entry(manifest, version).map_or(&[], |entry| entry.supported_presets.as_slice())
 }
 
 // -----------------------------------------------------------------------------

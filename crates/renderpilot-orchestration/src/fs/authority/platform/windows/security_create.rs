@@ -94,7 +94,7 @@ fn windows_create_owner_only_directory_attempt(
         MakeSelfRelativeSD(
             descriptor_ptr,
             std::ptr::null_mut(),
-            &mut self_relative_length,
+            &raw mut self_relative_length,
         )
     };
     if self_relative_length == 0 {
@@ -113,7 +113,7 @@ fn windows_create_owner_only_directory_attempt(
         MakeSelfRelativeSD(
             descriptor_ptr,
             self_relative.cast(),
-            &mut self_relative_length,
+            &raw mut self_relative_length,
         )
     } == 0
     {
@@ -235,7 +235,7 @@ pub(crate) fn windows_current_user_sid() -> Result<Vec<u8>, ServiceError> {
     };
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
     let mut token: HANDLE = std::ptr::null_mut();
-    if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {
+    if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &raw mut token) } == 0 {
         return Err(crate::failed(format!(
             "failed to open current process token: {}",
             std::io::Error::last_os_error()
@@ -243,7 +243,8 @@ pub(crate) fn windows_current_user_sid() -> Result<Vec<u8>, ServiceError> {
     }
     let _token_guard = unsafe { File::from_raw_handle(token) };
     let mut length = 0_u32;
-    let _ = unsafe { GetTokenInformation(token, TokenUser, std::ptr::null_mut(), 0, &mut length) };
+    let _ =
+        unsafe { GetTokenInformation(token, TokenUser, std::ptr::null_mut(), 0, &raw mut length) };
     if length == 0 {
         return Err(crate::failed(format!(
             "failed to size current user token: {}",
@@ -259,7 +260,7 @@ pub(crate) fn windows_current_user_sid() -> Result<Vec<u8>, ServiceError> {
             buffer.as_mut_ptr().cast(),
             u32::try_from(buffer.len() * std::mem::size_of::<usize>())
                 .map_err(|_| crate::failed("current user token buffer is too large"))?,
-            &mut length,
+            &raw mut length,
         )
     } == 0
     {

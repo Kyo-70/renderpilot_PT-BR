@@ -249,7 +249,7 @@ fn file_backed_shared_and_file_reservations_have_one_success_for_the_same_game()
     );
     let file_success = file_result.is_ok();
     assert_eq!(
-        shared_success as u8 + file_success as u8,
+        u8::from(shared_success) + u8::from(file_success),
         1,
         "exactly one mutation kind may reserve the same game"
     );

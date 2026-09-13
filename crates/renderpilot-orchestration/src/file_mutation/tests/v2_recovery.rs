@@ -521,9 +521,8 @@ fn v2_preimage_mismatch_aborts_before_manifest_publication() {
             }],
         },
     );
-    let error = match result {
-        Ok(_) => panic!("mismatched preimage must fail preparation"),
-        Err(error) => error,
+    let Err(error) = result else {
+        panic!("mismatched preimage must fail preparation");
     };
     assert!(error.to_string().contains("preimage snapshot"));
     assert_eq!(fs::read(&target).expect("live file untouched"), b"before");

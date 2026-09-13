@@ -13,7 +13,7 @@ use crate::addons::reshade::channel;
 use crate::addons::reshade::host_policy;
 use crate::addons::reshade::scan::ReshadeHostAction;
 use crate::addons::reshade::source::{ReshadeSource, require_reshade_source};
-use crate::addons::reshade::types::{ReshadeChannel, ReshadeSourceCatalog};
+use crate::addons::reshade::types::{RecordedChannelParse, ReshadeChannel, ReshadeSourceCatalog};
 
 /// Recorded ReShade channel, including legacy URL-derived records.
 pub(crate) fn recorded_reshade_channel(record: &InstalledAddon) -> Option<ReshadeChannel> {
@@ -24,7 +24,7 @@ pub(crate) fn recorded_reshade_channel(record: &InstalledAddon) -> Option<Reshad
             channel::installed_channel(record)
                 .ok()
                 .flatten()
-                .and_then(|c| c.into_parsed())
+                .and_then(RecordedChannelParse::into_parsed)
         })
 }
 

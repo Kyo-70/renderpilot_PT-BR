@@ -45,7 +45,7 @@ fn strip_root(file_path: &str, root: &str) -> Option<String> {
     file_path
         .strip_prefix(root)
         .and_then(|path| path.strip_prefix('/'))
-        .map(|path| path.to_owned())
+        .map(ToOwned::to_owned)
 }
 
 fn relative_install_path(file_path: &str, install_root: &std::path::Path) -> Option<String> {

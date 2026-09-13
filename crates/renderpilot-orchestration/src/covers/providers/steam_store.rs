@@ -54,8 +54,7 @@ fn canonicalize_regional_title(title: &str) -> &str {
     REGIONAL_TITLE_SUFFIXES
         .iter()
         .find_map(|suffix| strip_ascii_case_insensitive_suffix(title, suffix))
-        .map(str::trim_end)
-        .unwrap_or(title)
+        .map_or(title, str::trim_end)
 }
 
 fn strip_ascii_case_insensitive_suffix<'a>(value: &'a str, suffix: &str) -> Option<&'a str> {

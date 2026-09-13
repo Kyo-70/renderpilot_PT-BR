@@ -120,9 +120,9 @@ impl RenoDxManifest {
                         message,
                     } = profile;
                     let WireEngineAddon { slug, sources } = addon;
-                    let (url64, url32) = sources
-                        .map(|sources| (Some(sources.x64), Some(sources.x86)))
-                        .unwrap_or((None, None));
+                    let (url64, url32) = sources.map_or((None, None), |sources| {
+                        (Some(sources.x64), Some(sources.x86))
+                    });
                     RenoDxGeneric {
                         engine,
                         status,

@@ -1,3 +1,5 @@
+use renderpilot_domain::InstalledAddon;
+
 use super::*;
 
 pub(in crate::addons::optiscaler) fn preflight_targets(
@@ -208,7 +210,7 @@ pub(in crate::addons::optiscaler) fn other_managed_claims(
     for managed in installed_addons
         .iter()
         .filter(|record| record.game_id() == game_id && record.kind() != AddonKind::OptiScaler)
-        .flat_map(|record| record.managed_files())
+        .flat_map(InstalledAddon::managed_files)
     {
         let path = Path::new(managed.path().as_str());
         let live =

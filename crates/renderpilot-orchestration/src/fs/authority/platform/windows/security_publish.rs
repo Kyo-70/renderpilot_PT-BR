@@ -126,8 +126,18 @@ fn normalized_publish_dacl(
         let offset = ace_start
             .checked_sub(dacl_start)
             .ok_or_else(|| crate::failed("derived staged publication DACL ACE offset underflow"))?;
-        let copied_header = unsafe { &mut *copied.0.cast::<u8>().add(offset).cast::<ACE_HEADER>() };
-        copied_header.AceFlags &= !(INHERITED_ACE as u8);
+        let copied_ace_flags_offset = offset
+            .checked_add(std::mem::offset_of!(ACE_HEADER, AceFlags))
+            .ok_or_else(|| {
+                crate::failed("derived staged publication DACL ACE flags offset overflow")
+            })?;
+        if copied_ace_flags_offset >= bytes_in_use {
+            return Err(crate::failed(
+                "derived staged publication DACL ACE flags lie outside its used range",
+            ));
+        }
+        let copied_ace_flags = unsafe { copied.0.cast::<u8>().add(copied_ace_flags_offset) };
+        unsafe { *copied_ace_flags &= !(INHERITED_ACE as u8) };
         prior_end = ace_end;
     }
     if unsafe { IsValidAcl(copied.0) } == 0 {
@@ -170,7 +180,7 @@ pub(crate) fn windows_prepare_staged_publish_security(
         fn drop(&mut self) {
             if !self.0.is_null() {
                 // GetSecurityInfo allocates this descriptor with LocalAlloc.
-                unsafe { windows_sys::Win32::Foundation::LocalFree(self.0 as _) };
+                unsafe { windows_sys::Win32::Foundation::LocalFree(self.0.cast()) };
             }
         }
     }
@@ -424,6 +434,6 @@ mod tests {
     #[test]
     fn rejects_a_malformed_acl_before_allocating_or_walking_aces() {
         let malformed = windows_sys::Win32::Security::ACL::default();
-        assert!(normalized_publish_dacl(&malformed).is_err());
+        assert!(normalized_publish_dacl(&raw const malformed).is_err());
     }
 }

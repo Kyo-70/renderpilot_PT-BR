@@ -6,7 +6,8 @@ use renderpilot_application::{
     ComponentRepository, InstalledAddonRepository, OptiScalerStateRepository,
 };
 use renderpilot_domain::{
-    ComponentId, ComponentRollbackBaseline, GameId, InstalledAddon, OptiScalerInstallState,
+    ComponentId, ComponentRollbackBaseline, GameId, InstalledAddon, LibraryComponent,
+    OptiScalerInstallState,
 };
 
 use crate::ServiceError;
@@ -59,7 +60,7 @@ pub(in crate::catalog) fn inventory(
     let current_components = storage.list_components_for_game(game_id)?;
     let current_component_ids: HashSet<&ComponentId> = current_components
         .iter()
-        .map(|component| component.id())
+        .map(LibraryComponent::id)
         .collect();
     let orphaned_component_ids = component_ids
         .iter()

@@ -247,6 +247,7 @@ impl LibraryPatternComponentDetector {
     }
 
     /// Sets the maximum recursion depth used when scanning a game folder.
+    #[must_use]
     pub fn with_max_depth(mut self, max_depth: usize) -> Self {
         self.max_depth = Some(max_depth);
         self
@@ -254,6 +255,7 @@ impl LibraryPatternComponentDetector {
 
     /// Uses a Send+Sync observation source for deterministic test scenarios.
     #[cfg(any(test, feature = "test-instrumentation"))]
+    #[must_use]
     pub fn with_file_observation_source(
         mut self,
         observation_source: Arc<dyn FileObservationSource>,
@@ -368,9 +370,8 @@ impl LibraryPatternComponentDetector {
                         reusable,
                     )));
                 }
-                FileIdentityProbeResult::Available(_) => {}
+                FileIdentityProbeResult::Available(_) | FileIdentityProbeResult::Uncacheable => {}
                 FileIdentityProbeResult::Missing => return Ok(None),
-                FileIdentityProbeResult::Uncacheable => {}
                 FileIdentityProbeResult::Unavailable => {
                     return Err(renderpilot_application::AppError::detection_failed(
                         format!(

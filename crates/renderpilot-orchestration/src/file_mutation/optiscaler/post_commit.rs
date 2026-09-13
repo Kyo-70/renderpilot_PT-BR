@@ -151,8 +151,10 @@ fn complete_remove_intent(
     let observed = super::observe(path);
 
     match (&expected_live, &observed) {
-        (super::DiskObservation::Absent, super::DiskObservation::Absent)
-        | (super::DiskObservation::Directory { .. }, super::DiskObservation::Absent) => {
+        (
+            super::DiskObservation::Absent | super::DiskObservation::Directory { .. },
+            super::DiskObservation::Absent,
+        ) => {
             // Either already absent, or the exact remove syscall completed before
             // the CAS. The intent already binds the only permitted live preimage, so
             // no IO is needed and the postimage is accepted after this observation.

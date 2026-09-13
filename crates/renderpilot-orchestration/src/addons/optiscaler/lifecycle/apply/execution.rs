@@ -236,7 +236,7 @@ impl ApplyExecution<'_, '_, '_> {
                         .prepared
                         .old_state
                         .as_ref()
-                        .map(|state| state.configuration_baseline())
+                        .map(OptiScalerInstallState::configuration_baseline)
                         .or(fresh_configuration_baseline.as_ref())
                         .ok_or_else(|| {
                             failed("OptiScaler configuration baseline was not captured")

@@ -342,8 +342,8 @@ fn owned_downstream_is_foreign_authority_and_prepared_host_is_strictly_validated
             Some(b"not a PE".to_vec()),
             &minimum_version(),
         ),
-        Err(ActiveHostClassificationError::Evidence { .. })
-            | Err(ActiveHostClassificationError::Assessment(_))
+        Err(ActiveHostClassificationError::Evidence { .. }
+            | ActiveHostClassificationError::Assessment(_),)
     ));
 }
 

@@ -194,13 +194,10 @@ pub fn scan_anticheat_with_options(
             return report;
         }
 
-        let entries = match fs::read_dir(&dir) {
-            Ok(entries) => entries,
-            Err(_) => {
-                report.unreadable_directories.push(dir);
-                report.mark_limited();
-                continue;
-            }
+        let Ok(entries) = fs::read_dir(&dir) else {
+            report.unreadable_directories.push(dir);
+            report.mark_limited();
+            continue;
         };
         let mut entries_within_bound = Vec::new();
         let mut hit_entry_bound = false;
@@ -213,13 +210,12 @@ pub fn scan_anticheat_with_options(
             }
 
             report.scanned_entry_count += 1;
-            match entry {
-                Ok(entry) => entries_within_bound.push(entry),
-                Err(_) => {
-                    report.unreadable_entries.push(dir.clone());
-                    report.unreadable_entry_count += 1;
-                    report.mark_limited();
-                }
+            if let Ok(entry) = entry {
+                entries_within_bound.push(entry);
+            } else {
+                report.unreadable_entries.push(dir.clone());
+                report.unreadable_entry_count += 1;
+                report.mark_limited();
             }
         }
         entries_within_bound.sort_by(|left, right| {
@@ -234,14 +230,11 @@ pub fn scan_anticheat_with_options(
                 })
         });
         for entry in entries_within_bound {
-            let scanned = match scan_entry(&entry) {
-                Ok(scanned) => scanned,
-                Err(_) => {
-                    report.unreadable_entries.push(dir.clone());
-                    report.unreadable_entry_count += 1;
-                    report.mark_limited();
-                    continue;
-                }
+            let Ok(scanned) = scan_entry(&entry) else {
+                report.unreadable_entries.push(dir.clone());
+                report.unreadable_entry_count += 1;
+                report.mark_limited();
+                continue;
             };
             if let Some(evidence) = scanned.evidence {
                 report.push_evidence(evidence);

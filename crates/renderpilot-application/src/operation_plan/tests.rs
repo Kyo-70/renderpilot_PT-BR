@@ -38,17 +38,17 @@ fn builds_valid_swap_plan_for_swappable_component() {
         plan.replacement_path().as_str(),
         "D:/Library/nvngx_dlss.dll"
     );
-    assert_eq!(plan.original_version().map(|v| v.as_str()), Some("3.5.0"));
+    assert_eq!(plan.original_version().map(Version::as_str), Some("3.5.0"));
     assert_eq!(
-        plan.replacement_version().map(|v| v.as_str()),
+        plan.replacement_version().map(Version::as_str),
         Some("3.7.0")
     );
     assert_eq!(
-        plan.original_sha256().map(|h| h.as_str()),
+        plan.original_sha256().map(Sha256Hash::as_str),
         Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     );
     assert_eq!(
-        plan.replacement_sha256().map(|h| h.as_str()),
+        plan.replacement_sha256().map(Sha256Hash::as_str),
         Some("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
     );
 
@@ -376,7 +376,7 @@ fn native_split_fsr_loader_targets_existing_loader_file_in_plan() {
         .files()
         .iter()
         .find(|file| {
-            file.replacement_path().map(|path| path.as_str())
+            file.replacement_path().map(PathRef::as_str)
                 == Some("D:/Library/amd_fidelityfx_loader_dx12.dll")
         })
         .expect("loader file should be present in plan");
@@ -457,7 +457,7 @@ fn entry_point_component_with_separate_loader_stack_targets_entry_point_in_plan(
         .files()
         .iter()
         .find(|file| {
-            file.replacement_path().map(|path| path.as_str())
+            file.replacement_path().map(PathRef::as_str)
                 == Some("D:/Library/amd_fidelityfx_loader_dx12.dll")
         })
         .expect("loader file should be present in plan");

@@ -151,8 +151,7 @@ pub(crate) fn checkpoint_wal(connection: &Connection) -> AppResult<()> {
 fn backup_path_for(db_path: &Path, qualifier: &str) -> PathBuf {
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis())
-        .unwrap_or(0);
+        .map_or(0, |duration| duration.as_millis());
     let file_name = db_path
         .file_name()
         .and_then(|name| name.to_str())

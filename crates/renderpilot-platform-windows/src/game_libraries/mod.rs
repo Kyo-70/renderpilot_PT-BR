@@ -554,8 +554,7 @@ mod tests {
         // By canonicalizing only the base path, callers relying on the joined directory's non-existence
         // will still correctly observe a missing path.
         let base = fs::canonicalize(env::temp_dir())
-            .map(strip_verbatim_prefix)
-            .unwrap_or_else(|_| env::temp_dir());
+            .map_or_else(|_| env::temp_dir(), strip_verbatim_prefix);
 
         base.join(format!("renderpilot-game-libs-{label}-{nanos}"))
     }

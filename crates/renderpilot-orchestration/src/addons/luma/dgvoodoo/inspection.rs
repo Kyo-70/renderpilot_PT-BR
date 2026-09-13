@@ -128,13 +128,10 @@ pub(crate) fn assess_existing(
             "the dgVoodoo profile has no D3D9.dll identity anchor".to_owned(),
         );
     };
-    let required = match normalized_requirement_version(version) {
-        Some(version) => version,
-        None => {
-            return ExistingDgVoodoo::Conflict(
-                "the dgVoodoo requirement has an invalid version".to_owned(),
-            );
-        }
+    let Some(required) = normalized_requirement_version(version) else {
+        return ExistingDgVoodoo::Conflict(
+            "the dgVoodoo requirement has an invalid version".to_owned(),
+        );
     };
     let Some(inspection) = renderpilot_detection::inspect_pe(&game_dir.join(&anchor.dest)) else {
         return ExistingDgVoodoo::Conflict("D3D9.dll is not a readable PE file".to_owned());

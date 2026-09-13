@@ -233,9 +233,10 @@ pub(super) fn discover_ubisoft_libraries() -> DiscoveredSources {
 }
 
 fn discovered_registry_install(path: PathBuf, launcher: Launcher) -> DiscoveredInstall {
-    detect_install_identity(&path)
-        .map(|identity| DiscoveredInstall::with_identity(path.clone(), identity))
-        .unwrap_or_else(|| DiscoveredInstall::launcher(path, launcher))
+    match detect_install_identity(&path) {
+        Some(identity) => DiscoveredInstall::with_identity(path, identity),
+        None => DiscoveredInstall::launcher(path, launcher),
+    }
 }
 
 fn non_empty(value: Option<String>) -> Option<String> {

@@ -324,9 +324,7 @@ fn add_game_explicit_executable_is_persisted_when_ranking_rejects_it() {
     let games = catalog::list_games(&fixture.context()).expect("games");
     assert_eq!(games.len(), 1);
     assert_eq!(
-        games[0]
-            .confirmed_executable()
-            .map(|candidate| candidate.as_str()),
+        games[0].confirmed_executable().map(PathRef::as_str),
         Some("CustomLauncher.exe")
     );
     assert!(
@@ -377,9 +375,7 @@ fn root_correction_remaps_and_preserves_confirmed_executable() {
     assert_eq!(games[0].id(), &stable_id);
     assert_eq!(games[0].install_path().as_str(), path_string(parent.path()));
     assert_eq!(
-        games[0]
-            .confirmed_executable()
-            .map(|candidate| candidate.as_str()),
+        games[0].confirmed_executable().map(PathRef::as_str),
         Some("Bin/CustomLauncher.exe"),
     );
 }

@@ -84,7 +84,7 @@ pub(super) fn compute_inspection_fingerprint(
             .copied()
             .map(boundary_evidence_name)
             .collect::<Vec<_>>();
-        evidence.sort();
+        evidence.sort_unstable();
         evidence.dedup();
         FingerprintRecommendation {
             root: recommendation.root.key().as_str().to_owned(),
@@ -143,7 +143,7 @@ fn fingerprint_boundary(boundary: &InstallBoundaryInspection) -> FingerprintBoun
         .copied()
         .map(boundary_evidence_name)
         .collect::<Vec<_>>();
-    evidence.sort();
+    evidence.sort_unstable();
     evidence.dedup();
     FingerprintBoundary {
         kind: boundary_kind_name(boundary.kind),
@@ -155,14 +155,14 @@ fn fingerprint_boundary(boundary: &InstallBoundaryInspection) -> FingerprintBoun
 
 fn fingerprint_relationship(relationship: &InstallRelationship) -> FingerprintRelationship {
     let mut game_ids = relationship.game_ids.clone();
-    game_ids.sort();
+    game_ids.sort_unstable();
     game_ids.dedup();
     let mut proven_install_roots = relationship
         .proven_install_roots
         .iter()
         .map(|root| root.key().as_str().to_owned())
         .collect::<Vec<_>>();
-    proven_install_roots.sort();
+    proven_install_roots.sort_unstable();
     proven_install_roots.dedup();
     FingerprintRelationship {
         kind: relationship_kind_name(relationship.kind),
@@ -177,7 +177,7 @@ fn fingerprint_decision_options(decision: &AddGameDecision) -> Vec<(&'static str
         AddGameDecision::Review(review) => review.options().to_vec(),
         AddGameDecision::Unavailable { .. } => Vec::new(),
     };
-    options.sort();
+    options.sort_unstable();
     options.dedup();
     options
         .into_iter()
@@ -203,7 +203,7 @@ fn fingerprint_root_correction(
                 }
             })
             .collect::<Vec<_>>();
-        cleanup_component_ids.sort();
+        cleanup_component_ids.sort_unstable();
         cleanup_component_ids.dedup();
         let mut blockers = assessment
             .blockers
@@ -211,7 +211,7 @@ fn fingerprint_root_correction(
             .copied()
             .map(crate::catalog::RootCorrectionBlockerKind::as_str)
             .collect::<Vec<_>>();
-        blockers.sort();
+        blockers.sort_unstable();
         blockers.dedup();
         FingerprintRootCorrection {
             game_id: assessment.game_id.clone(),

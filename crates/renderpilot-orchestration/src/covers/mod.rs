@@ -119,7 +119,7 @@ pub fn fetch_game_cover_auto(
 
     let remote_policy = CoverRemotePolicy::load(catalog.sqlite)?;
 
-    let bytes = providers::resolve_cover_bytes(&client, api_key.as_deref(), &remote_policy, &game)?;
+    let bytes = providers::resolve_cover_bytes(&client, api_key.as_deref(), remote_policy, &game)?;
 
     let output = catalog.install_cover(&game, &bytes)?;
     context.patch_catalog_cover(game_id, Some(output.updated_at_ms));

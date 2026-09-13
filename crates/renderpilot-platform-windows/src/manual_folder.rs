@@ -195,8 +195,7 @@ fn folder_title(folder: &Path) -> String {
         .file_name()
         .and_then(|name| name.to_str())
         .filter(|name| !name.trim().is_empty())
-        .map(str::to_owned)
-        .unwrap_or_else(|| folder.display().to_string())
+        .map_or_else(|| folder.display().to_string(), str::to_owned)
 }
 
 fn game_identity_for_install_folder(
@@ -231,7 +230,7 @@ mod tests {
     use std::fs;
 
     use renderpilot_application::GameSourceProvider;
-    use renderpilot_domain::Launcher;
+    use renderpilot_domain::{Launcher, PathRef};
     use tempfile::tempdir;
 
     use super::ManualFolderGameSource;
@@ -291,7 +290,7 @@ mod tests {
             .expect("game");
 
         assert_eq!(
-            game.confirmed_executable().map(|path| path.as_str()),
+            game.confirmed_executable().map(PathRef::as_str),
             Some("CustomLauncher.exe")
         );
         assert_eq!(

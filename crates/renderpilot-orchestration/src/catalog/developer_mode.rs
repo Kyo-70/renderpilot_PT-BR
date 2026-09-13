@@ -277,7 +277,7 @@ mod tests {
                 version: PackageVersion::parse("1.619.1").expect("package version"),
                 channel,
                 label: None,
-                components: Default::default(),
+                components: std::collections::BTreeMap::default(),
             },
             target: CatalogTargetReceipt {
                 os: "windows".to_owned(),

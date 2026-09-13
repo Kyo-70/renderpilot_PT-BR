@@ -100,7 +100,7 @@ fn sha256_reader_hex(mut reader: impl Read) -> io::Result<String> {
         match reader.read(&mut buffer) {
             Ok(0) => break,
             Ok(read) => hasher.update(&buffer[..read]),
-            Err(error) if error.kind() == ErrorKind::Interrupted => continue,
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
             Err(error) => return Err(error),
         }
     }

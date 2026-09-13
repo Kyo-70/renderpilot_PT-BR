@@ -241,10 +241,9 @@ fn read_ascii_dll_name(bytes: &[u8], offset: usize) -> Option<String> {
 fn classify_dll(name: &str) -> Option<GraphicsApi> {
     match name {
         "d3d12.dll" => Some(GraphicsApi::D3D12),
-        "d3d11.dll" => Some(GraphicsApi::D3D11),
+        "d3d11.dll" | "dxgi.dll" => Some(GraphicsApi::D3D11),
         "d3d10.dll" | "d3d10_1.dll" | "d3d10core.dll" => Some(GraphicsApi::D3D10),
         "d3d9.dll" => Some(GraphicsApi::D3D9),
-        "dxgi.dll" => Some(GraphicsApi::D3D11),
         "vulkan-1.dll" => Some(GraphicsApi::Vulkan),
         "opengl32.dll" => Some(GraphicsApi::OpenGl),
         _ => None,

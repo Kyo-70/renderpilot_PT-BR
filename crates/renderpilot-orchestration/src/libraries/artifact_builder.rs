@@ -22,12 +22,10 @@ pub(crate) fn catalog_packages_as_artifacts() -> Result<Vec<LibraryArtifact>, Se
     let Some(catalog) = catalog::load_local_catalog()? else {
         return Ok(Vec::new());
     };
-    catalog_as_artifacts(&catalog)
+    Ok(catalog_as_artifacts(&catalog))
 }
 
-pub(super) fn catalog_as_artifacts(
-    catalog: &ValidatedCatalog,
-) -> Result<Vec<LibraryArtifact>, ServiceError> {
+pub(super) fn catalog_as_artifacts(catalog: &ValidatedCatalog) -> Vec<LibraryArtifact> {
     let package_count = catalog.packages().len();
     let mut artifacts = Vec::with_capacity(package_count);
 
@@ -52,7 +50,7 @@ pub(super) fn catalog_as_artifacts(
         artifacts.push(artifact);
     }
 
-    Ok(artifacts)
+    artifacts
 }
 
 /// Builds a virtual catalog artifact or its materialized local counterpart.
@@ -192,8 +190,7 @@ fn package_metadata(resolved: &ResolvedPackage<'_>) -> Result<ArtifactMetadata, 
                 .map_err(|error| library_error(format!("invalid GitHub provenance: {error}")))?,
             );
         }
-        Some(LibraryProvenance::SourceBuild { .. }) => {}
-        None => {}
+        Some(LibraryProvenance::SourceBuild { .. }) | None => {}
     }
     Ok(metadata.with_catalog_package_receipt(super::receipt::package_receipt(resolved)?))
 }

@@ -334,12 +334,8 @@ fn finish_assessment_with_content(
         };
     }
 
-    let target_path = present
-        .map(|host| host.path.to_path_buf())
-        .unwrap_or(absent_target_path);
-    let slot = present
-        .map(|host| host.slot.to_owned())
-        .unwrap_or_else(|| absent_slot.to_owned());
+    let target_path = present.map_or(absent_target_path, |host| host.path.to_path_buf());
+    let slot = present.map_or_else(|| absent_slot.to_owned(), |host| host.slot.to_owned());
     let lifecycle = if conflict_kind.is_some() || action == ReshadeHostAction::Conflict {
         HostLifecycle::Conflict
     } else if present.is_none() {

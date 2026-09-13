@@ -19,9 +19,8 @@ pub(crate) fn observe(path: &Path) -> V2DiskObservation {
     {
         return V2DiskObservation::NonRegular;
     }
-    let bytes = match fs::read(path) {
-        Ok(bytes) => bytes,
-        Err(_) => return V2DiskObservation::Unreadable,
+    let Ok(bytes) = fs::read(path) else {
+        return V2DiskObservation::Unreadable;
     };
     V2DiskObservation::Regular {
         digest: digest_bytes(&bytes),

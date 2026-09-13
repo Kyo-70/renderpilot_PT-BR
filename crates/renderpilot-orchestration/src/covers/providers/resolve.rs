@@ -19,8 +19,8 @@ pub(super) struct EffectiveCoverRemotePolicy {
     pub(super) steamgriddb: bool,
 }
 
-impl From<&CoverRemotePolicy> for EffectiveCoverRemotePolicy {
-    fn from(policy: &CoverRemotePolicy) -> Self {
+impl From<CoverRemotePolicy> for EffectiveCoverRemotePolicy {
+    fn from(policy: CoverRemotePolicy) -> Self {
         Self {
             steam_cdn: policy.steam_cdn,
             gog_cdn: policy.gog_cdn,
@@ -162,7 +162,7 @@ pub(super) fn resolve_cover_bytes_with_backend(
 pub(crate) fn resolve_cover_bytes(
     client: &Client,
     api_key: Option<&str>,
-    policy: &CoverRemotePolicy,
+    policy: CoverRemotePolicy,
     game: &GameInstallation,
 ) -> Result<Vec<u8>, ServiceError> {
     resolve_cover_bytes_with_backend(

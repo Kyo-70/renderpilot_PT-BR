@@ -37,9 +37,7 @@ impl SqliteStorage {
                 )));
             }
             let catalog_binding = if let Some(game_id) = game_id {
-                if !observations::catalog_exists_within_transaction(transaction, game_id)? {
-                    SharedCatalogBinding::Absent
-                } else {
+                if observations::catalog_exists_within_transaction(transaction, game_id)? {
                     match observations::readiness_within_transaction(transaction, game_id)? {
                         crate::repositories::observations::CatalogReadiness::Invalidated {
                             authority_epoch,
@@ -52,6 +50,8 @@ impl SqliteStorage {
                             )));
                         }
                     }
+                } else {
+                    SharedCatalogBinding::Absent
                 }
             } else {
                 SharedCatalogBinding::Absent
@@ -94,15 +94,13 @@ impl SqliteStorage {
         self.with_transaction(|transaction| {
             let row = read_shared_row(transaction)?.ok_or_else(|| {
                 AppError::storage_failed(format!(
-                    "prepared shared Vulkan mutation '{}' changed before recovery completion",
-                    id
+                    "prepared shared Vulkan mutation '{id}' changed before recovery completion"
                 ))
             })?;
             ensure_exact_owner(&row, &id, scope, game_id.as_ref())?;
             if row.state != PendingSharedVulkanMutationState::Prepared {
                 return Err(AppError::storage_failed(format!(
-                    "shared Vulkan mutation '{}' changed before recovery completion",
-                    id
+                    "shared Vulkan mutation '{id}' changed before recovery completion"
                 )));
             }
             validate_catalog_binding(transaction, &id, game_id.as_ref(), catalog_binding)?;
@@ -121,8 +119,7 @@ impl SqliteStorage {
                 .map_err(storage_error)?;
             if deleted != 1 {
                 return Err(AppError::storage_failed(format!(
-                    "shared Vulkan mutation '{}' changed before recovery completion",
-                    id
+                    "shared Vulkan mutation '{id}' changed before recovery completion"
                 )));
             }
             Ok(())

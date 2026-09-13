@@ -70,7 +70,7 @@ pub fn renodx_addon_state(paths: &ReshadePaths, addon_file_name: &str) -> RenoDx
     });
     let load_mode = ini_state
         .as_ref()
-        .map(|state| {
+        .map_or(RenoDxAddonLoadMode::AutoSearch, |state| {
             if state.load_from_dll_main.is_some() {
                 RenoDxAddonLoadMode::LoadFromDllMain
             } else if state.has_addon_section || paths.ini_path.is_none() {
@@ -78,8 +78,7 @@ pub fn renodx_addon_state(paths: &ReshadePaths, addon_file_name: &str) -> RenoDx
             } else {
                 RenoDxAddonLoadMode::Unknown
             }
-        })
-        .unwrap_or(RenoDxAddonLoadMode::AutoSearch);
+        });
 
     RenoDxAddonState {
         present_on_disk: expected_path.is_file() || discovered_path.is_some(),

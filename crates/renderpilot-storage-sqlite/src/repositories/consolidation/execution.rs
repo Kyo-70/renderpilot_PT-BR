@@ -150,7 +150,7 @@ pub(super) fn move_optiscaler_aggregate(
                 },
                 &OptiScalerAggregate::Complete { state, topology },
                 destination,
-            )? {
+            ) {
                 return Err(AppError::storage_failed(
                     "cannot consolidate differing complete OptiScaler aggregates",
                 ));

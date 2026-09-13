@@ -87,7 +87,7 @@ mod tests {
         let inspection = PeInspection {
             architecture: Some(Architecture::X86),
             version: None,
-            identity: Default::default(),
+            identity: renderpilot_detection::VersionIdentityStrings::default(),
             export_names: Some(vec![export.to_owned()]),
             import_profile: Some(Ok(PeImportProfile {
                 regular: PeImportSet::from_observed_names(

@@ -24,10 +24,10 @@ CREATE TABLE IF NOT EXISTS shared_artifacts (
     origin               TEXT    NOT NULL,
     created_files_json   TEXT    NOT NULL DEFAULT '[]',
     created_at           INTEGER NOT NULL DEFAULT (
-        {default}
+        {MS_UNIXEPOCH_DEFAULT}
     ),
     updated_at           INTEGER NOT NULL DEFAULT (
-        {default}
+        {MS_UNIXEPOCH_DEFAULT}
     ),
 
     CHECK (length(trim(kind)) > 0),
@@ -48,8 +48,7 @@ CREATE TABLE IF NOT EXISTS shared_artifacts (
     CHECK (created_at >= 0),
     CHECK (updated_at >= created_at)
 ) STRICT;
-"#,
-        default = MS_UNIXEPOCH_DEFAULT,
+"#
     )
 }
 

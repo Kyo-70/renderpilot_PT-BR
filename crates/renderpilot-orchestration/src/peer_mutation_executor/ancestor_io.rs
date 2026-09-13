@@ -174,27 +174,18 @@ fn create_directory(
 /// Cleans only the declared peer ancestors after endpoint restoration.  Any
 /// residual or unsafe directory is deliberately preserved and logged; it is
 /// not allowed to keep the durable row in Prepared state.
-pub(crate) fn cleanup(
-    entries: &[PeerAncestorManifestEntry],
-    roots: &[PathBuf],
-) -> Result<(), ServiceError> {
-    cleanup_paths(entries.iter().map(PeerAncestorManifestEntry::path), roots)
+pub(crate) fn cleanup(entries: &[PeerAncestorManifestEntry], roots: &[PathBuf]) {
+    cleanup_paths(entries.iter().map(PeerAncestorManifestEntry::path), roots);
 }
 
 /// Cleans the exact ancestor projection issued by storage for peer recovery.
 /// It shares the same no-follow, best-effort implementation as forward
 /// recovery and deliberately does not reconstruct manifest consumers.
-pub(crate) fn cleanup_recovery(
-    entries: &[PeerRecoveryAncestor],
-    roots: &[PathBuf],
-) -> Result<(), ServiceError> {
-    cleanup_paths(entries.iter().map(PeerRecoveryAncestor::path), roots)
+pub(crate) fn cleanup_recovery(entries: &[PeerRecoveryAncestor], roots: &[PathBuf]) {
+    cleanup_paths(entries.iter().map(PeerRecoveryAncestor::path), roots);
 }
 
-fn cleanup_paths<'a>(
-    entries: impl IntoIterator<Item = &'a str>,
-    roots: &[PathBuf],
-) -> Result<(), ServiceError> {
+fn cleanup_paths<'a>(entries: impl IntoIterator<Item = &'a str>, roots: &[PathBuf]) {
     // The producer emits ancestors parent-first, but recovery must not make
     // that ordering an implicit trust boundary.  A torn or hand-repaired
     // manifest may reorder otherwise valid entries; removing by path depth
@@ -247,7 +238,6 @@ fn cleanup_paths<'a>(
             log::warn!("preserving peer ancestor {}: {error}", path.display());
         }
     }
-    Ok(())
 }
 
 fn root_for<'a>(path: &Path, roots: &'a [PathBuf]) -> Result<&'a Path, ServiceError> {
@@ -429,12 +419,12 @@ mod tests {
         create(&plan, &[root.path().to_owned()], &mut changes).expect("create");
         fs::write(root.path().join("nested/deeper/foreign"), b"foreign").expect("foreign");
 
-        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]).expect("cleanup");
+        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]);
 
         assert!(root.path().join("nested/deeper").exists());
         assert!(root.path().join("nested").exists());
         fs::remove_file(root.path().join("nested/deeper/foreign")).expect("remove foreign");
-        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]).expect("cleanup empty");
+        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]);
         assert!(!root.path().join("nested").exists());
     }
 
@@ -447,7 +437,7 @@ mod tests {
 
         let mut entries = plan.manifest_entries();
         entries.reverse();
-        cleanup(&entries, &[root.path().to_owned()]).expect("cleanup");
+        cleanup(&entries, &[root.path().to_owned()]);
 
         assert!(!root.path().join("nested/deeper").exists());
         assert!(!root.path().join("nested").exists());
@@ -462,7 +452,7 @@ mod tests {
         fs::remove_dir(root.path().join("nested/deeper")).expect("remove child directory");
         fs::write(root.path().join("nested/deeper"), b"foreign").expect("foreign file");
 
-        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]).expect("cleanup");
+        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]);
 
         assert!(root.path().join("nested/deeper").is_file());
         assert!(root.path().join("nested").is_dir());
@@ -481,7 +471,7 @@ mod tests {
         fs::remove_dir_all(root.path().join("nested/deeper")).expect("remove child directory");
         symlink(outside.path(), root.path().join("nested/deeper")).expect("foreign link");
 
-        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]).expect("cleanup");
+        cleanup(&plan.manifest_entries(), &[root.path().to_owned()]);
 
         assert!(root.path().join("nested/deeper").read_link().is_ok());
         assert!(root.path().join("nested").is_dir());

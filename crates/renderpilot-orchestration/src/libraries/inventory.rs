@@ -68,7 +68,7 @@ impl Inventory {
         catalog_status: LibraryCatalogStatus,
     ) -> Result<Self, ServiceError> {
         let active_artifacts = match catalog {
-            Some(catalog) => artifact_builder::catalog_as_artifacts(catalog)?,
+            Some(catalog) => artifact_builder::catalog_as_artifacts(catalog),
             None => Vec::new(),
         };
         let mut local_artifacts = context
@@ -220,47 +220,44 @@ fn resolve_group(
     group
         .locals
         .sort_by(|left, right| left.0.id().cmp(right.0.id()));
-    match group.active {
-        Some(active) => {
-            // Receipt deserialization enforces that a package artifact id is
-            // derived from its revision, so comparing both would be redundant.
-            let matching_index = group
-                .locals
-                .iter()
-                .position(|(artifact, _)| artifact.id() == active.id());
-            let local = matching_index.map(|index| group.locals.remove(index));
-            let ignored = group.locals.len();
-            let (local, local_state) = match local {
-                Some((local, state)) => (Some(local), state),
-                None => (None, LibraryLocalState::Absent),
-            };
-            Ok((
-                InventoryEntry {
-                    package_id,
-                    active: Some(active),
-                    local,
-                    local_state,
-                },
-                ignored,
-            ))
-        }
-        None => {
-            let ignored = group.locals.len().saturating_sub(1);
-            let Some((local, local_state)) = group.locals.into_iter().next() else {
-                return Err(ServiceError::invalid_input(format!(
-                    "inventory package group `{package_id}` has no artifact"
-                )));
-            };
-            Ok((
-                InventoryEntry {
-                    package_id,
-                    active: None,
-                    local: Some(local),
-                    local_state,
-                },
-                ignored,
-            ))
-        }
+    if let Some(active) = group.active {
+        // Receipt deserialization enforces that a package artifact id is
+        // derived from its revision, so comparing both would be redundant.
+        let matching_index = group
+            .locals
+            .iter()
+            .position(|(artifact, _)| artifact.id() == active.id());
+        let local = matching_index.map(|index| group.locals.remove(index));
+        let ignored = group.locals.len();
+        let (local, local_state) = match local {
+            Some((local, state)) => (Some(local), state),
+            None => (None, LibraryLocalState::Absent),
+        };
+        Ok((
+            InventoryEntry {
+                package_id,
+                active: Some(active),
+                local,
+                local_state,
+            },
+            ignored,
+        ))
+    } else {
+        let ignored = group.locals.len().saturating_sub(1);
+        let Some((local, local_state)) = group.locals.into_iter().next() else {
+            return Err(ServiceError::invalid_input(format!(
+                "inventory package group `{package_id}` has no artifact"
+            )));
+        };
+        Ok((
+            InventoryEntry {
+                package_id,
+                active: None,
+                local: Some(local),
+                local_state,
+            },
+            ignored,
+        ))
     }
 }
 
@@ -352,7 +349,7 @@ mod tests {
                 version: PackageVersion::parse("1.0.0").expect("package version"),
                 channel: ReleaseChannel::Stable,
                 label: None,
-                components: Default::default(),
+                components: std::collections::BTreeMap::default(),
             },
             target: CatalogTargetReceipt {
                 os: "windows".to_owned(),

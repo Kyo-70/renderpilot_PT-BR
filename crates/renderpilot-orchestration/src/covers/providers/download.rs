@@ -163,10 +163,9 @@ fn classify_declared_size(response: &Response) -> Result<(), AttemptError> {
 }
 
 fn read_body_with_size_limit(response: Response) -> Result<Vec<u8>, AttemptError> {
-    let initial_capacity = response
-        .content_length()
-        .map(|len| usize::try_from(len.min(MAX_COVER_BYTES)).unwrap_or(COVER_MAX_LEN))
-        .unwrap_or(0);
+    let initial_capacity = response.content_length().map_or(0, |len| {
+        usize::try_from(len.min(MAX_COVER_BYTES)).unwrap_or(COVER_MAX_LEN)
+    });
 
     let mut bytes = Vec::with_capacity(initial_capacity);
     let mut limited_response = response.take(COVER_READ_LIMIT);

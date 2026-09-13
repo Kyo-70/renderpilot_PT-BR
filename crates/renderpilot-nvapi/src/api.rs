@@ -267,7 +267,7 @@ impl Nvapi {
     /// Opens a new DRS session, loads settings, and returns a handle.
     pub fn create_session(&self) -> Result<DrsSession<'_>, NvapiError> {
         let mut handle: NvDRSSessionHandle = ptr::null_mut();
-        let status = unsafe { (self.create_session)(&mut handle) };
+        let status = unsafe { (self.create_session)(&raw mut handle) };
         if status != 0 {
             return Err(NvapiError::SessionCreateFailed(status));
         }
@@ -294,8 +294,9 @@ impl Nvapi {
         let mut profile: NvDRSProfileHandle = ptr::null_mut();
         let mut app: NVDRS_APPLICATION = zeroed_versioned();
 
-        let status =
-            unsafe { (self.find_application)(session, wide_name.as_ptr(), &mut profile, &mut app) };
+        let status = unsafe {
+            (self.find_application)(session, wide_name.as_ptr(), &raw mut profile, &raw mut app)
+        };
 
         if status != 0 {
             return Err(NvapiError::ApplicationNotFound);
@@ -331,7 +332,7 @@ impl Nvapi {
             .get_base_profile
             .ok_or(NvapiError::BaseProfileUnavailable)?;
         let mut profile: NvDRSProfileHandle = ptr::null_mut();
-        let status = unsafe { (func)(session, &mut profile) };
+        let status = unsafe { (func)(session, &raw mut profile) };
         if status != 0 || profile.is_null() {
             return Err(NvapiError::BaseProfileUnavailable);
         }
@@ -353,9 +354,17 @@ impl Nvapi {
         // see each other's changes.
         let status = if let Some(get_v2) = self.get_setting_v2 {
             let mut extra: u32 = 0;
-            unsafe { (get_v2)(session, profile, setting_id, &mut setting, &mut extra) }
+            unsafe {
+                (get_v2)(
+                    session,
+                    profile,
+                    setting_id,
+                    &raw mut setting,
+                    &raw mut extra,
+                )
+            }
         } else {
-            unsafe { (self.get_setting)(session, profile, setting_id, &mut setting) }
+            unsafe { (self.get_setting)(session, profile, setting_id, &raw mut setting) }
         };
 
         if status != 0 {
@@ -418,7 +427,7 @@ impl Nvapi {
     ) -> Option<NVDRS_PROFILE> {
         let func = self.get_profile_info?;
         let mut info: NVDRS_PROFILE = zeroed_versioned();
-        let status = unsafe { (func)(session, profile, &mut info) };
+        let status = unsafe { (func)(session, profile, &raw mut info) };
         if status == 0 { Some(info) } else { None }
     }
 
@@ -431,7 +440,7 @@ impl Nvapi {
     ) -> Option<NvDRSProfileHandle> {
         let func = self.find_profile_by_name?;
         let mut handle: NvDRSProfileHandle = ptr::null_mut();
-        let status = unsafe { (func)(session, profile_name.as_ptr(), &mut handle) };
+        let status = unsafe { (func)(session, profile_name.as_ptr(), &raw mut handle) };
         if status == 0 { Some(handle) } else { None }
     }
 
@@ -454,9 +463,9 @@ impl Nvapi {
         // Inspector uses as its primary. The v2 signature takes two extra
         // reserved u32 params (both passed as 0, matching Inspector's usage).
         let status = if let Some(set_v2) = self.set_setting_v2 {
-            unsafe { (set_v2)(session, profile, &mut setting, 0, 0) }
+            unsafe { (set_v2)(session, profile, &raw mut setting, 0, 0) }
         } else {
-            unsafe { (self.set_setting)(session, profile, &mut setting) }
+            unsafe { (self.set_setting)(session, profile, &raw mut setting) }
         };
 
         if status != 0 {

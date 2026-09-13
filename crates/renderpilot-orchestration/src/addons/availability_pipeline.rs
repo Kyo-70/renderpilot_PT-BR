@@ -35,8 +35,6 @@ pub(crate) fn blocked_outcome(block: ExclusivityBlock) -> BlockedOutcome {
 pub(crate) struct AvailabilityPreflight<R> {
     /// This tool's active install record for the game, when one exists.
     pub(crate) record: Option<InstalledAddon>,
-    /// The game's installation row.
-    pub(crate) game: GameInstallation,
     /// Set when the other mutually-exclusive addon tool is already present.
     pub(crate) blocked: Option<ExclusivityBlock>,
     /// On-disk facts gathered from the game folder.
@@ -75,7 +73,6 @@ where
     };
     Ok(AvailabilityPreflight {
         record,
-        game,
         blocked,
         analysis,
         resolution,

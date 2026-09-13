@@ -98,10 +98,10 @@ pub(super) fn assemble<'a>(
         .chain(std::iter::once(config.source_path.clone()))
         .chain(std::iter::once(config.destination_path.clone()))
         .collect::<Vec<_>>();
-    let mut roots = old_state
-        .as_ref()
-        .map(|state| vec![PathBuf::from(state.target_dir.as_str()), target.dir.clone()])
-        .unwrap_or_else(|| vec![target.dir.clone()]);
+    let mut roots = old_state.as_ref().map_or_else(
+        || vec![target.dir.clone()],
+        |state| vec![PathBuf::from(state.target_dir.as_str()), target.dir.clone()],
+    );
     roots.push(PathBuf::from(
         context
             .storage()

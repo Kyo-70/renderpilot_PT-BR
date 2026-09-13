@@ -92,15 +92,17 @@ pub(crate) fn download_progress_emitter(
         let is_final = progress.downloaded_bytes >= progress.total_bytes;
         let is_first = last_ms.load(Ordering::Relaxed) == u64::MAX;
 
+        let now_ms = u64::try_from(epoch.elapsed().as_millis()).unwrap_or(u64::MAX);
+        let min_interval_ms =
+            u64::try_from(DOWNLOAD_PROGRESS_MIN_INTERVAL.as_millis()).unwrap_or(u64::MAX);
+
         if !is_first && !is_final {
-            let now_ms = epoch.elapsed().as_millis() as u64;
             let prev_ms = last_ms.load(Ordering::Relaxed);
-            if now_ms.saturating_sub(prev_ms) < DOWNLOAD_PROGRESS_MIN_INTERVAL.as_millis() as u64 {
+            if now_ms.saturating_sub(prev_ms) < min_interval_ms {
                 return;
             }
         }
 
-        let now_ms = epoch.elapsed().as_millis() as u64;
         last_ms.store(now_ms, Ordering::Relaxed);
 
         let _ = app.emit(

@@ -78,13 +78,11 @@ fn build_report(
 ) -> Result<AvailabilityReport, ServiceError> {
     let AvailabilityPreflight {
         record,
-        game,
         blocked,
         analysis,
         resolution,
         roots: install_roots,
     } = preflight;
-    let _game = game;
     let min_version = manifest.min_reshade_version_parsed()?;
     let mut host = host_report(
         &analysis,
@@ -104,10 +102,9 @@ fn build_report(
     // For installed records we still re-resolve to pick up current manifest arguments.
     let state = record
         .as_ref()
-        .map(|record| {
+        .map_or(LumaInstallState::NotInstalled, |record| {
             tracking::install_state_from_record(record, effective_launch_args(&resolution))
-        })
-        .unwrap_or(LumaInstallState::NotInstalled);
+        });
     let uninstall_blocked_by = if record.is_some() {
         crate::addons::luma::dependency::uninstall_blocker(context, game_id)?
     } else {

@@ -214,8 +214,8 @@ mod tests {
 
         let mut version_blob = Vec::new();
         // VS_VERSIONINFO skeleton with FileVersion and StringFileInfo keys.
-        let file_version = ((version[0] as u32) << 16) | version[1] as u32;
-        let product_version = ((version[2] as u32) << 16) | version[3] as u32;
+        let file_version = (u32::from(version[0]) << 16) | u32::from(version[1]);
+        let product_version = (u32::from(version[2]) << 16) | u32::from(version[3]);
         // Use the shared PE version-info builder path by writing a compact blob
         // that `read_windows_*_from_bytes` already accepts in orchestration tests.
         // Fallback: if the compact blob is rejected, the fail-closed tests above
@@ -230,10 +230,10 @@ mod tests {
         section_body.extend_from_slice(&version_blob);
         section_body[14..16].copy_from_slice(&1u16.to_le_bytes());
         section_body[16..20].copy_from_slice(&16u32.to_le_bytes());
-        section_body[20..24].copy_from_slice(&(0x8000_0000u32 | 24).to_le_bytes());
+        section_body[20..24].copy_from_slice(&(0x8000_0000u32 | 0x18).to_le_bytes());
         section_body[24 + 14..24 + 16].copy_from_slice(&1u16.to_le_bytes());
         section_body[40..44].copy_from_slice(&1u32.to_le_bytes());
-        section_body[44..48].copy_from_slice(&(0x8000_0000u32 | 48).to_le_bytes());
+        section_body[44..48].copy_from_slice(&(0x8000_0000u32 | 0x30).to_le_bytes());
         section_body[48 + 14..48 + 16].copy_from_slice(&1u16.to_le_bytes());
         section_body[64..68].copy_from_slice(&1033u32.to_le_bytes());
         section_body[68..72].copy_from_slice(&72u32.to_le_bytes());
@@ -340,10 +340,12 @@ mod tests {
         ]);
         let mut fixed = vec![0u8; 52];
         fixed[0..4].copy_from_slice(&0xFEEF04BDu32.to_le_bytes()); // signature
-        fixed[8..12]
-            .copy_from_slice(&(((version[0] as u32) << 16) | version[1] as u32).to_le_bytes());
-        fixed[12..16]
-            .copy_from_slice(&(((version[2] as u32) << 16) | version[3] as u32).to_le_bytes());
+        fixed[8..12].copy_from_slice(
+            &((u32::from(version[0]) << 16) | u32::from(version[1])).to_le_bytes(),
+        );
+        fixed[12..16].copy_from_slice(
+            &((u32::from(version[2]) << 16) | u32::from(version[3])).to_le_bytes(),
+        );
 
         let key = utf16_bytes("VS_VERSION_INFO");
         let mut body = Vec::new();

@@ -574,12 +574,11 @@ mod tests {
                 .expect("generated snapshot");
 
             assert_eq!(snapshot.cards().len(), game_count);
-            match expected_selects {
-                Some(expected) => assert_eq!(select_count, expected),
-                None => {
-                    assert!(select_count > 0);
-                    expected_selects = Some(select_count);
-                }
+            if let Some(expected) = expected_selects {
+                assert_eq!(select_count, expected);
+            } else {
+                assert!(select_count > 0);
+                expected_selects = Some(select_count);
             }
         }
     }

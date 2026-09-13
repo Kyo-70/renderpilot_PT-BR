@@ -34,13 +34,15 @@ pub(super) fn append_normal(
                 "normal append writer did not match the journal tail writer",
             ));
         }
-        next.origin_session_sha256 = last.origin_session_sha256.clone();
-        next.writer_session_sha256 = writer.to_owned();
-        next.predecessor_writer_session_sha256 = last.predecessor_writer_session_sha256.clone();
+        next.origin_session_sha256
+            .clone_from(&last.origin_session_sha256);
+        writer.clone_into(&mut next.writer_session_sha256);
+        next.predecessor_writer_session_sha256
+            .clone_from(&last.predecessor_writer_session_sha256);
         next.append_kind = JournalAppendKind::Normal;
     } else {
-        next.origin_session_sha256 = writer.to_owned();
-        next.writer_session_sha256 = writer.to_owned();
+        writer.clone_into(&mut next.origin_session_sha256);
+        writer.clone_into(&mut next.writer_session_sha256);
         next.predecessor_writer_session_sha256 = None;
         next.append_kind = JournalAppendKind::Origin;
     }
@@ -77,8 +79,11 @@ pub(super) fn append_recovery(
             "recovery transition did not match the unchanged journal tail",
         ));
     }
-    next.origin_session_sha256 = last.origin_session_sha256.clone();
-    next.writer_session_sha256 = authority.transcript_sha256().to_owned();
+    next.origin_session_sha256
+        .clone_from(&last.origin_session_sha256);
+    authority
+        .transcript_sha256()
+        .clone_into(&mut next.writer_session_sha256);
     next.predecessor_writer_session_sha256 =
         if next.writer_session_sha256 == last.writer_session_sha256 {
             last.predecessor_writer_session_sha256.clone()
@@ -128,7 +133,7 @@ fn append_with_capture(
     }
     next.protocol = JOURNAL_PROTOCOL;
     next.sequence = prefix.entries.len() as u64 + 1;
-    next.previous_entry_sha256 = prefix.head_sha256.clone();
+    next.previous_entry_sha256.clone_from(&prefix.head_sha256);
     next.phase_receipt_sha256 = phase_receipt(&next)?;
     let plaintext = serde_json::to_vec(&next)
         .map_err(|error| PortableRuntimeError::new("portable_journal_encode", error.to_string()))?;

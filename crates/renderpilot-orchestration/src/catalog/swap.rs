@@ -5,8 +5,8 @@ use renderpilot_application::{
     find_replacement_candidates, replacement_executable_action, resolve_transition,
 };
 use renderpilot_domain::{
-    ArtifactId, ComponentFile, ComponentId, GameId, GameInstallation, LibraryArtifact,
-    LibraryComponent, LibraryTechnology,
+    ArtifactId, ComponentFile, ComponentId, ComponentRollbackBaseline, GameId, GameInstallation,
+    LibraryArtifact, LibraryComponent, LibraryTechnology,
 };
 
 use crate::ServiceError;
@@ -208,7 +208,9 @@ pub(super) fn load_swap_preflight(
         std::path::Path::new(game.install_path().as_str()),
         component.technology(),
         component.files(),
-        recorded_baseline.as_ref().map(|baseline| baseline.files()),
+        recorded_baseline
+            .as_ref()
+            .map(ComponentRollbackBaseline::files),
         managed_files,
     )
     .map_err(|error| {

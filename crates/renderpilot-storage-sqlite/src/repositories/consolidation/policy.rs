@@ -126,7 +126,7 @@ pub(in crate::repositories::consolidation) fn equivalent_after_rebase(
     left: &OptiScalerAggregate,
     right: &OptiScalerAggregate,
     destination: &GameId,
-) -> AppResult<bool> {
+) -> bool {
     let (
         OptiScalerAggregate::Complete {
             state: left_state,
@@ -138,11 +138,11 @@ pub(in crate::repositories::consolidation) fn equivalent_after_rebase(
         },
     ) = (left, right)
     else {
-        return Ok(false);
+        return false;
     };
     let left = canonical_rebase(left_state, left_topology, destination);
     let right = canonical_rebase(right_state, right_topology, destination);
-    Ok(left == right)
+    left == right
 }
 
 pub(in crate::repositories::consolidation) fn canonical_rebase(
@@ -503,7 +503,7 @@ fn inspect_source_to_source_conflicts(
                         &left_aggregate,
                         &right_aggregate,
                         &plan.destination_game_id,
-                    )? =>
+                    ) =>
                 {
                     blocking.insert("game_proxy_topologies".to_owned());
                     blocking.insert("optiscaler_install_states".to_owned());
@@ -526,7 +526,7 @@ fn inspect_optiscaler_pair(
     let source_aggregate = load_optiscaler_aggregate(connection, source)?;
     match (&destination_aggregate, &source_aggregate) {
         (OptiScalerAggregate::Complete { .. }, OptiScalerAggregate::Complete { .. })
-            if equivalent_after_rebase(&destination_aggregate, &source_aggregate, destination)? =>
+            if equivalent_after_rebase(&destination_aggregate, &source_aggregate, destination) =>
         {
             destination_wins.insert("game_proxy_topologies".to_owned());
             destination_wins.insert("optiscaler_install_states".to_owned());

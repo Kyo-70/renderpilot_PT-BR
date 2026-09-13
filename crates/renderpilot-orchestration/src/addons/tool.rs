@@ -128,7 +128,7 @@ pub(crate) fn record_is_active(record: &InstalledAddon) -> bool {
 /// Prefer the crate-public [`crate::addons::addon_supports_deep_check`].
 #[must_use]
 pub(crate) fn supports_deep_check(kind: AddonKind) -> bool {
-    tool(kind).is_some_and(|registered| registered.supports_deep_check())
+    tool(kind).is_some_and(AddonTool::supports_deep_check)
 }
 
 /// Scans all possible install roots for a registered tool's on-disk signature.

@@ -299,7 +299,7 @@ mod tests {
                 assert_eq!(message.id, "luma.blocked.test");
                 assert_eq!(message.fallback_text, "This profile is known not to work.");
             }
-            other => panic!("expected blacklist, got {other:?}"),
+            types::LumaCategory::Installable => panic!("expected blacklist, got Installable"),
         }
     }
 

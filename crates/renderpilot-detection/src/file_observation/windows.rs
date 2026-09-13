@@ -33,9 +33,8 @@ pub(super) fn observe_system_file(path: &Path) -> AppResult<FileObservationResul
         }
         Err(error) => return Ok(unavailable_or_error(path, error)),
     };
-    let before = match windows_lease_state(&file) {
-        Some(state) => state,
-        None => return Ok(FileObservationResult::Unavailable),
+    let Some(before) = windows_lease_state(&file) else {
+        return Ok(FileObservationResult::Unavailable);
     };
     let journal = WindowsUsnWindow::begin(path);
     let before_key = journal
@@ -45,9 +44,8 @@ pub(super) fn observe_system_file(path: &Path) -> AppResult<FileObservationResul
         Ok(value) => value,
         Err(error) => return Ok(unavailable_or_error(path, error)),
     };
-    let after = match windows_lease_state(&file) {
-        Some(state) => state,
-        None => return Ok(FileObservationResult::Unavailable),
+    let Some(after) = windows_lease_state(&file) else {
+        return Ok(FileObservationResult::Unavailable);
     };
     let after_key = journal
         .as_ref()
@@ -60,9 +58,8 @@ pub(super) fn observe_system_file(path: &Path) -> AppResult<FileObservationResul
         Ok(reopened) => reopened,
         Err(error) => return Ok(unavailable_or_error(path, error)),
     };
-    let reopened_state = match windows_lease_state(&reopened) {
-        Some(state) => state,
-        None => return Ok(FileObservationResult::Unavailable),
+    let Some(reopened_state) = windows_lease_state(&reopened) else {
+        return Ok(FileObservationResult::Unavailable);
     };
     let reopened_key = journal
         .as_ref()
@@ -95,17 +92,15 @@ pub(super) fn probe_system_identity(path: &Path) -> AppResult<FileIdentityProbeR
         }
         Err(error) => return Ok(unavailable_probe(path, error)),
     };
-    let before = match windows_lease_state(&file) {
-        Some(state) => state,
-        None => return Ok(FileIdentityProbeResult::Unavailable),
+    let Some(before) = windows_lease_state(&file) else {
+        return Ok(FileIdentityProbeResult::Unavailable);
     };
     let journal = WindowsUsnWindow::begin(path);
     let before_key = journal
         .as_ref()
         .and_then(|journal| journal.file_material(&file, before.size));
-    let after = match windows_lease_state(&file) {
-        Some(state) => state,
-        None => return Ok(FileIdentityProbeResult::Unavailable),
+    let Some(after) = windows_lease_state(&file) else {
+        return Ok(FileIdentityProbeResult::Unavailable);
     };
     let after_key = journal
         .as_ref()
@@ -118,9 +113,8 @@ pub(super) fn probe_system_identity(path: &Path) -> AppResult<FileIdentityProbeR
         Ok(reopened) => reopened,
         Err(error) => return Ok(unavailable_probe(path, error)),
     };
-    let reopened_state = match windows_lease_state(&reopened) {
-        Some(state) => state,
-        None => return Ok(FileIdentityProbeResult::Unavailable),
+    let Some(reopened_state) = windows_lease_state(&reopened) else {
+        return Ok(FileIdentityProbeResult::Unavailable);
     };
     let reopened_key = journal
         .as_ref()
@@ -179,7 +173,7 @@ fn windows_file_identity(file: &File) -> Option<WindowsLeaseIdentity> {
         GetFileInformationByHandleEx(
             file.as_raw_handle() as HANDLE,
             FileIdInfo,
-            (&mut info as *mut FILE_ID_INFO).cast(),
+            (&raw mut info).cast(),
             u32::try_from(size_of::<FILE_ID_INFO>()).ok()?,
         )
     } == 0
@@ -334,9 +328,9 @@ fn query_usn_journal(volume: &File) -> Option<UsnJournalBounds> {
             FSCTL_QUERY_USN_JOURNAL,
             null(),
             0,
-            (&mut journal as *mut USN_JOURNAL_DATA_V2).cast::<c_void>(),
+            (&raw mut journal).cast::<c_void>(),
             u32::try_from(size_of::<USN_JOURNAL_DATA_V2>()).ok()?,
-            &mut returned,
+            &raw mut returned,
             null_mut(),
         )
     };
@@ -376,11 +370,11 @@ fn read_file_usn(file: &File) -> Option<i64> {
         DeviceIoControl(
             file.as_raw_handle() as HANDLE,
             FSCTL_READ_FILE_USN_DATA,
-            (&input as *const READ_FILE_USN_DATA).cast::<c_void>(),
+            (&raw const input).cast::<c_void>(),
             u32::try_from(size_of::<READ_FILE_USN_DATA>()).ok()?,
             output.as_mut_ptr().cast::<c_void>(),
             u32::try_from(output.len()).ok()?,
-            &mut returned,
+            &raw mut returned,
             null_mut(),
         )
     };

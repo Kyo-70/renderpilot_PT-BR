@@ -83,7 +83,7 @@ pub(super) fn compose_ini(
             before,
             before_bytes,
             effects,
-        )?;
+        );
     } else {
         let after = transformed.ok_or(RenoDxActiveUninstallError::Invalid(
             "ReShade.ini transform has no bytes",
@@ -97,7 +97,7 @@ pub(super) fn compose_ini(
             &after_image,
             after,
             effects,
-        )?;
+        );
     }
     Ok(Some(authority))
 }

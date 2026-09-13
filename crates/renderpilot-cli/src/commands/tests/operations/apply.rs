@@ -1,7 +1,7 @@
 use std::fs;
 
 use renderpilot_orchestration::application::ComponentRepository;
-use renderpilot_orchestration::domain::{LibraryTechnology, Swappability};
+use renderpilot_orchestration::domain::{LibraryTechnology, Sha256Hash, Swappability, Version};
 
 use crate::hash::sha256_hex;
 
@@ -214,16 +214,12 @@ fn apply_swap_creates_sidecar_bak_and_updates_catalog() {
     assert_eq!(components.len(), 1);
     assert_eq!(components[0].files().len(), 1);
     assert_eq!(
-        components[0].files()[0]
-            .version()
-            .map(|version| version.as_str()),
+        components[0].files()[0].version().map(Version::as_str),
         None,
         "a non-PE replacement must remain version-unknown rather than inheriting manifest metadata"
     );
     assert_eq!(
-        components[0].files()[0]
-            .sha256()
-            .map(|sha256| sha256.as_str()),
+        components[0].files()[0].sha256().map(Sha256Hash::as_str),
         Some(artifact_sha256.as_str())
     );
 }
@@ -333,7 +329,7 @@ fn apply_swap_preserves_sibling_components_for_same_game() {
         .find(|c| c.id().as_str() == "component:game-a:dlss")
         .expect("DLSS component must be present");
     assert_eq!(
-        dlss_component.files()[0].version().map(|v| v.as_str()),
+        dlss_component.files()[0].version().map(Version::as_str),
         None,
         "a non-PE replacement must remain version-unknown rather than inheriting manifest metadata"
     );
@@ -342,7 +338,7 @@ fn apply_swap_preserves_sibling_components_for_same_game() {
         .find(|c| c.id().as_str() == "component:game-a:fsr")
         .expect("FSR component must be present");
     assert_eq!(
-        fsr_component.files()[0].sha256().map(|s| s.as_str()),
+        fsr_component.files()[0].sha256().map(Sha256Hash::as_str),
         Some(fsr_sibling_sha.as_str()),
         "the untouched FSR sibling should keep its original hash"
     );

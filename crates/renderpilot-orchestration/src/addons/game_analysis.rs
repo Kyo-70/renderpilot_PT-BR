@@ -79,9 +79,10 @@ pub fn assemble_facts(
     primary: Option<&ResolvedExecutable>,
 ) -> MatchFacts {
     let exe_file_name = primary.map(|resolved| resolved.file_name.clone());
-    let graphics = primary
-        .map(|resolved| resolved.graphics.clone())
-        .unwrap_or_else(|| ExeGraphicsInfo::new(Vec::new(), None));
+    let graphics = primary.map_or_else(
+        || ExeGraphicsInfo::new(Vec::new(), None),
+        |resolved| resolved.graphics.clone(),
+    );
 
     // Engine detection reads every scanned exe name (e.g. `<Game>-Win64-Shipping`)
     // plus folder markers, independent of which exe was chosen as the renderer.
@@ -130,7 +131,7 @@ fn has_unity_data_dir(install_dir: &Path) -> bool {
         return false;
     };
     entries.flatten().any(|entry| {
-        entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false)
+        entry.file_type().is_ok_and(|kind| kind.is_dir())
             && entry
                 .file_name()
                 .to_string_lossy()

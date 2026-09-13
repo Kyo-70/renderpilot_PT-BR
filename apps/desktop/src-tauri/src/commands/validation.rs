@@ -40,7 +40,7 @@ pub(super) fn reject_empty_items(
     name: &'static str,
     values: &[String],
 ) -> Result<(), CommandError> {
-    if values.iter().any(|value| value.is_empty()) {
+    if values.iter().any(String::is_empty) {
         return Err(boundary.record(CommandError::invalid_argument(
             name,
             "items must not be empty",

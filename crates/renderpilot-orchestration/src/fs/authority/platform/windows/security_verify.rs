@@ -19,11 +19,11 @@ pub(crate) fn windows_verify_private_security(handle: &File) -> Result<(), Servi
     let mut needed = 0_u32;
     let _ = unsafe {
         GetKernelObjectSecurity(
-            handle.as_raw_handle() as _,
+            handle.as_raw_handle().cast(),
             DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
             std::ptr::null_mut(),
             0,
-            &mut needed,
+            &raw mut needed,
         )
     };
     if needed == 0 {
@@ -36,12 +36,12 @@ pub(crate) fn windows_verify_private_security(handle: &File) -> Result<(), Servi
     let mut buffer = vec![0_usize; buffer_words];
     if unsafe {
         GetKernelObjectSecurity(
-            handle.as_raw_handle() as _,
+            handle.as_raw_handle().cast(),
             DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
             buffer.as_mut_ptr().cast(),
             u32::try_from(buffer.len() * std::mem::size_of::<usize>())
                 .map_err(|_| crate::failed("private namespace security buffer is too large"))?,
-            &mut needed,
+            &raw mut needed,
         )
     } == 0
     {
@@ -59,13 +59,14 @@ pub(crate) fn windows_verify_private_security(handle: &File) -> Result<(), Servi
     let mut dacl_present = 0;
     let mut dacl = std::ptr::null_mut();
     let mut dacl_defaulted = 0;
-    if unsafe { GetSecurityDescriptorOwner(descriptor, &mut owner, &mut owner_defaulted) } == 0
+    if unsafe { GetSecurityDescriptorOwner(descriptor, &raw mut owner, &raw mut owner_defaulted) }
+        == 0
         || unsafe {
             GetSecurityDescriptorDacl(
                 descriptor,
-                &mut dacl_present,
-                &mut dacl,
-                &mut dacl_defaulted,
+                &raw mut dacl_present,
+                &raw mut dacl,
+                &raw mut dacl_defaulted,
             )
         } == 0
         || owner.is_null()
@@ -78,7 +79,7 @@ pub(crate) fn windows_verify_private_security(handle: &File) -> Result<(), Servi
     }
     let mut control = 0;
     let mut revision = 0_u32;
-    if unsafe { GetSecurityDescriptorControl(descriptor, &mut control, &mut revision) } == 0
+    if unsafe { GetSecurityDescriptorControl(descriptor, &raw mut control, &raw mut revision) } == 0
         || control & SE_DACL_PROTECTED == 0
     {
         return Err(crate::failed(
@@ -96,7 +97,7 @@ pub(crate) fn windows_verify_private_security(handle: &File) -> Result<(), Servi
     if unsafe {
         GetAclInformation(
             dacl,
-            (&mut acl_info as *mut ACL_SIZE_INFORMATION).cast(),
+            (&raw mut acl_info).cast(),
             u32::try_from(std::mem::size_of::<ACL_SIZE_INFORMATION>())
                 .map_err(|_| crate::failed("Windows ACL information buffer is too large"))?,
             AclSizeInformation,
@@ -109,7 +110,7 @@ pub(crate) fn windows_verify_private_security(handle: &File) -> Result<(), Servi
         ));
     }
     let mut ace = std::ptr::null_mut();
-    if unsafe { GetAce(dacl, 0, &mut ace) } == 0 || ace.is_null() {
+    if unsafe { GetAce(dacl, 0, &raw mut ace) } == 0 || ace.is_null() {
         return Err(crate::failed("private namespace owner ACE is unreadable"));
     }
     let ace = unsafe { &*ace.cast::<ACCESS_ALLOWED_ACE>() };

@@ -223,7 +223,7 @@ impl PreparedRenoDxUninstall {
                         before: read_regular_file(&path)?,
                         live_path: path,
                         after: None,
-                    })
+                    });
                 }
                 RenoDxUninstallOperation::RestoreBackup { live, backup } => {
                     let before = read_regular_file(&live)?;

@@ -253,8 +253,9 @@ fn cache_file_identity(file: &fs::File, _metadata: &fs::Metadata) -> io::Result<
     let mut information = std::mem::MaybeUninit::uninit();
     // SAFETY: the file handle remains open and the out-pointer addresses a
     // correctly sized, writable BY_HANDLE_FILE_INFORMATION allocation.
-    let result =
-        unsafe { GetFileInformationByHandle(file.as_raw_handle() as _, information.as_mut_ptr()) };
+    let result = unsafe {
+        GetFileInformationByHandle(file.as_raw_handle().cast(), information.as_mut_ptr())
+    };
     if result == 0 {
         return Err(io::Error::last_os_error());
     }

@@ -102,9 +102,10 @@ pub(crate) fn build_record(
     // Host slot path for this install. When we wrote or adopted the host it
     // must appear in `created_files` so uninstall removes it — never leave a
     // ReShade proxy behind that then blocks RenoDX (InactiveSlot / conflict).
-    let host_slot = adopted_host_path
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| game_dir.join(&prepared.proxy_dll_name));
+    let host_slot = adopted_host_path.map_or_else(
+        || game_dir.join(&prepared.proxy_dll_name),
+        Path::to_path_buf,
+    );
     if tracks_host || adopted_host_path.is_some() {
         record = record::adopt_existing_paths(record, std::slice::from_ref(&host_slot))?;
     }

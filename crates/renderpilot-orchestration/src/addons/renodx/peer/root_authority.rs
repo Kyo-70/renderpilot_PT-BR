@@ -44,10 +44,10 @@ impl RenoDxRootAuthority {
         })?;
         let content = config.assess_content(game_dir, &[]);
 
-        let exact_ini_path = config
-            .retained_ini()
-            .map(|ini| ini.path().to_path_buf())
-            .unwrap_or_else(|| canonical_game_root.join(scan::RESHADE_INI_FILE_NAME));
+        let exact_ini_path = config.retained_ini().map_or_else(
+            || canonical_game_root.join(scan::RESHADE_INI_FILE_NAME),
+            |ini| ini.path().to_path_buf(),
+        );
         let config_source = match config.retained_ini() {
             Some(ini) => RenoDxConfigSourceSeal::File {
                 exact_ini_path: ini.path().to_path_buf(),

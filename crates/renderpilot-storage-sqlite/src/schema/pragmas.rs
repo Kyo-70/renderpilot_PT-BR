@@ -31,11 +31,7 @@ impl ForeignKeysState {
             "could not restore sqlite foreign_keys after schema migration",
         );
 
-        match (result, restore_result) {
-            (Err(error), _) => Err(error),
-            (Ok(()), Err(error)) => Err(error),
-            (Ok(()), Ok(())) => Ok(()),
-        }
+        result.and(restore_result)
     }
 }
 

@@ -222,15 +222,21 @@ fn validate_provenance(package: &LibraryPackage) -> Result<(), ServiceError> {
 }
 
 fn is_safe_source_relative_path(value: &str) -> bool {
-    !value.is_empty()
-        && !value.starts_with('/')
-        && !value.contains('\\')
-        && !value
+    if value.is_empty()
+        || value.starts_with('/')
+        || value.contains('\\')
+        || value
             .split('/')
             .any(|segment| segment.is_empty() || matches!(segment, "." | ".."))
-        && !(value.len() >= 2
-            && value.as_bytes()[0].is_ascii_alphabetic()
-            && value.as_bytes()[1] == b':')
+    {
+        return false;
+    }
+
+    let is_drive_letter = value.len() >= 2
+        && value.as_bytes()[0].is_ascii_alphabetic()
+        && value.as_bytes()[1] == b':';
+
+    !is_drive_letter
 }
 
 fn is_lower_hex_40(value: &str) -> bool {

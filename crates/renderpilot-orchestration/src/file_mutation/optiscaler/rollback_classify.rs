@@ -289,10 +289,10 @@ pub(crate) fn classify_rollback_situation(
 
     // Phase 2: classify into concrete recovery situation
     match state {
-        DomainWriteState::Planned => Ok(RollbackSituation::PublishNotStarted),
         DomainWriteState::Preserved => Ok(RollbackSituation::AlreadyPreserved),
 
-        DomainWriteState::StageIntent { .. }
+        DomainWriteState::Planned
+        | DomainWriteState::StageIntent { .. }
         | DomainWriteState::Staged { .. }
         | DomainWriteState::CaptureIntent { .. }
         | DomainWriteState::Captured { .. } => Ok(RollbackSituation::PublishNotStarted),
@@ -346,10 +346,10 @@ pub(crate) fn classify_rollback_situation(
 
         DomainWriteState::RestoreIntent { .. } => {
             if live == before {
-                if custody_observed != &DiskObservation::Absent {
-                    Ok(RollbackSituation::RestoreCompleteCleanupPending)
-                } else {
+                if custody_observed == &DiskObservation::Absent {
                     Ok(RollbackSituation::AlreadyPreserved)
+                } else {
+                    Ok(RollbackSituation::RestoreCompleteCleanupPending)
                 }
             } else {
                 Ok(RollbackSituation::RestorePending)

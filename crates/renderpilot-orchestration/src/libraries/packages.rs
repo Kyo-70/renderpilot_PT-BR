@@ -125,18 +125,15 @@ where
     let archive_path = storage.local_archive_path(&artifact.transport.sha256);
     let transport_lock =
         super::locks::acquire(format!("transport-digest:{}", artifact.transport.sha256)).await;
-    let payload = match read_valid_archive(&archive_path, artifact)? {
-        Some(bytes) => {
-            report_complete(progress, artifact.transport.size_bytes);
-            bytes
-        }
-        None => {
-            crate::fs::remove_file_if_exists(&archive_path)?;
-            let bytes = download().await?;
-            super::validation::validate_transport(artifact, &bytes)?;
-            crate::fs::write_file_atomically(&archive_path, &bytes)?;
-            bytes
-        }
+    let payload = if let Some(bytes) = read_valid_archive(&archive_path, artifact)? {
+        report_complete(progress, artifact.transport.size_bytes);
+        bytes
+    } else {
+        crate::fs::remove_file_if_exists(&archive_path)?;
+        let bytes = download().await?;
+        super::validation::validate_transport(artifact, &bytes)?;
+        crate::fs::write_file_atomically(&archive_path, &bytes)?;
+        bytes
     };
     drop(transport_lock);
 

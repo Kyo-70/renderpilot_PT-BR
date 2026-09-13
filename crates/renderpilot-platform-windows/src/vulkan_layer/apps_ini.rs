@@ -195,7 +195,7 @@ pub fn read_app_list(layer_dir: &Path) -> io::Result<Vec<PathBuf>> {
         .map(parse_app_list)
         .transpose()
         .map_err(plan_error_to_io)
-        .map(|apps| apps.unwrap_or_default())
+        .map(Option::unwrap_or_default)
 }
 
 /// Reads the complete `ReShadeApps.ini` byte sequence for a participant

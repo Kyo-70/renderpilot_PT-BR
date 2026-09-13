@@ -134,16 +134,15 @@ fn prepare_rejects_paths_outside_scope() {
     let foreign = outside.path().join("foreign.dll");
     fs::write(&foreign, b"x").expect("seed");
 
-    let error = match DurableFileTransaction::prepare(
+    let Err(error) = DurableFileTransaction::prepare(
         &context,
         &guard,
         &scope(root.path()),
         "test",
         None,
         [foreign],
-    ) {
-        Ok(_) => panic!("outside scope should fail"),
-        Err(error) => error,
+    ) else {
+        panic!("outside scope should fail");
     };
     assert!(error.to_string().contains("outside authorized roots"));
 }
@@ -157,16 +156,15 @@ fn prepare_rejects_non_file_paths() {
     let nested = root.path().join("subdir");
     fs::create_dir_all(&nested).expect("dir");
 
-    let error = match DurableFileTransaction::prepare(
+    let Err(error) = DurableFileTransaction::prepare(
         &context,
         &guard,
         &scope(root.path()),
         "test",
         None,
         [nested],
-    ) {
-        Ok(_) => panic!("directory should fail"),
-        Err(error) => error,
+    ) else {
+        panic!("directory should fail");
     };
     assert!(error.to_string().contains("non-file path"));
 }

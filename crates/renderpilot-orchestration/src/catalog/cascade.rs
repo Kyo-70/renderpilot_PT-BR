@@ -293,8 +293,10 @@ pub(crate) fn record_cascade_rollback_journal(
 fn cascade_rollback_to_version(spec: &ValidatedRollbackPlan) -> String {
     component_version_report(spec.baseline_files(), spec.component.technology())
         .known_version()
-        .map(|version| version.as_str().to_owned())
-        .unwrap_or_else(|| ROLLBACK_TARGET_LABEL.to_owned())
+        .map_or_else(
+            || ROLLBACK_TARGET_LABEL.to_owned(),
+            |version| version.as_str().to_owned(),
+        )
 }
 
 fn cascade_rollback_journal_items(spec: &ValidatedRollbackPlan) -> Vec<JournalEntryItem<'_>> {
