@@ -2,20 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.1] - 2026-09-14
+
+### Fixed
+
+- **OptiScaler availability**: Fixed OptiScaler not appearing in compatible games that are not yet listed in the catalog. When a supported input is detected, installation no longer asks for an unnecessary compatibility confirmation.
+
 ## [1.12.0] - 2026-09-13
 
 ### Added
 
-- **OptiScaler support**: Added compatibility-aware OptiScaler management to Game Details, making alternative upscaling and frame-generation technologies easier to use in supported games. RenderPilot can install, update, repair, configure, and remove OptiScaler, move its managed files when the selected game executable changes, and include it in Update All.
-- **Guided OptiScaler setup**: Added game-specific compatibility checks, component recommendations, launch arguments, and warnings. Known conflicts and unsupported configurations are blocked, while unverified configurations require confirmation before installation.
-- **OptiScaler CLI commands**: Added commands to inspect installation status, remove OptiScaler, and check one game or the entire catalog for updates.
+- **OptiScaler support**: Added OptiScaler management to Game Details, including installation, configuration, updates, repair, removal, relocation when a different executable is selected, and Update All integration.
+- **Guided OptiScaler setup**: Added game-specific compatibility guidance, component recommendations, launch arguments, and warnings for recognized games and detected supported inputs.
+- **OptiScaler CLI commands**: Added status, uninstall, and update-check commands for individual games and all managed installations.
 - **Xbox app and Microsoft Store discovery**: Added automatic discovery of registered game installations from the Xbox app and Microsoft Store, including reliable selection of their launch executables.
 - **Split Ogg/Vorbis layouts**: Added detection and safe management of games whose Ogg/Vorbis runtime files are distributed across related directories. Ambiguous layouts remain unchanged.
 
 ### Changed
 
-- **Safer add-on operations**: OptiScaler, RenoDX, and Luma Framework now coordinate their dependencies and detect conflicting files before making changes. Supported operations can recover after an interruption instead of leaving a partially modified game.
-- **Clearer add-on experience**: Compatibility states, blocked-action guidance, confirmations, progress feedback, and launch instructions are now more consistent across add-ons. OptiScaler controls and guidance are available in all eight supported interface languages, and Luma guidance has been refined across locales.
+- **Safer add-on operations**: Improved coordination between OptiScaler, RenoDX, and Luma Framework, including conflict detection and recovery from interrupted operations.
+- **Clearer add-on experience**: Improved add-on status, guidance, progress feedback, and launch instructions. OptiScaler is available in all eight supported interface languages, with refined Luma guidance across locales.
 
 ### Compatibility
 
