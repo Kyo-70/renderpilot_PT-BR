@@ -87,5 +87,7 @@ export default defineConfig({
     environment: 'node',
     include: TEST_FILE_GLOBS,
     setupFiles: [TEST_SETUP_FILE],
+    clearMocks: true,
+    fsModuleCache: true,
   },
 });

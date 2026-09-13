@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Tauri's Linux build requires WebKitGTK and other dependencies. On Windows, WebView2 is utilized natively.
       - name: Install system dependencies (Linux)
@@ -59,9 +59,9 @@ jobs:
         run: rustup show
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
+        uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
         with:
-          tool: nextest@0.9.143
+          tool: nextest@0.9.144
           fallback: none
 
       - name: Cache Rust build
@@ -140,33 +140,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
         with:
-          package_json_file: apps/desktop/package.json
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
-
-      - name: Locate pnpm verification cache
-        id: pnpm_verification_cache
-        working-directory: apps/desktop
-        run: echo "path=$(pnpm --silent cache path)/lockfile-verified.jsonl" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pnpm lockfile verification
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.pnpm_verification_cache.outputs.path }}
-          key: pnpm-lockfile-verification-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json', 'apps/desktop/pnpm-lock.yaml', 'apps/desktop/pnpm-workspace.yaml') }}
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          working-directory: apps/desktop
+          runtime: node@24
+          cache: true
+          require-lockfile: true
 
       - name: Check documentation
         run: pnpm run docs:check
@@ -222,11 +204,11 @@ jobs:
             exit 1
           fi
       - name: Checkout RenderPilot
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Checkout pinned catalog producer
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: osyka-yuri/renderpilot-libraries
           ref: ${{ env.RENDERPILOT_LIBRARIES_CONTRACT_REF }}
@@ -234,19 +216,13 @@ jobs:
           persist-credentials: false
       - name: Install Rust toolchain
         run: rustup show
-      - name: Install pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
         with:
-          package_json_file: apps/desktop/package.json
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
-      - name: Install dependencies
-        working-directory: apps/desktop
-        run: pnpm install --frozen-lockfile
+          working-directory: apps/desktop
+          runtime: node@24
+          cache: true
+          require-lockfile: true
       - name: Verify Luma and NVAPI localization sources
         working-directory: apps/desktop
         run: >-

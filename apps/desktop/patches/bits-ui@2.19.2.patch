@@ -1,13 +1,13 @@
 diff --git a/dist/internal/body-scroll-lock.svelte.js b/dist/internal/body-scroll-lock.svelte.js
-index 04833253a9e04813a458a8e1a7c12b720dd4a15b..43b98ac610a084d432f1b210aa718b317dc12df4 100644
+index df6f86c4ff47ef828a1a4a8b6f00df8af2befd05..db2a7f75c3bf3c62b315701491aa7551811d528b 100644
 --- a/dist/internal/body-scroll-lock.svelte.js
 +++ b/dist/internal/body-scroll-lock.svelte.js
 @@ -31,7 +31,7 @@ const bodyLockStackCount = new SharedState(() => {
-     function resetBodyStyle() {
+     function resetBodyStyle(documentObj) {
          if (!BROWSER)
              return;
--        document.body.setAttribute("style", initialBodyStyle ?? "");
-+        document.body.style.cssText = initialBodyStyle ?? "";
-         document.body.style.removeProperty("--scrollbar-width");
+-        documentObj.body.setAttribute("style", initialBodyStyle ?? "");
++        documentObj.body.style.cssText = initialBodyStyle ?? "";
+         documentObj.body.style.removeProperty("--scrollbar-width");
          isIOS && stopTouchMoveListener?.();
          // reset initialBodyStyle so next locker captures the correct styles

@@ -35,7 +35,7 @@ tokio = { version = "1", features = ["macros", "sync", "time"] }
 ulid = "3"
 urlencoding = "2"
 zip = { version = "8", default-features = false, features = ["deflate"] }
-zstd = { version = "0.13", default-features = false }
+zstd = { version = "0.14", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Memory", "Win32_System_SystemServices", "Win32_System_Threading", "Wdk_Storage_FileSystem"] }
