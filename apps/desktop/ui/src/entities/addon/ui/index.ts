@@ -1,10 +1,14 @@
 export { default as AddonAttribution } from './AddonAttribution.svelte';
+export { default as AddonActionConfirmDialog } from './AddonActionConfirmDialog.svelte';
 export { default as AddonBlockedMessage } from './AddonBlockedMessage.svelte';
+export { default as AddonBlockedView } from './AddonBlockedView.svelte';
+export { default as AddonCardFooter } from './AddonCardFooter.svelte';
 export { default as AddonCardShell } from './AddonCardShell.svelte';
 export { default as AddonComponentRow } from './AddonComponentRow.svelte';
-export { default as AddonConfidenceBadge } from './AddonConfidenceBadge.svelte';
+export { default as AddonSignalBadge } from './AddonSignalBadge.svelte';
 export { default as AddonFieldLabel } from './AddonFieldLabel.svelte';
 export { default as AddonInstallableView } from './AddonInstallableView.svelte';
 export { default as AddonInstalledPanel } from './AddonInstalledPanel.svelte';
 export { default as AddonStateMessage } from './AddonStateMessage.svelte';
 export { default as AddonToolStatusBadge } from './AddonToolStatusBadge.svelte';
+export { default as AddonUninstallAction } from './AddonUninstallAction.svelte';

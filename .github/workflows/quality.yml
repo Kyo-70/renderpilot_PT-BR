@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  RENDERPILOT_LIBRARIES_CONTRACT_REF: b51fe8858f9a111e95d669a4c8a648374fe2c1d1
+  RENDERPILOT_LIBRARIES_CONTRACT_REF: a470ca429dcf978cf4cf0dc23d470f62034ff1ac
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   # Deny rustc warnings for workspace packages (Cargo 1.97+). Prefer this over
@@ -234,10 +234,19 @@ jobs:
           persist-credentials: false
       - name: Install Rust toolchain
         run: rustup show
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          package_json_file: apps/desktop/package.json
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
       - name: Verify Luma and NVAPI localization sources
         working-directory: apps/desktop
         run: >-

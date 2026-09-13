@@ -7,10 +7,11 @@ import { flushSync, mount, unmount } from 'svelte';
 
 import { defaultHostFacts } from '@entities/addon';
 
-import type { RenoDxStore } from '../model/create-renodx-store.svelte';
+import { createRenoDxStore, type RenoDxStore } from '../model/create-renodx-store.svelte';
+import { availability, fakeApi, INSTALLED } from '../model/renodx-store-test-fixtures';
 import RenoDxCardTestHost from './RenoDxCard.test-host.svelte';
 
-describe('RenoDxCard availability failure', () => {
+describe('RenoDxCard', () => {
   let target: HTMLDivElement;
   let component: object | undefined;
 
@@ -143,6 +144,82 @@ describe('RenoDxCard availability failure', () => {
 
     expect(updateDlssFix).toHaveBeenCalledWith('renodx-game');
     expect(uninstallDlssFix).toHaveBeenCalledWith('renodx-game');
+  });
+
+  it('displays compatibility badge alongside installed status when installed', async () => {
+    const store = createRenoDxStore({
+      api: fakeApi({
+        getAvailability: vi.fn(() =>
+          Promise.resolve(
+            availability({
+              ...INSTALLED,
+              outcome: {
+                kind: 'installable',
+                confidence: 'verified',
+                generic_profile: null,
+                host_kind: 'proxy',
+              },
+            }),
+          ),
+        ),
+      }),
+    });
+    await store.load('renodx-game');
+
+    component = mount(RenoDxCardTestHost, {
+      target,
+      props: {
+        gameId: 'renodx-game',
+        store,
+        onOpenRenoDxSettings: vi.fn(),
+      },
+    });
+    flushSync();
+
+    expect(target.textContent).toContain('Installed');
+    expect(target.textContent).toContain('Confirmed');
+  });
+
+  it('renders disabled install button and attribution when blocked by another addon', async () => {
+    const store = createRenoDxStore({
+      api: fakeApi({
+        getAvailability: vi.fn(() =>
+          Promise.resolve(
+            availability({
+              state: { status: 'not_installed' },
+              outcome: {
+                kind: 'blocked_by_other_addon',
+                other_kind: 'luma',
+                unmanaged: false,
+              },
+              manual_install: null,
+            }),
+          ),
+        ),
+      }),
+    });
+    await store.load('renodx-game');
+
+    component = mount(RenoDxCardTestHost, {
+      target,
+      props: {
+        gameId: 'renodx-game',
+        store,
+        onOpenRenoDxSettings: vi.fn(),
+      },
+    });
+    flushSync();
+
+    expect(target.textContent).toContain(
+      'Luma is installed for this game — uninstall it before installing RenoDX.',
+    );
+    expect(target.textContent).toContain('RenoDX by clshortfuse.');
+    const installButton = [...target.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent.trim() === 'Install',
+    );
+    expect(installButton).toBeDefined();
+    expect(installButton?.disabled).toBe(true);
+    expect(installButton?.querySelector('svg')).not.toBeNull();
   });
 });
 

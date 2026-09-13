@@ -8,6 +8,7 @@
   import { GameFileSafetyRow } from '@entities/game';
   import type { SettingFamily } from '@features/nvapi-settings';
   import { LumaCard } from '@features/luma';
+  import { OptiScalerCard } from '@features/optiscaler';
   import { RenoDxCard } from '@features/renodx';
   import { TabsContent } from '@shared/ui';
   import type { NvidiaDriverContext } from '../model/create-nvidia-driver-context.svelte';
@@ -43,8 +44,10 @@
     launcher: string;
     renodx: GameAddonsContext['stores']['renodx'];
     luma: GameAddonsContext['stores']['luma'];
+    optiscaler: GameAddonsContext['stores']['optiscaler'];
     renodxEnabled: boolean;
     lumaEnabled: boolean;
+    optiscalerEnabled: boolean;
     onSwap: SwapHandler;
     onRollback: RollbackHandler;
     onBulkSwap: BulkSwapHandler;
@@ -65,8 +68,10 @@
     launcher,
     renodx,
     luma,
+    optiscaler,
     renodxEnabled,
     lumaEnabled,
+    optiscalerEnabled,
     onSwap,
     onRollback,
     onBulkSwap,
@@ -164,6 +169,9 @@
         {/if}
         {#if lumaEnabled}
           <LumaCard {gameId} busy={exclusiveBusy} {launcher} store={luma} />
+        {/if}
+        {#if optiscalerEnabled}
+          <OptiScalerCard {gameId} busy={exclusiveBusy} store={optiscaler} />
         {/if}
       </div>
     </TabsContent>

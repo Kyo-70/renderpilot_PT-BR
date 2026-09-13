@@ -284,6 +284,25 @@ describe('AddonCoreSnapshot transitions', () => {
     expect(next.loading).toBe(true);
   });
 
+  it('withLoadBegin retains install chrome on same-game background refresh while clearing stale error', () => {
+    const prior = {
+      ...createInitialAddonCoreSnapshot<AddonInstallStateBase, FreshnessSource>(),
+      state: installed,
+      loaded: true,
+      loadError: 'old error',
+      updateReport: currentReport,
+      lastCheckedAt: 1000,
+      requestId: 2,
+    };
+    const { next } = withLoadBegin(prior, false, true);
+    expect(next.state).toEqual(installed);
+    expect(next.loaded).toBe(true);
+    expect(next.loadError).toBeNull();
+    expect(next.updateReport).toEqual(currentReport);
+    expect(next.lastCheckedAt).toBe(1000);
+    expect(next.loading).toBe(true);
+  });
+
   it('withLoadBegin clears busy so a superseded mutation cannot leave a stuck spinner', () => {
     const prior = { ...createInitialAddonCoreSnapshot(), busy: true, requestId: 3 };
     const { next } = withLoadBegin(prior);

@@ -7,7 +7,13 @@
     createInstallableLabels,
   } from '@entities/addon';
   import { t, type MessageKeyWithoutParams } from '@shared/i18n';
-  import { Badge, Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui';
+  import {
+    Badge,
+    LaunchArgumentsCallout,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+  } from '@shared/ui';
   import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 
   import type { LumaStore } from '../model/create-luma-store.svelte';
@@ -16,7 +22,6 @@
   import LumaDgVoodooCallout from './LumaDgVoodooCallout.svelte';
   import LumaFeatures from './LumaFeatures.svelte';
   import LumaGuidanceCallouts from './LumaGuidanceCallouts.svelte';
-  import LumaLaunchArgsCallout from './LumaLaunchArgsCallout.svelte';
   import LumaVcredistCallout from './LumaVcredistCallout.svelte';
 
   type Props = {
@@ -88,7 +93,10 @@
     {/if}
     <LumaDgVoodooCallout requirement={store.externalRequirement} />
     <LumaGuidanceCallouts guidance={store.guidance} />
-    <LumaLaunchArgsCallout launchArgs={store.launchArgs} {launcher} />
+    <LaunchArgumentsCallout
+      launch={{ arguments: store.launchArgs, requirement: 'required' }}
+      {launcher}
+    />
   {/snippet}
 
   {#snippet actionRowLeading()}

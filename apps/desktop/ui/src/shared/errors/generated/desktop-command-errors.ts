@@ -206,6 +206,13 @@ export const DESKTOP_COMMAND_ERROR_CONTRACT = {
       reasonCodes: [],
       recoveryBundlePath: false,
     },
+    luma_required_by_optiscaler: {
+      messageKey: 'user_message.luma_required_by_optiscaler',
+      severity: 'warning',
+      actions: [],
+      reasonCodes: [],
+      recoveryBundlePath: false,
+    },
     managed_cleanup_ambiguous: {
       messageKey: 'user_message.managed_cleanup_ambiguous',
       severity: 'error',
@@ -232,6 +239,13 @@ export const DESKTOP_COMMAND_ERROR_CONTRACT = {
       severity: 'warning',
       actions: ['rebuild_plan_or_reload_operations'],
       reasonCodes: [],
+      recoveryBundlePath: false,
+    },
+    peer_topology_conflict: {
+      messageKey: 'user_message.peer_topology_conflict',
+      severity: 'warning',
+      actions: ['rescan_or_repair_addon'],
+      reasonCodes: ['renodx', 'luma'],
       recoveryBundlePath: false,
     },
     provider_failed: {
@@ -350,6 +364,9 @@ export const DESKTOP_COMMAND_ERROR_CONTRACT = {
     },
     reload_game_details: {
       messageKey: 'suggested_action.reload_game_details',
+    },
+    rescan_or_repair_addon: {
+      messageKey: 'suggested_action.rescan_or_repair_addon',
     },
     retry_after_required_data: {
       messageKey: 'suggested_action.retry_after_required_data',

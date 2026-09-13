@@ -69,6 +69,19 @@ describe('createRenoDxStore', () => {
     expect(store.isInstallable).toBe(true);
   });
 
+  it('preserves and clears the torn-install observation with availability state', async () => {
+    const report = { ...NOT_INSTALLED_SAFE, install_torn: true };
+    const store = createRenoDxStore({
+      api: fakeApi({ getAvailability: vi.fn(() => Promise.resolve(report)) }),
+    });
+
+    await store.load('steam:1091500');
+    expect(store.installTorn).toBe(true);
+
+    store.deactivate();
+    expect(store.installTorn).toBe(false);
+  });
+
   it('preserves the complete generic catalogue profile', async () => {
     const genericProfile = {
       engine: 'unreal' as const,
@@ -244,5 +257,69 @@ describe('createRenoDxStore', () => {
     expect(store.isInstallable).toBe(true);
     expect(store.confidence).toBe('untested');
     expect(store.safetyContextError).toBeNull();
+  });
+
+  it('exposes confidence for both installable and external outcomes', async () => {
+    const installableReport: AvailabilityReport = availability({
+      state: { status: 'not_installed' },
+      outcome: {
+        kind: 'installable',
+        confidence: 'verified',
+        generic_profile: null,
+        host_kind: 'proxy',
+      },
+      manual_install: null,
+    });
+    const externalReport: AvailabilityReport = availability({
+      state: { status: 'not_installed' },
+      outcome: {
+        kind: 'external',
+        url: 'https://nexusmods.com/example',
+        message: { id: 'test', fallback_text: 'Test' },
+        file_install: {
+          confidence: 'experimental',
+          host_kind: 'proxy',
+          generic_profile: null,
+        },
+      },
+      manual_install: null,
+    });
+
+    const store = createRenoDxStore({
+      api: fakeApi({
+        getAvailability: vi
+          .fn()
+          .mockResolvedValueOnce(installableReport)
+          .mockResolvedValueOnce(externalReport),
+      }),
+    });
+
+    await store.load('steam:installable');
+    expect(store.confidence).toBe('verified');
+
+    await store.load('steam:external');
+    expect(store.confidence).toBe('experimental');
+  });
+
+  it('preserves catalog confidence when installed', async () => {
+    const installedWithConfidence: AvailabilityReport = availability({
+      ...INSTALLED,
+      outcome: {
+        kind: 'installable',
+        confidence: 'verified',
+        generic_profile: null,
+        host_kind: 'proxy',
+      },
+    });
+
+    const store = createRenoDxStore({
+      api: fakeApi({
+        getAvailability: vi.fn(() => Promise.resolve(installedWithConfidence)),
+      }),
+    });
+
+    await store.load('steam:installed');
+    expect(store.isInstalled).toBe(true);
+    expect(store.confidence).toBe('verified');
   });
 });

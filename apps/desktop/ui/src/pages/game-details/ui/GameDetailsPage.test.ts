@@ -32,6 +32,7 @@ function unsupportedRenoDxAvailability(): unknown {
     actions: {},
     reshade_stable_supported: true,
     renodx_addon: null,
+    install_torn: false,
     outcome: { kind: 'unsupported' },
     manual_install: null,
     vulkan_layer: VULKAN_NOT_INSTALLED,
@@ -48,7 +49,34 @@ function unsupportedLumaAvailability(): unknown {
     vcredist_present: null,
     vcredist_installer_url: 'https://aka.ms/vs/17/release/vc_redist.x64.exe',
     install_torn: false,
+    uninstall_blocked_by: null,
     outcome: { kind: 'unsupported' },
+  };
+}
+
+function unsupportedOptiScalerAvailability(): unknown {
+  return {
+    game_id: 'steam:123',
+    install: { installed: false, release: null },
+    eligibility: {
+      available: false,
+      block_code: 'catalog_unsupported',
+      manual_override: false,
+    },
+    selected_release: null,
+    relocation: null,
+    proxy_conflict: null,
+    compatibility: { status: 'unsupported', declared_inputs: [], launch: null, guidance: [] },
+    prerequisite: { state: 'none' },
+    modules: [],
+    lifecycle: {
+      update_available: false,
+      repair_required: false,
+      drifted: false,
+      unmanaged: false,
+      maintenance_available: false,
+      maintenance_block_code: null,
+    },
   };
 }
 
@@ -85,6 +113,9 @@ describe('GameDetailsPage', () => {
       }
       if (command === 'luma_availability') {
         return Promise.resolve(unsupportedLumaAvailability());
+      }
+      if (command === 'get_optiscaler_availability') {
+        return Promise.resolve(unsupportedOptiScalerAvailability());
       }
       if (command === 'renodx_dlss_fix_availability') {
         return Promise.resolve(unavailableDlssFixAvailability());
@@ -171,31 +202,42 @@ describe('GameDetailsPage', () => {
   it.each([
     {
       capabilities: [] as const,
-      hasOtherTab: false,
+      hasAddonsTab: false,
       hasRenoDx: false,
       hasLuma: false,
+      hasOptiScaler: false,
     },
     {
       capabilities: ['renodx'] as const,
-      hasOtherTab: true,
+      hasAddonsTab: true,
       hasRenoDx: true,
       hasLuma: false,
+      hasOptiScaler: false,
     },
     {
       capabilities: ['luma'] as const,
-      hasOtherTab: true,
+      hasAddonsTab: true,
       hasRenoDx: false,
       hasLuma: true,
+      hasOptiScaler: false,
     },
     {
       capabilities: ['renodx', 'luma'] as const,
-      hasOtherTab: true,
+      hasAddonsTab: true,
       hasRenoDx: true,
       hasLuma: true,
+      hasOptiScaler: false,
+    },
+    {
+      capabilities: ['optiscaler'] as const,
+      hasAddonsTab: true,
+      hasRenoDx: false,
+      hasLuma: false,
+      hasOptiScaler: true,
     },
   ])(
     'gates the add-on tab, cards, and availability for $capabilities',
-    async ({ capabilities, hasOtherTab, hasRenoDx, hasLuma }) => {
+    async ({ capabilities, hasAddonsTab, hasRenoDx, hasLuma, hasOptiScaler }) => {
       component = mount(GameDetailsPageTestHost, {
         target,
         props: {
@@ -207,15 +249,17 @@ describe('GameDetailsPage', () => {
       await vi.waitFor(() => {
         expect(invokedCommands.includes('renodx_availability')).toBe(hasRenoDx);
         expect(invokedCommands.includes('luma_availability')).toBe(hasLuma);
+        expect(invokedCommands.includes('get_optiscaler_availability')).toBe(hasOptiScaler);
       });
 
       const text = target.textContent;
       const tabLabels = [...target.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) =>
         tab.textContent.trim(),
       );
-      expect(tabLabels.includes('Other')).toBe(hasOtherTab);
+      expect(tabLabels.includes('Addons')).toBe(hasAddonsTab);
       expect(text.includes('RenoDX HDR')).toBe(hasRenoDx);
       expect(text.includes('Luma Framework')).toBe(hasLuma);
+      expect(text.includes('OptiScaler')).toBe(hasOptiScaler);
     },
   );
 
@@ -324,7 +368,7 @@ describe('GameDetailsPage', () => {
     flushSync();
 
     expect(target.textContent).not.toContain('RenoDX HDR');
-    expect(target.textContent).not.toContain('Other');
+    expect(target.textContent).not.toContain('Addons');
 
     host.replaceDetails(createGameDetails({ addon_capabilities: ['renodx'] }));
     flushSync();
@@ -335,7 +379,7 @@ describe('GameDetailsPage', () => {
     });
 
     expect(target.textContent).toContain('RenoDX HDR');
-    expect(target.textContent).toContain('Other');
+    expect(target.textContent).toContain('Addons');
   });
 
   it('starts a fresh safety assessment when the selected game changes mid-request', async () => {

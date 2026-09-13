@@ -12,6 +12,12 @@ import { DesktopCommandError, isFileSafetyContextError } from '@shared/errors';
 
 export type FileSafetyScope = 'game' | 'game_and_shared';
 
+type PendingInstallConfirmation = {
+  gameId: string;
+  detectedEngines: string[];
+  resolve: (accepted: boolean) => void;
+};
+
 type Options = {
   getGameId: () => string | null;
 };
@@ -25,6 +31,7 @@ export function createFileSafetyContext(options: Options) {
   let requestId = 0;
   let destroyed = false;
   let lastGameId: string | null = null;
+  let pendingInstallConfirmation = $state.raw<PendingInstallConfirmation | null>(null);
   type ReloadEntry = {
     gameId: string;
     scope: FileSafetyScope;
@@ -192,6 +199,48 @@ export function createFileSafetyContext(options: Options) {
     };
   }
 
+  /**
+   * Captures the same fresh mutation authority as `requireTokens`, then pauses
+   * only when that assessment explicitly names an anti-cheat engine. A cancel
+   * is a normal skipped install, not a command failure.
+   */
+  async function requireInstallTokens(
+    scope: FileSafetyScope = 'game',
+  ): Promise<MutationSafetyTokens | null> {
+    const gameId = currentGameId();
+    const tokens = await requireTokens(scope);
+    if (!gameId || !isCurrentGame(gameId) || gameAssessment?.game_id !== gameId) {
+      throw safetyContextError('safety_context_scope_mismatch');
+    }
+    const detectedEngines = [...gameAssessment.detected_engines];
+    if (detectedEngines.length === 0) {
+      return tokens;
+    }
+    if (pendingInstallConfirmation) {
+      return null;
+    }
+
+    return new Promise<MutationSafetyTokens | null>((resolve) => {
+      pendingInstallConfirmation = {
+        gameId,
+        detectedEngines,
+        resolve: (accepted) => {
+          const stillCurrent = !isDestroyed() && isCurrentGame(gameId);
+          pendingInstallConfirmation = null;
+          resolve(accepted && stillCurrent ? tokens : null);
+        },
+      };
+    });
+  }
+
+  function resolveInstallConfirmation(accepted: boolean): void {
+    pendingInstallConfirmation?.resolve(accepted);
+  }
+
+  function cancelInstallConfirmation(): void {
+    resolveInstallConfirmation(false);
+  }
+
   async function refreshForMutationError(errorValue: unknown, scope: FileSafetyScope = 'game') {
     if (!isFileSafetyContextError(errorValue)) {
       return;
@@ -213,6 +262,7 @@ export function createFileSafetyContext(options: Options) {
     if (gameId === lastGameId) {
       return;
     }
+    cancelInstallConfirmation();
     lastGameId = gameId;
     gameAssessment = null;
     sharedVulkanContextToken = null;
@@ -222,6 +272,7 @@ export function createFileSafetyContext(options: Options) {
   });
 
   function destroy(): void {
+    cancelInstallConfirmation();
     destroyed = true;
     requestId += 1;
     gameAssessment = null;
@@ -244,8 +295,13 @@ export function createFileSafetyContext(options: Options) {
     get error() {
       return error;
     },
+    get installConfirmation() {
+      return pendingInstallConfirmation;
+    },
     reload,
     requireTokens,
+    requireInstallTokens,
+    resolveInstallConfirmation,
     refreshForMutationError,
     destroy,
   };

@@ -2,6 +2,7 @@
   import {
     AddonAttribution,
     AddonInstallableView,
+    AddonStateMessage,
     createConfidenceLabelKeys,
     createInstallableLabels,
   } from '@entities/addon';
@@ -70,6 +71,13 @@
   {/snippet}
 
   {#snippet midCallouts()}
+    {#if store.installTorn}
+      <AddonStateMessage
+        tone="warning"
+        icon="warning"
+        message={t('gameDetails.renodx.installTornWarning')}
+      />
+    {/if}
     {#if (store.outcome?.kind === 'installable' ? store.outcome.host_kind : null) === 'proxy'}
       <RenoDxChannelControl
         class="max-w-72"

@@ -239,6 +239,7 @@ export type AvailabilityReport = {
   actions: RenoDxActions;
   reshade_stable_supported: boolean;
   renodx_addon: RenoDxAddonState | null;
+  install_torn: boolean;
   outcome: AvailabilityOutcome;
   manual_install: ManualFileInstall | null;
   vulkan_layer: VulkanLayerReport;

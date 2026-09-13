@@ -1,26 +1,28 @@
 <script lang="ts">
   import { Badge } from '@shared/ui';
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-  import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical';
   import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
+  import CircleXIcon from '@lucide/svelte/icons/circle-x';
+  import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical';
 
   import AddonFieldLabel from './AddonFieldLabel.svelte';
-  import type { AddonMatchConfidence } from './types';
+  import type { AddonBadgeTone } from './types';
 
   type Props = {
-    confidence: AddonMatchConfidence;
-    /** Already-translated field label (e.g. "RenoDX compatibility"). */
+    /** Visual tone representing confidence or compatibility status. */
+    tone: AddonBadgeTone;
+    /** Already-translated field label (e.g. "Compatibility"). */
     fieldLabel: string;
-    /** Already-translated confidence text (e.g. "Works"). */
-    confidenceLabel: string;
+    /** Already-translated status or confidence value (e.g. "Confirmed", "Unsupported"). */
+    valueLabel: string;
   };
 
-  type ConfidenceView = {
+  type BadgeView = {
     tint: string;
     Icon: typeof CircleCheckIcon;
   };
 
-  const CONFIDENCE_VIEW = {
+  const BADGE_VIEW = {
     verified: {
       tint: 'border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
       Icon: CircleCheckIcon,
@@ -33,16 +35,20 @@
       tint: 'border-border bg-muted/50 text-muted-foreground',
       Icon: CircleHelpIcon,
     },
-  } satisfies Record<AddonMatchConfidence, ConfidenceView>;
+    unsupported: {
+      tint: 'border-destructive/30 bg-destructive/10 text-destructive',
+      Icon: CircleXIcon,
+    },
+  } satisfies Record<AddonBadgeTone, BadgeView>;
 
-  let { confidence, fieldLabel, confidenceLabel }: Props = $props();
+  let { tone, fieldLabel, valueLabel }: Props = $props();
 
-  const view = $derived(CONFIDENCE_VIEW[confidence]);
+  const view = $derived(BADGE_VIEW[tone]);
 </script>
 
 <AddonFieldLabel label={fieldLabel}>
   <Badge variant="outline" class={view.tint}>
     <view.Icon aria-hidden={true} />
-    {confidenceLabel}
+    {valueLabel}
   </Badge>
 </AddonFieldLabel>

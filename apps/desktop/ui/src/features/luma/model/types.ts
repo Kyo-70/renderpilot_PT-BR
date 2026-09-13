@@ -80,7 +80,6 @@ export type LumaFeatures = {
 export type LumaGuidanceKind =
   | 'game_setting'
   | 'engine_ini'
-  | 'launch_argument'
   | 'warning'
   | 'compatibility'
   | 'external_tool';
@@ -137,5 +136,7 @@ export type AvailabilityReport = {
   /** Whether a prior install or rollback for this game did not complete
    * cleanly. Reinstalling clears it. */
   install_torn: boolean;
+  /** An installed add-on that must be removed before Luma can be removed. */
+  uninstall_blocked_by: 'optiscaler' | null;
   outcome: AvailabilityOutcome;
 };

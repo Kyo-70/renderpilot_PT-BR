@@ -20,6 +20,18 @@
     return context.requireTokens(scope);
   }
 
+  export function requireInstallTokens(scope: FileSafetyScope) {
+    return context.requireInstallTokens(scope);
+  }
+
+  export function resolveInstallConfirmation(accepted: boolean): void {
+    context.resolveInstallConfirmation(accepted);
+  }
+
+  export function getInstallConfirmation() {
+    return context.installConfirmation;
+  }
+
   export function getAssessment(): GameFileSafetyAssessment | null {
     return context.assessment;
   }

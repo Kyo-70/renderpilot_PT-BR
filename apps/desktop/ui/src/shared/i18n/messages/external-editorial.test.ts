@@ -14,7 +14,7 @@ import { lumaOverrides as lumaJa } from './overrides/luma/ja';
 import { lumaOverrides as lumaRu } from './overrides/luma/ru';
 import { lumaOverrides as lumaZhHans } from './overrides/luma/zh-Hans';
 import { lumaOverrides as lumaZhHant } from './overrides/luma/zh-Hant';
-import { LUMA_SOURCE_CATALOG } from './overrides/luma/schema';
+import { LUMA_SOURCE_CATALOG } from './overrides/luma/contract.generated';
 import { nvapiOverrides as nvapiDe } from './overrides/nvapi/de';
 import { nvapiOverrides as nvapiEs } from './overrides/nvapi/es';
 import { nvapiOverrides as nvapiFr } from './overrides/nvapi/fr';
@@ -23,6 +23,14 @@ import { nvapiOverrides as nvapiRu } from './overrides/nvapi/ru';
 import { nvapiOverrides as nvapiZhHans } from './overrides/nvapi/zh-Hans';
 import { nvapiOverrides as nvapiZhHant } from './overrides/nvapi/zh-Hant';
 import { NVAPI_SOURCE_CATALOG } from './overrides/nvapi/contract.generated';
+import { optiscalerOverrides as optiscalerDe } from './overrides/optiscaler/de';
+import { optiscalerOverrides as optiscalerEs } from './overrides/optiscaler/es';
+import { optiscalerOverrides as optiscalerFr } from './overrides/optiscaler/fr';
+import { optiscalerOverrides as optiscalerJa } from './overrides/optiscaler/ja';
+import { optiscalerOverrides as optiscalerRu } from './overrides/optiscaler/ru';
+import { optiscalerOverrides as optiscalerZhHans } from './overrides/optiscaler/zh-Hans';
+import { optiscalerOverrides as optiscalerZhHant } from './overrides/optiscaler/zh-Hant';
+import { OPTISCALER_SOURCE_CATALOG } from './overrides/optiscaler/contract.generated';
 import { ru } from './ru';
 import { zhHans } from './zh-Hans';
 import { zhHant } from './zh-Hant';
@@ -38,6 +46,7 @@ type EditorialPolicy = {
     }
   >;
   protectedTokens: string[];
+  localizedUiLiterals: Record<string, Record<LazyLocale, string>>;
   launcherProductNames: Record<'steam' | 'gog' | 'epic' | 'ea' | 'ubisoft', string>;
   nvapiVerbatimValues: string[];
   nvapiSemanticTranslations: Record<LazyLocale, Partial<Record<string, string>>>;
@@ -65,7 +74,11 @@ const staticCatalogs: Readonly<Record<LazyLocale, MessageDictionary>> = {
   'zh-Hans': zhHans,
   'zh-Hant': zhHant,
 };
-const lumaCatalogs: Readonly<Record<LazyLocale, Readonly<Record<string, string>>>> = {
+type ExternalLocaleCatalogs = Readonly<
+  Record<LazyLocale, Readonly<Partial<Record<string, string>>>>
+>;
+
+const lumaCatalogs: ExternalLocaleCatalogs = {
   ru: lumaRu,
   de: lumaDe,
   es: lumaEs,
@@ -74,7 +87,7 @@ const lumaCatalogs: Readonly<Record<LazyLocale, Readonly<Record<string, string>>
   'zh-Hans': lumaZhHans,
   'zh-Hant': lumaZhHant,
 };
-const nvapiCatalogs: Readonly<Record<LazyLocale, Readonly<Record<string, string>>>> = {
+const nvapiCatalogs: ExternalLocaleCatalogs = {
   ru: nvapiRu,
   de: nvapiDe,
   es: nvapiEs,
@@ -83,6 +96,32 @@ const nvapiCatalogs: Readonly<Record<LazyLocale, Readonly<Record<string, string>
   'zh-Hans': nvapiZhHans,
   'zh-Hant': nvapiZhHant,
 };
+const optiscalerCatalogs: ExternalLocaleCatalogs = {
+  ru: optiscalerRu,
+  de: optiscalerDe,
+  es: optiscalerEs,
+  fr: optiscalerFr,
+  ja: optiscalerJa,
+  'zh-Hans': optiscalerZhHans,
+  'zh-Hant': optiscalerZhHant,
+};
+const externalSourceCatalog = {
+  ...LUMA_SOURCE_CATALOG,
+  ...NVAPI_SOURCE_CATALOG,
+  ...OPTISCALER_SOURCE_CATALOG,
+};
+const proseHeuristicSourceCatalog = {
+  ...LUMA_SOURCE_CATALOG,
+  ...NVAPI_SOURCE_CATALOG,
+  ...OPTISCALER_SOURCE_CATALOG,
+};
+
+function externalTranslation(locale: LazyLocale, key: string): string {
+  const translation =
+    lumaCatalogs[locale][key] ?? nvapiCatalogs[locale][key] ?? optiscalerCatalogs[locale][key];
+  expect(translation, `${locale}: ${key}`).toBeDefined();
+  return translation ?? '';
+}
 
 function numericTokens(value: string): string[] {
   return (
@@ -122,8 +161,12 @@ const protectedTextByLocale = new Map(
         [
           ...new Set([
             ...policy.protectedTokens,
+            ...Object.entries(policy.localizedUiLiterals).flatMap(
+              ([sourceLiteral, localizedLiterals]) => [sourceLiteral, localizedLiterals[locale]],
+            ),
             ...policy.nvapiVerbatimValues,
             ...Object.values(policy.nvidiaFamilyTerms[locale]),
+            ...Object.values(policy.launcherProductNames),
           ]),
         ].toSorted((left, right) => right.length - left.length || left.localeCompare(right, 'en')),
       ] as const,
@@ -145,15 +188,28 @@ function templates(value: MessageValue): readonly string[] {
   return Object.values(value.kind === 'plural' ? value.forms : value.cases);
 }
 
+function localizedEntries(
+  catalog: Readonly<Partial<Record<string, string>>>,
+): readonly (readonly [string, string])[] {
+  return Object.entries(catalog).flatMap(([key, value]) =>
+    value === undefined ? [] : [[key, value] as const],
+  );
+}
+
 function authoredTemplates(locale: LazyLocale): readonly (readonly [string, string])[] {
   const staticEntries = Object.entries(staticCatalogs[locale]).flatMap(([key, value]) =>
     templates(value).map((template, index) => [`static.${key}.${index}`, template] as const),
   );
   return [
     ...staticEntries,
-    ...Object.entries(lumaCatalogs[locale]).map(([key, value]) => [`luma.${key}`, value] as const),
-    ...Object.entries(nvapiCatalogs[locale]).map(
+    ...localizedEntries(lumaCatalogs[locale]).map(
+      ([key, value]) => [`luma.${key}`, value] as const,
+    ),
+    ...localizedEntries(nvapiCatalogs[locale]).map(
       ([key, value]) => [`nvapi.${key}`, value] as const,
+    ),
+    ...localizedEntries(optiscalerCatalogs[locale]).map(
+      ([key, value]) => [`optiscaler.${key}`, value] as const,
     ),
   ];
 }
@@ -184,25 +240,34 @@ function containsRequiredScript(
 describe('external message editorial policy', () => {
   it('preserves protected technical tokens and numeric semantics', () => {
     for (const locale of LAZY_LOCALES) {
-      for (const [key, source] of Object.entries({
-        ...LUMA_SOURCE_CATALOG,
-        ...NVAPI_SOURCE_CATALOG,
-      })) {
-        const translation = lumaCatalogs[locale][key] ?? nvapiCatalogs[locale][key];
+      for (const [key, source] of Object.entries(externalSourceCatalog)) {
+        const translation = externalTranslation(locale, key);
         expect(numericTokens(translation), `${locale}: ${key}`).toEqual(numericTokens(source));
         for (const token of policy.protectedTokens) {
           if (source.includes(token)) {
             expect(translation, `${locale}: ${key}: ${token}`).toContain(token);
           }
         }
+        for (const [sourceLiteral, localizedLiterals] of Object.entries(
+          policy.localizedUiLiterals,
+        )) {
+          if (source.includes(sourceLiteral)) {
+            expect(translation, `${locale}: ${key}: ${sourceLiteral}`).toContain(
+              localizedLiterals[locale],
+            );
+          }
+        }
       }
     }
   });
 
-  it('preserves copied Luma flags, file names, sections, and assignments verbatim', () => {
+  it('preserves copied external flags, file names, sections, and assignments verbatim', () => {
     for (const locale of LAZY_LOCALES) {
-      for (const [key, source] of Object.entries(LUMA_SOURCE_CATALOG)) {
-        expect(copiedCodeTokens(lumaCatalogs[locale][key]), `${locale}: ${key}`).toEqual(
+      for (const [key, source] of Object.entries({
+        ...LUMA_SOURCE_CATALOG,
+        ...OPTISCALER_SOURCE_CATALOG,
+      })) {
+        expect(copiedCodeTokens(externalTranslation(locale, key)), `${locale}: ${key}`).toEqual(
           copiedCodeTokens(source),
         );
       }
@@ -250,12 +315,12 @@ describe('external message editorial policy', () => {
     for (const locale of LAZY_LOCALES) {
       const catalog = staticCatalogs[locale];
       for (const [key, product] of Object.entries(policy.launcherProductNames)) {
-        expect(staticMessage(catalog, `gameDetails.luma.launchArgs.instructions.${key}`)).toContain(
-          product,
-        );
+        expect(
+          staticMessage(catalog, `gameDetails.addon.launchArguments.instructions.${key}`),
+        ).toContain(product);
       }
       expect(
-        staticMessage(catalog, 'gameDetails.luma.launchArgs.instructions.other').trim(),
+        staticMessage(catalog, 'gameDetails.addon.launchArguments.instructions.other').trim(),
       ).not.toBe('');
     }
   });
@@ -288,11 +353,8 @@ describe('external message editorial policy', () => {
     const verbatim = new Set(policy.nvapiVerbatimValues);
     for (const locale of LAZY_LOCALES) {
       const requiredScript = policy.localeTypography[locale].requiredScript;
-      for (const [key, source] of Object.entries({
-        ...LUMA_SOURCE_CATALOG,
-        ...NVAPI_SOURCE_CATALOG,
-      })) {
-        const translation = lumaCatalogs[locale][key] ?? nvapiCatalogs[locale][key];
+      for (const [key, source] of Object.entries(proseHeuristicSourceCatalog)) {
+        const translation = externalTranslation(locale, key);
         if (verbatim.has(source)) {
           continue;
         }

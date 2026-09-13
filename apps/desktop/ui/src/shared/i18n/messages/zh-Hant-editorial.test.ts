@@ -6,6 +6,8 @@ import { lumaOverrides as lumaOverridesZhHans } from './overrides/luma/zh-Hans';
 import { lumaOverrides } from './overrides/luma/zh-Hant';
 import { nvapiOverrides as nvapiOverridesZhHans } from './overrides/nvapi/zh-Hans';
 import { nvapiOverrides } from './overrides/nvapi/zh-Hant';
+import { optiscalerOverrides as optiscalerOverridesZhHans } from './overrides/optiscaler/zh-Hans';
+import { optiscalerOverrides } from './overrides/optiscaler/zh-Hant';
 import { zhHans } from './zh-Hans';
 import { zhHant } from './zh-Hant';
 
@@ -26,12 +28,16 @@ const catalogs = [
   ...Object.entries(zhHant),
   ...Object.entries(lumaOverrides).map(([key, value]) => [`lumaOverride.${key}`, value] as const),
   ...Object.entries(nvapiOverrides).map(([key, value]) => [`nvapiOverride.${key}`, value] as const),
+  ...Object.entries(optiscalerOverrides).map(
+    ([key, value]) => [`optiscalerOverride.${key}`, value] as const,
+  ),
 ] as const;
 
 const zhHansCatalogs = [
   ...Object.entries(zhHans),
   ...Object.entries(lumaOverridesZhHans),
   ...Object.entries(nvapiOverridesZhHans),
+  ...Object.entries(optiscalerOverridesZhHans),
 ] as const;
 
 function templates(value: MessageValue): readonly string[] {

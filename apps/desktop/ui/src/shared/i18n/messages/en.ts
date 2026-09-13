@@ -710,6 +710,10 @@ export const en = defineSourceCatalog({
     'The file-safety assessment is outdated. Refresh it before trying again.',
   'user_message.safety_context_scope_mismatch':
     'The file-safety assessment belongs to a different resource. Refresh it before trying again.',
+  'user_message.peer_topology_conflict':
+    'RenderPilot cannot safely coordinate this change with the current proxy chain. Rescan or repair the affected add-on, then try again.',
+  'user_message.luma_required_by_optiscaler':
+    'OptiScaler requires Luma for this game. Uninstall OptiScaler first.',
 
   // ── Backend suggested actions ──
   'suggested_action.refresh_games': 'Refresh the games list and try again.',
@@ -722,6 +726,8 @@ export const en = defineSourceCatalog({
   'suggested_action.rebuild_operation_plan': 'Please restart the action.',
   'suggested_action.refresh_or_scan_game_folder': 'Refresh the list or scan the folder again.',
   'suggested_action.reload_file_safety': 'Refresh the file-safety assessment and try again.',
+  'suggested_action.rescan_or_repair_addon':
+    'Rescan or repair the affected add-on, then try again.',
   // ── Game details: RenoDX ──
   'gameDetails.renodx.title': 'RenoDX HDR',
   'gameDetails.renodx.description':
@@ -732,6 +738,10 @@ export const en = defineSourceCatalog({
   'gameDetails.renodx.switchError': 'ReShade channel switch failed',
   'gameDetails.renodx.unsupported': 'No RenoDX profile is available for this game.',
   'gameDetails.renodx.incompatible': 'RenoDX cannot be installed: {reason}.',
+  'gameDetails.renodx.installTornWarning':
+    'A previous RenoDX operation did not finish cleanly. Retry installation to reconcile its files.',
+  'gameDetails.renodx.installTornWarningInstalled':
+    'The last RenoDX operation did not finish cleanly. Use Repair or Update to reconcile the installation.',
   'gameDetails.renodx.status.label': 'Status',
   'gameDetails.renodx.statusInstalled': 'Installed',
   'gameDetails.renodx.actionInstall': 'Install',
@@ -802,7 +812,7 @@ export const en = defineSourceCatalog({
   'gameDetails.renodx.reason.api_not_allowed': 'graphics API not allowed for this game',
   'gameDetails.renodx.reason.arch_unknown': 'unknown executable architecture',
   // ── Game details: RenoDX tab / states / version picker ──
-  'gameDetails.otherTab': 'Other',
+  'gameDetails.addonsTab': 'Addons',
   'gameDetails.renodx.unavailable': 'RenoDX is unavailable right now.',
   // ── Game details: RenoDX generic (engine-fallback) labels ──
   'renodx.generic.universal': 'Universal RenoDX',
@@ -810,9 +820,11 @@ export const en = defineSourceCatalog({
   'gameDetails.renodx.generic.profileTooltip': 'A shared engine profile is being used.',
   'renodx.phase.finalizing': 'Finalizing…',
   'luma.phase.finalizing': 'Finalizing…',
+  'optiscaler.phase.verifying': 'Verifying…',
+  'optiscaler.phase.finalizing': 'Finalizing…',
   // ── Game details: RenoDX confidence / external / native-HDR / update ──
-  'gameDetails.renodx.confidenceLabel': 'RenoDX compatibility',
-  'gameDetails.renodx.confidenceVerified': 'Works',
+  'gameDetails.renodx.confidenceLabel': 'Compatibility',
+  'gameDetails.renodx.confidenceVerified': 'Confirmed',
   'gameDetails.renodx.confidenceExperimental': 'In progress',
   'gameDetails.renodx.confidenceUntested': 'Unverified',
   'gameDetails.renodx.external':
@@ -897,11 +909,17 @@ export const en = defineSourceCatalog({
   'gameDetails.fileSafety.detectedMany':
     'Anti-cheat detected: {engines}. Changes to game files may result in account restrictions or a ban.',
   'gameDetails.fileSafety.loadError': 'Could not check file-change risks',
+  'gameDetails.fileSafety.installConfirmTitle': 'Install add-on in this game?',
+  'gameDetails.fileSafety.installConfirmBody':
+    'An anti-cheat system was detected. Installing an add-on changes files in the game directory.',
+  'gameDetails.fileSafety.installConfirmAction': 'Install',
   'addon.availability.loadFailed': 'Could not check',
   'addon.availability.retry': 'Retry',
   'addon.availability.checking': 'Checking…',
   // ── Game details: Luma ──
   'gameDetails.luma.title': 'Luma Framework',
+  'gameDetails.luma.uninstallBlockedByOptiscaler':
+    'OptiScaler requires Luma for this game. Uninstall OptiScaler first.',
   'gameDetails.luma.description': 'Luma features available for this game are listed below.',
   'gameDetails.luma.loading': 'Checking availability…',
   'gameDetails.luma.installError': 'Luma installation failed',
@@ -937,8 +955,8 @@ export const en = defineSourceCatalog({
   'gameDetails.luma.dgvoodoo.managed':
     'RenderPilot will install and configure dgVoodoo2 {version} for this Luma profile.',
   // ── Game details: Luma confidence ──
-  'gameDetails.luma.confidenceLabel': 'Luma compatibility',
-  'gameDetails.luma.confidenceVerified': 'Works',
+  'gameDetails.luma.confidenceLabel': 'Compatibility',
+  'gameDetails.luma.confidenceVerified': 'Confirmed',
   'gameDetails.luma.confidenceExperimental': 'In progress',
   'gameDetails.luma.confidenceUntested': 'Unverified',
   'gameDetails.luma.generic.engineUnreal': 'Unreal Engine',
@@ -953,7 +971,6 @@ export const en = defineSourceCatalog({
   'gameDetails.luma.features.unknown': 'Unknown',
   'gameDetails.luma.guidance.gameSetting': 'In-game setting',
   'gameDetails.luma.guidance.engineIni': 'Manual INI change',
-  'gameDetails.luma.guidance.launchArgument': 'Launch argument',
   'gameDetails.luma.guidance.warning': 'Important',
   'gameDetails.luma.guidance.compatibility': 'Compatibility note',
   'gameDetails.luma.guidance.externalTool': 'Third-party tool',
@@ -999,27 +1016,149 @@ export const en = defineSourceCatalog({
   'gameDetails.luma.component.dgvoodoo': 'dgVoodoo2 wrapper',
   'gameDetails.luma.component.dgvoodooDesc': 'Managed D3D9 bridge, version {version}',
   // ── Game details: Luma launch arguments ──
-  'gameDetails.luma.launchArgs.instructions.steam':
+  'gameDetails.addon.launchArguments.instructions.steam':
     'If you start the game through Steam, add them there: right-click the game → Properties → General → Launch Options.',
-  'gameDetails.luma.launchArgs.instructions.gog':
+  'gameDetails.addon.launchArguments.instructions.gog':
     'If you start the game through GOG Galaxy, add them there: game settings → Manage installation → Configure.',
-  'gameDetails.luma.launchArgs.instructions.epic':
+  'gameDetails.addon.launchArguments.instructions.epic':
     'If you start the game through the Epic Games Launcher, add them there: right-click the game → Manage → Additional Command Line Arguments.',
-  'gameDetails.luma.launchArgs.instructions.ea':
+  'gameDetails.addon.launchArguments.instructions.ea':
     'If you start the game through the EA app, add them there: select the game → Manage → View properties → Advanced launch options.',
-  'gameDetails.luma.launchArgs.instructions.ubisoft':
+  'gameDetails.addon.launchArguments.instructions.ubisoft':
     'If you start the game through Ubisoft Connect, add them there: select the game → Properties → Add launch arguments.',
-  'gameDetails.luma.launchArgs.instructions.other':
+  'gameDetails.addon.launchArguments.instructions.other':
     'Use the launch method that actually starts the game. Add the arguments to its launcher, shortcut target, batch file, or another loader.',
-  'gameDetails.luma.launchArgs.title': 'Launch arguments required',
-  'gameDetails.luma.launchArgs.dx11Title': 'This Luma profile requires DirectX 11',
-  'gameDetails.luma.launchArgs.copyStep': 'Copy the required launch arguments:',
-  'gameDetails.luma.launchArgs.copy': 'Copy arguments',
-  'gameDetails.luma.launchArgs.copied': 'Copied',
-  'gameDetails.luma.launchArgs.copyFailed': 'Could not copy the launch arguments',
+  'gameDetails.addon.launchArguments.requiredTitle': 'Launch arguments required',
+  'gameDetails.addon.launchArguments.recommendedTitle': 'Recommended launch arguments',
+  'gameDetails.addon.launchArguments.dx11Title': 'This add-on requires DirectX 11',
+  'gameDetails.addon.launchArguments.copyRequiredStep': 'Copy the required launch arguments:',
+  'gameDetails.addon.launchArguments.copyRecommendedStep': 'Copy the recommended launch arguments:',
+  'gameDetails.addon.launchArguments.copy': 'Copy arguments',
+  'gameDetails.addon.launchArguments.copied': 'Copied',
+  'gameDetails.addon.launchArguments.copyFailed': 'Could not copy the launch arguments',
   // ── Game details: Luma attribution ──
   'gameDetails.luma.attribution': 'Luma Framework by Filoppi.',
   'gameDetails.luma.attributionLink': 'View project',
+  // ── Game details: OptiScaler ──
+  'gameDetails.optiscaler.title': 'OptiScaler',
+  'gameDetails.optiscaler.description':
+    'Adds alternative upscaling and frame-generation technologies.',
+  'gameDetails.optiscaler.loading': 'Checking compatibility…',
+  'gameDetails.optiscaler.statusLabel': 'Status',
+  'gameDetails.optiscaler.statusInstalled': 'Installed',
+  'gameDetails.optiscaler.statusUnmanaged': 'Not managed',
+  'gameDetails.optiscaler.compatibilityLabel': 'Compatibility',
+  'gameDetails.optiscaler.compatibilityVerified': 'Confirmed',
+  'gameDetails.optiscaler.compatibilityConditional': 'Conditional',
+  'gameDetails.optiscaler.compatibilityUnconfirmed': 'Not confirmed',
+  'gameDetails.optiscaler.compatibilityUnavailable': 'Unavailable',
+  'gameDetails.optiscaler.compatibilityUnsupported': 'Unsupported',
+  'gameDetails.optiscaler.versionLabel': 'Version',
+  'gameDetails.optiscaler.integrationThrough': 'Integrates through',
+  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
+    "RenderPilot couldn't confirm compatibility with this game. Installation works the same way, but the result hasn't been verified for this configuration.",
+  'gameDetails.optiscaler.configure': 'Configure',
+  'gameDetails.optiscaler.configureBeforeInstall': 'Configure components',
+  'gameDetails.optiscaler.settingsTitle': 'Installation components',
+  'gameDetails.optiscaler.settingsDescription':
+    'Choose which technologies OptiScaler can make available in the game.',
+  'gameDetails.optiscaler.moduleRequired': 'Required',
+  'gameDetails.optiscaler.settingsSave': 'Done',
+  'gameDetails.optiscaler.settingsApply': 'Apply',
+  'gameDetails.optiscaler.confirmCompatibilityTitle': 'Install without confirmed compatibility?',
+  'gameDetails.optiscaler.confirmCompatibilityBody':
+    'Installation is the same as usual, but this game configuration has not been verified.',
+  'gameDetails.optiscaler.confirmCompatibilityWarning':
+    'The game may fail to start or show visual artifacts. You can remove OptiScaler if that happens.',
+  'gameDetails.optiscaler.confirmInstallAnyway': 'Install',
+  'gameDetails.optiscaler.checkUpdates': 'Check for updates',
+  'gameDetails.optiscaler.prerequisite.removeRenoDx':
+    'Remove RenoDX before installing Luma Framework for this OptiScaler configuration.',
+  'gameDetails.optiscaler.prerequisite.lumaTorn':
+    'A previous Luma Framework installation did not finish. Reinstall or repair Luma Framework before installing OptiScaler.',
+  'gameDetails.optiscaler.prerequisite.lumaBroken':
+    'The required Luma Framework installation is incomplete. Repair Luma Framework before installing OptiScaler.',
+  'gameDetails.optiscaler.prerequisite.installLuma':
+    'Install Luma Framework before installing OptiScaler for this configuration.',
+  'gameDetails.optiscaler.prerequisite.lumaUnavailable':
+    'This OptiScaler configuration requires Luma Framework, which is unavailable for this game.',
+  'gameDetails.optiscaler.uninstallConfirmTitle': 'Remove OptiScaler?',
+  'gameDetails.optiscaler.uninstallConfirmBody':
+    'RenderPilot will remove the managed OptiScaler files and restore the previous proxy layout.',
+  'gameDetails.optiscaler.uninstallConfirmAction': 'Remove',
+  'gameDetails.optiscaler.block.requiresX64':
+    'OptiScaler requires a detected 64-bit game executable.',
+  'gameDetails.optiscaler.block.unsupportedApi':
+    'The graphics API used by this game is not supported by OptiScaler.',
+  'gameDetails.optiscaler.block.catalogUnsupported':
+    'This game is marked as incompatible with OptiScaler.',
+  'gameDetails.optiscaler.block.releaseUnavailable':
+    'No OptiScaler release is currently available for installation.',
+  'gameDetails.optiscaler.block.modulesUnavailable':
+    'One or more selected components are unavailable. Review the component selection.',
+  'gameDetails.optiscaler.block.proxyConflict':
+    'Another graphics modification occupies the required file slot. Resolve the conflict before installing OptiScaler.',
+  'gameDetails.optiscaler.block.generic':
+    'OptiScaler cannot be installed for this game configuration.',
+  'gameDetails.optiscaler.module.core.name': 'OptiScaler core',
+  'gameDetails.optiscaler.module.core.description':
+    'Required runtime and settings used by every installation.',
+  'gameDetails.optiscaler.module.ffxDx12.name': 'AMD FSR for DirectX 12',
+  'gameDetails.optiscaler.module.ffxDx12.description':
+    'Adds AMD upscaling and frame-generation support to DirectX 12 games.',
+  'gameDetails.optiscaler.module.ffxVulkan.name': 'AMD FSR for Vulkan',
+  'gameDetails.optiscaler.module.ffxVulkan.description':
+    'Adds AMD upscaling support to games that use Vulkan.',
+  'gameDetails.optiscaler.module.agility.name': 'DirectX 12 support files',
+  'gameDetails.optiscaler.module.agility.description':
+    'Compatibility runtime required by some DirectX 12 games.',
+  'gameDetails.optiscaler.module.fakeNvapi.name': 'NVIDIA compatibility layer',
+  'gameDetails.optiscaler.module.fakeNvapi.description':
+    'Provides the NVIDIA interface expected by some games and graphics features.',
+  'gameDetails.optiscaler.module.fsr3Bridge.name': 'FSR 3 Frame Generation bridge',
+  'gameDetails.optiscaler.module.fsr3Bridge.description':
+    'Connects supported game integrations to AMD FSR 3 Frame Generation.',
+  'gameDetails.optiscaler.module.xess.name': 'Intel XeSS',
+  'gameDetails.optiscaler.module.xess.description':
+    'Makes Intel XeSS available as an upscaling option.',
+  'gameDetails.optiscaler.module.optipatcher.name': 'Game compatibility fixes',
+  'gameDetails.optiscaler.module.optipatcher.description':
+    'Applies targeted compatibility fixes required by some games.',
+  'gameDetails.optiscaler.module.nvidiaSr.name': 'NVIDIA DLSS files',
+  'gameDetails.optiscaler.module.nvidiaSr.description':
+    'Uses compatible Super Resolution files already supplied by the game.',
+  'gameDetails.optiscaler.inputs': 'Detected inputs',
+  'gameDetails.optiscaler.confidenceLabel': 'Wiki compatibility confidence',
+  'gameDetails.optiscaler.confidenceVerified': 'Verified',
+  'gameDetails.optiscaler.confidenceDetectedUnverified': 'Detected, not verified',
+  'gameDetails.optiscaler.confidenceManualOverride': 'Expert override',
+  'gameDetails.optiscaler.confidenceUnsupported': 'Unsupported',
+  'gameDetails.optiscaler.drifted': 'Managed files changed; repair is recommended',
+  'gameDetails.optiscaler.proxyChain': 'Proxy chain',
+  'gameDetails.optiscaler.relocationAvailable': 'A different game executable is selected',
+  'gameDetails.optiscaler.unmanaged':
+    'This OptiScaler installation does not match a known release and was left unchanged.',
+  'gameDetails.optiscaler.modules': 'Modules',
+  'gameDetails.optiscaler.moduleExistingGame':
+    'Uses the existing game file; no duplicate is installed beside the executable.',
+  'gameDetails.optiscaler.moduleCatalogDownload':
+    'Not present in the game; installs into the isolated OptiScaler runtime directory.',
+  'gameDetails.optiscaler.expertOverride': 'Expert override for unverified static input',
+  'gameDetails.optiscaler.applyModules': 'Apply modules',
+  'gameDetails.optiscaler.update': 'Update',
+  'gameDetails.optiscaler.repair': 'Repair',
+  'gameDetails.optiscaler.relocate': 'Relocate',
+  'gameDetails.optiscaler.uninstall': 'Remove OptiScaler',
+  'gameDetails.optiscaler.install': 'Install',
+  'gameDetails.optiscaler.installing': 'Installing…',
+  'gameDetails.optiscaler.installError': 'OptiScaler installation failed',
+  'gameDetails.optiscaler.updateError': 'OptiScaler update failed',
+  'gameDetails.optiscaler.repairError': 'OptiScaler repair failed',
+  'gameDetails.optiscaler.relocateError': 'OptiScaler relocation failed',
+  'gameDetails.optiscaler.modulesError': 'Could not change OptiScaler modules',
+  'gameDetails.optiscaler.uninstallError': 'OptiScaler removal failed',
+  'gameDetails.optiscaler.attribution': 'OptiScaler by cdozdil.',
+  'gameDetails.optiscaler.attributionLink': 'View project',
 });
 
 export type MessageKey = keyof typeof en;

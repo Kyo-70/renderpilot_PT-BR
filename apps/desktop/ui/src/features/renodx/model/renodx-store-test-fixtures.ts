@@ -107,6 +107,7 @@ export function availability(
     },
     reshade_stable_supported: true,
     renodx_addon: null,
+    install_torn: false,
     vulkan_layer: VULKAN_NOT_INSTALLED,
     ...report,
   };

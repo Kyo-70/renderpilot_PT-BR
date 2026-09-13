@@ -1,4 +1,9 @@
-export { ADDON_DISPLAY_NAME, ALL_ADDON_KINDS, type AddonKind } from './addon-kind';
+export {
+  ADDON_DISPLAY_NAME,
+  ALL_ADDON_KINDS,
+  type AddonKind,
+  type ExclusiveAddonKind,
+} from './addon-kind';
 export {
   isD3d12ExecutableMutationAction,
   type D3d12ExecutableAction,

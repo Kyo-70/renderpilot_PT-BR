@@ -8,7 +8,7 @@ type UpdateStore = {
   update(gameId: string): Promise<AddonMutationResult>;
   safetyContextError?: unknown;
 };
-export type UpdateAllStep = 'libraries' | 'renodx' | 'luma';
+export type UpdateAllStep = 'libraries' | 'renodx' | 'luma' | 'optiscaler';
 
 export type UpdateAllFailure = {
   step: UpdateAllStep;

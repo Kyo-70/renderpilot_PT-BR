@@ -1,16 +1,16 @@
 <script lang="ts">
   import { t } from '@shared/i18n';
-  import { ADDON_DISPLAY_NAME, type AddonKind } from '@shared/model';
+  import { ADDON_DISPLAY_NAME, type AddonKind, type ExclusiveAddonKind } from '@shared/model';
 
   import AddonStateMessage from './AddonStateMessage.svelte';
 
   type Props = {
     /** Addon currently shown on the card (the blocked tool). */
-    blockedAddon: AddonKind;
+    blockedAddon: ExclusiveAddonKind;
     /** Peer that occupies the game, when known. */
     installedAddon?: AddonKind | null;
     /** Fallback peer when `installedAddon` is unset. */
-    fallbackInstalledAddon: AddonKind;
+    fallbackInstalledAddon: ExclusiveAddonKind;
     /** Peer block is unmanaged debris rather than a tracked install. */
     unmanaged?: boolean;
     /** Tool-local copy when this tool's own unmanaged debris is present. */

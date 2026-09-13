@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GameDetails } from '@entities/game';
+  import { areSameGameIds, presentFileSafetyMessage, type GameDetails } from '@entities/game';
   import {
     createGameDetailsTabs,
     DLSS_FAMILY_CARDS,
@@ -25,12 +25,11 @@
   import { createUpdateAllWorkflow } from '../model/create-update-all-workflow.svelte';
   import { createNvidiaDriverContext } from '../model/create-nvidia-driver-context.svelte';
   import { createGameExecutableContext } from '../model/create-game-executable-context.svelte';
-  import type { MutationSafetyTokens } from '@entities/addon';
+  import { AddonActionConfirmDialog, type MutationSafetyTokens } from '@entities/addon';
   import type { SwapRequest } from '../model/swap-request';
   import { resolveExecutableLockReason } from '../model/game-executable-lock';
   import D3d12ExecutableConfirmDialog from './D3d12ExecutableConfirmDialog.svelte';
   import DeveloperModeRequirementDialog from './DeveloperModeRequirementDialog.svelte';
-  import { areSameGameIds } from '@entities/game';
   import { onDestroy, untrack } from 'svelte';
   import GameDetailsToolbar from './GameDetailsToolbar.svelte';
   import GameDetailsTabsContent from './GameDetailsTabsContent.svelte';
@@ -67,7 +66,7 @@
   const vendorTabs = $derived(tabs.vendorTabs);
   const gameId = $derived(details?.game.identity.id ?? null);
   const executableLockReason = $derived(resolveExecutableLockReason(details?.components ?? []));
-  // The game's launcher, for Luma's launcher-aware launch-args callout.
+  // The game's launcher, for add-on launch-argument instructions.
   const launcher = $derived(details?.game.identity.launcher ?? '');
 
   const fileSafety = createFileSafetyContext({ getGameId: () => gameId });
@@ -95,9 +94,15 @@
     getCapabilities: () => tabs.addonsTab?.capabilities ?? [],
     onGameDetailsInvalidate: (id) => onGameDetailsInvalidate(id),
     requireSafetyTokens: (id, scope) => requirePageSafetyTokens(id, scope),
+    requireInstallSafetyTokens: async (id, scope) => {
+      if (!gameId || !areSameGameIds(id, gameId)) {
+        throw DesktopCommandError.fromDto({ code: 'safety_context_scope_mismatch' });
+      }
+      return fileSafety.requireInstallTokens(scope);
+    },
     onSafetyContextError: (error, scope) => fileSafety.refreshForMutationError(error, scope),
   });
-  const { renodx, luma } = gameAddons.stores;
+  const { renodx, luma, optiscaler } = gameAddons.stores;
 
   // The single "update everything to its latest version" action. Spans every
   // vendor (NVIDIA/AMD/Intel) plus the Streamline bundle, RenoDX, and Luma, not
@@ -141,8 +146,18 @@
     gameAddons.destroy();
     fileSafety.destroy();
   });
-  // Shared exclusive gate for Luma/RenoDX cards (peer mutations + Update-all).
-  const exclusiveBusy = $derived(busy || gameAddons.busy || updatingAll || planningUpdateAll);
+  // One game-scoped gate for add-on mutations and Update All.
+  const installConfirmationOpen = $derived(fileSafety.installConfirmation !== null);
+  const installConfirmationWarning = $derived(
+    fileSafety.installConfirmation
+      ? presentFileSafetyMessage({
+          detected_engines: fileSafety.installConfirmation.detectedEngines,
+        })
+      : '',
+  );
+  const exclusiveBusy = $derived(
+    busy || gameAddons.busy || updatingAll || planningUpdateAll || installConfirmationOpen,
+  );
   const showProgress = $derived(updatingAll && pendingDownloadIds.length > 0);
   const downloadCount = $derived(pendingDownloadIds.length);
   const downloadValue = $derived(showProgress ? sumDownloadFractions(pendingDownloadIds) : 0);
@@ -373,8 +388,10 @@
           {launcher}
           {renodx}
           {luma}
+          {optiscaler}
           renodxEnabled={gameAddons.isEnabled('renodx')}
           lumaEnabled={gameAddons.isEnabled('luma')}
+          optiscalerEnabled={gameAddons.isEnabled('optiscaler')}
           onSwap={handleSwapWithSafety}
           {onRollback}
           onBulkSwap={handleBulkSwapWithSafety}
@@ -409,4 +426,22 @@
     }
   }}
   onRetry={() => void updateAllWorkflow.retryDeveloperMode()}
+/>
+
+<AddonActionConfirmDialog
+  open={installConfirmationOpen}
+  busy={false}
+  tone="warning"
+  title={t('gameDetails.fileSafety.installConfirmTitle')}
+  description={t('gameDetails.fileSafety.installConfirmBody')}
+  warning={installConfirmationWarning}
+  confirmLabel={t('gameDetails.fileSafety.installConfirmAction')}
+  onOpenChange={(open: boolean) => {
+    if (!open) {
+      fileSafety.resolveInstallConfirmation(false);
+    }
+  }}
+  onConfirm={() => {
+    fileSafety.resolveInstallConfirmation(true);
+  }}
 />

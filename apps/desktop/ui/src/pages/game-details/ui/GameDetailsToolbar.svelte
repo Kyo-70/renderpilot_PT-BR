@@ -72,7 +72,7 @@
         <TabsTrigger value={tab.key}>{tab.label}</TabsTrigger>
       {/each}
       {#if hasAddonsTab}
-        <TabsTrigger value={ADDONS_TAB_VALUE}>{t('gameDetails.otherTab')}</TabsTrigger>
+        <TabsTrigger value={ADDONS_TAB_VALUE}>{t('gameDetails.addonsTab')}</TabsTrigger>
       {/if}
     </TabsList>
   {/if}

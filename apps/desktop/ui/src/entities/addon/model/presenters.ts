@@ -24,6 +24,7 @@ export type AddonInstallableLabels = {
 export type AddonInstalledLabels = {
   statusLabel: MessageKeyWithoutParams;
   statusInstalled: MessageKeyWithoutParams;
+  confidenceLabel: MessageKeyWithoutParams;
   freshnessLabel: MessageKeyWithoutParams;
   addonDated: DateMessageKey;
   installedOn: DateMessageKey;
@@ -212,6 +213,7 @@ export function createInstalledLabels(prefix: ToolI18nPrefix): AddonInstalledLab
   return {
     statusLabel: toolKey(prefix, 'status.label'),
     statusInstalled: toolKey(prefix, 'statusInstalled'),
+    confidenceLabel: toolKey(prefix, 'confidenceLabel'),
     freshnessLabel: toolKey(prefix, 'fresh.label'),
     addonDated: toolKey(prefix, 'addonDated'),
     installedOn: toolKey(prefix, 'installedOn'),

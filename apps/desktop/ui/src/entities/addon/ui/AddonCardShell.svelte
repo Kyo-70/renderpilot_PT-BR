@@ -6,7 +6,6 @@
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
     DownloadProgressBar,
@@ -15,6 +14,7 @@
 
   import AddonAvailabilityFailure from './AddonAvailabilityFailure.svelte';
   import AddonAttribution from './AddonAttribution.svelte';
+  import AddonCardFooter from './AddonCardFooter.svelte';
 
   type Props = {
     title: string;
@@ -81,7 +81,7 @@
     </div>
   </CardHeader>
 
-  <CardContent class="flex w-full flex-col gap-4">
+  <CardContent class="flex w-full flex-1 flex-col gap-4">
     {#if showLoading}
       <div class="flex items-center gap-2 text-sm text-muted-foreground">
         <Spinner class="size-4" />
@@ -92,11 +92,13 @@
     {:else}
       {@render children()}
     {/if}
-  </CardContent>
 
-  {#if showAttribution}
-    <CardFooter class="mt-auto">
-      <AddonAttribution {...attribution} />
-    </CardFooter>
-  {/if}
+    {#if showAttribution}
+      <AddonCardFooter>
+        {#snippet leading()}
+          <AddonAttribution {...attribution} />
+        {/snippet}
+      </AddonCardFooter>
+    {/if}
+  </CardContent>
 </Card>

@@ -28,6 +28,18 @@ import {
 } from './renodx-store-test-fixtures';
 
 describe('createRenoDxStore', () => {
+  it('does not call the install command when the shared install warning is rejected', async () => {
+    const api = fakeApi();
+    const requireInstallSafetyTokens = vi.fn(() => Promise.resolve(null));
+    const store = createRenoDxStore({ api, requireInstallSafetyTokens });
+    await store.load('steam:1091500');
+
+    await expect(store.install('steam:1091500', 'stable')).resolves.toBe('skipped');
+
+    expect(requireInstallSafetyTokens).toHaveBeenCalledWith('steam:1091500', 'game');
+    expect(api.install).not.toHaveBeenCalled();
+  });
+
   it('waits for one in-flight safety context and forwards both tokens', async () => {
     const safety = Promise.withResolvers<{
       gameContextToken: string;
@@ -776,6 +788,34 @@ describe('createRenoDxStore', () => {
     expect(store.manualInstall).toEqual(afterUninstall.manual_install);
     expect(store.vulkanLayer).toEqual(VULKAN_NOT_INSTALLED);
     expect(store.isExternal).toBe(true);
+  });
+
+  it('uninstall invalidates the old availability outcome before its replacement scan resolves', async () => {
+    const refreshed = Promise.withResolvers<AvailabilityReport>();
+    let installed = true;
+    const api = fakeApi({
+      getAvailability: vi.fn(() => (installed ? Promise.resolve(INSTALLED) : refreshed.promise)),
+      uninstall: vi.fn(() => {
+        installed = false;
+        return Promise.resolve(NOT_INSTALLED_SAFE.state);
+      }),
+    });
+    const store = createRenoDxStore({ api });
+    await store.load('steam:1091500');
+    expect(store.outcome?.kind).toBe('unsupported');
+
+    const removal = store.uninstall('steam:1091500');
+    await Promise.resolve();
+
+    expect(store.isInstalled).toBe(false);
+    expect(store.outcome).toBeNull();
+    expect(store.isUnsupported).toBe(false);
+    expect(store.manualInstall).toBeNull();
+    expect(store.vulkanLayer).toBeNull();
+
+    refreshed.resolve(NOT_INSTALLED_SAFE);
+    await expect(removal).resolves.toBe('ok');
+    expect(store.outcome).toEqual(NOT_INSTALLED_SAFE.outcome);
   });
 
   it('mutation host refresh failures keep the committed install state', async () => {

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import ts from 'typescript';
 
 import {
   objectLiteralEntries,
@@ -12,6 +13,7 @@ import {
   projectSupportedNvapiCatalog,
   validateLumaContract,
 } from '../external-contract-core.mjs';
+import { validateOptiscalerContract } from '../i18n-contracts/validator.mjs';
 
 export const REVIEW_LOCALES = ['ru', 'de', 'es', 'fr', 'ja', 'zh-Hans', 'zh-Hant'];
 export const REVIEW_FORMATS = ['tsv', 'json'];
@@ -33,9 +35,26 @@ function validateExternalContract(operation) {
   }
 }
 
-export function parseTranslationSource(sourceText, fileName = 'translations.ts') {
+export function parseTranslationSource(
+  sourceText,
+  fileName = 'translations.ts',
+  { variableName = 'translations', factoryName = null } = {},
+) {
   const source = parseTypeScriptSource(sourceText, fileName, fail);
-  const initializer = variableInitializer(source, 'translations', fail);
+  let initializer = variableInitializer(source, variableName, fail);
+  if (factoryName !== null) {
+    if (
+      !ts.isCallExpression(initializer) ||
+      initializer.arguments.length !== 1 ||
+      !ts.isCallExpression(initializer.expression) ||
+      !ts.isIdentifier(initializer.expression.expression) ||
+      initializer.expression.expression.text !== factoryName ||
+      initializer.expression.arguments.length !== 0
+    ) {
+      fail(`${fileName} must initialize ${variableName} with ${factoryName}<...>()({...})`);
+    }
+    [initializer] = initializer.arguments;
+  }
   const translations = {};
   for (const [key, expression] of objectLiteralEntries(
     initializer,
@@ -73,24 +92,52 @@ export async function createReviewReport(locale) {
   }
   const lumaDirectory = path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma');
   const nvapiDirectory = path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/nvapi');
-  const [lumaContract, nvapiCatalog, editorialPolicy, lumaSource, nvapiSource] = await Promise.all([
-    readJson(path.join(lumaDirectory, 'contract.json')),
+  const optiscalerDirectory = path.join(
+    APP_ROOT,
+    'ui/src/shared/i18n/messages/overrides/optiscaler',
+  );
+  const [
+    lumaContract,
+    nvapiCatalog,
+    optiscalerContract,
+    editorialPolicy,
+    lumaSource,
+    nvapiSource,
+    optiscalerSource,
+  ] = await Promise.all([
+    readJson(path.join(lumaDirectory, 'source.generated.json')),
     readJson(
       path.resolve(
         APP_ROOT,
         '../../crates/renderpilot-orchestration/src/dlss/bundled/dlss_settings.json',
       ),
     ),
+    readJson(path.join(optiscalerDirectory, 'source.generated.json')),
     readJson(path.join(APP_ROOT, 'data/i18n-editorial-policy.json')),
     readFile(path.join(lumaDirectory, `${locale}.ts`), 'utf8'),
     readFile(path.join(nvapiDirectory, `${locale}.ts`), 'utf8'),
+    readFile(path.join(optiscalerDirectory, `${locale}.ts`), 'utf8'),
   ]);
 
-  const lumaTranslations = parseTranslationSource(lumaSource, `luma/${locale}.ts`);
+  const lumaTranslations = parseTranslationSource(lumaSource, `luma/${locale}.ts`, {
+    variableName: 'lumaOverrides',
+    factoryName: 'defineLocalizedCatalog',
+  });
   const nvapiTranslations = parseTranslationSource(nvapiSource, `nvapi/${locale}.ts`);
+  const optiscalerTranslations = parseTranslationSource(
+    optiscalerSource,
+    `optiscaler/${locale}.ts`,
+    { variableName: 'optiscalerOverrides', factoryName: 'defineLocalizedCatalog' },
+  );
   const luma = validateExternalContract(() => validateLumaContract(lumaContract));
   const nvapi = validateExternalContract(() => projectSupportedNvapiCatalog(nvapiCatalog));
-  assertExactKeys(lumaTranslations, Object.keys(luma.groups), `Luma ${locale}`);
+  const optiscaler = validateOptiscalerContract(optiscalerContract);
+  assertExactKeys(lumaTranslations, Object.keys(luma.sourceCatalog), `Luma ${locale}`);
+  assertExactKeys(
+    optiscalerTranslations,
+    Object.keys(optiscaler.sourceCatalog),
+    `OptiScaler ${locale}`,
+  );
 
   const verbatim = new Set(editorialPolicy.nvapiVerbatimValues);
   const nvapiSources = [];
@@ -107,15 +154,19 @@ export async function createReviewReport(locale) {
   });
   assertExactKeys(nvapiTranslations, new Set(nvapiSources), `NVAPI ${locale}`);
 
-  const lumaRows = Object.entries(luma.groups).flatMap(([phrase, ids]) =>
-    ids.map((key) => ({
-      key,
-      context: luma.contexts[key],
-      source: luma.sourceCatalog[key],
-      translation: lumaTranslations[phrase],
-    })),
-  );
-  const messages = [...lumaRows, ...nvapiRows];
+  const lumaRows = Object.entries(luma.sourceCatalog).map(([key, source]) => ({
+    key,
+    context: luma.contexts[key],
+    source,
+    translation: lumaTranslations[key],
+  }));
+  const optiscalerRows = Object.entries(optiscaler.sourceCatalog).map(([key, source]) => ({
+    key,
+    context: `guidance.${optiscaler.contexts[key]}`,
+    source,
+    translation: optiscalerTranslations[key],
+  }));
+  const messages = [...lumaRows, ...nvapiRows, ...optiscalerRows];
   for (const row of messages) {
     if (typeof row.translation !== 'string' || row.translation.trim() === '') {
       fail(`${locale} has no translation for ${row.key}`);

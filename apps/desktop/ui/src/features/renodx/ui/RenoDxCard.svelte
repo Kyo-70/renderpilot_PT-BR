@@ -2,10 +2,10 @@
   import { untrack } from 'svelte';
 
   import { t, translateExternalMessage } from '@shared/i18n';
-  import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui';
+  import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui';
   import SettingsIcon from '@lucide/svelte/icons/settings';
 
-  import { AddonBlockedMessage, AddonCardShell, AddonStateMessage } from '@entities/addon';
+  import { AddonBlockedView, AddonCardShell, AddonStateMessage } from '@entities/addon';
 
   import { getCardView } from '../model/card-view';
   import { createRenoDxStore, type RenoDxStore } from '../model/create-renodx-store.svelte';
@@ -67,7 +67,10 @@
   const showLoadError = $derived(view === 'load-error');
   const showDlssFixRecovery = $derived(store.dlssFix.kind === 'recovery_pending');
   const showAttribution = $derived(
-    view !== 'installable' && view !== 'installed' && view !== 'external',
+    view !== 'installable' &&
+      view !== 'installed' &&
+      view !== 'external' &&
+      view !== 'blocked-by-other-addon',
   );
 
   const blacklistText = $derived(
@@ -150,11 +153,13 @@
   {:else if view === 'installed'}
     <RenoDxInstalledPanel {gameId} {store} busy={combinedBusy} />
   {:else if view === 'blocked-by-other-addon'}
-    <AddonBlockedMessage
+    <AddonBlockedView
       blockedAddon="renodx"
       installedAddon={store.otherAddonKind}
       fallbackInstalledAddon="luma"
       unmanaged={store.otherAddonUnmanaged}
+      attribution={RENODX_ATTRIBUTION}
+      installLabel={t('gameDetails.renodx.actionInstall')}
     />
   {:else if view === 'external'}
     <RenoDxExternalView {gameId} {store} busy={combinedBusy} />
@@ -168,6 +173,11 @@
     <RenoDxManualFallbackView {gameId} {store} busy={combinedBusy} variant="incompatible" />
   {:else if view === 'installable'}
     <RenoDxInstallableView {gameId} {store} busy={combinedBusy} />
+  {:else if combinedBusy}
+    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+      <Spinner class="size-4" />
+      <span>{t('gameDetails.renodx.loading')}</span>
+    </div>
   {:else}
     <AddonStateMessage icon="info" message={t('gameDetails.renodx.unavailable')} />
   {/if}

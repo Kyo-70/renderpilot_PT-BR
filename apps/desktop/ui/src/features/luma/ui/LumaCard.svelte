@@ -2,12 +2,12 @@
   import { untrack } from 'svelte';
 
   import { t, translateExternalMessage } from '@shared/i18n';
-  import { AddonCardShell, AddonStateMessage } from '@entities/addon';
+  import { AddonBlockedView, AddonCardShell, AddonStateMessage } from '@entities/addon';
+  import { Spinner } from '@shared/ui';
 
   import { getCardView } from '../model/card-view';
   import { LUMA_ATTRIBUTION } from '../model/attribution';
   import { createLumaStore, type LumaStore } from '../model/create-luma-store.svelte';
-  import LumaBlockedView from './LumaBlockedView.svelte';
   import LumaInstallableView from './LumaInstallableView.svelte';
   import LumaInstalledPanel from './LumaInstalledPanel.svelte';
 
@@ -53,7 +53,12 @@
   const progressIds = $derived([gameId]);
   const showLoading = $derived(view === 'loading');
   const showLoadError = $derived(view === 'load-error');
-  const showAttribution = $derived(view !== 'installable' && view !== 'installed');
+  const showAttribution = $derived(
+    view !== 'installable' &&
+      view !== 'installed' &&
+      view !== 'blocked-by-other-addon' &&
+      view !== 'unmanaged-present',
+  );
 
   const blacklistText = $derived(
     store.blacklistMessage
@@ -103,7 +108,17 @@
   {#if view === 'installed'}
     <LumaInstalledPanel {gameId} {store} busy={combinedBusy} {launcher} />
   {:else if view === 'blocked-by-other-addon' || view === 'unmanaged-present'}
-    <LumaBlockedView {store} />
+    <AddonBlockedView
+      blockedAddon="luma"
+      installedAddon={store.otherAddonKind}
+      fallbackInstalledAddon="renodx"
+      unmanaged={store.otherAddonUnmanaged}
+      selfUnmanagedMessage={store.isBlockedByOtherAddon
+        ? null
+        : t('gameDetails.luma.unmanagedPresent')}
+      attribution={LUMA_ATTRIBUTION}
+      installLabel={t('gameDetails.luma.actionInstall')}
+    />
   {:else if view === 'blacklisted'}
     <AddonStateMessage tone="warning" icon="warning" message={blacklistText} />
   {:else if view === 'unsupported'}
@@ -116,6 +131,11 @@
     />
   {:else if view === 'installable'}
     <LumaInstallableView {gameId} {store} busy={combinedBusy} {launcher} />
+  {:else if combinedBusy}
+    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+      <Spinner class="size-4" />
+      <span>{t('gameDetails.luma.loading')}</span>
+    </div>
   {:else}
     <AddonStateMessage icon="info" message={t('gameDetails.luma.unavailable')} />
   {/if}

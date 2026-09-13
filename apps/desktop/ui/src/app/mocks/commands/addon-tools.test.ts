@@ -26,12 +26,33 @@ describe('mock addon-tools IPC', () => {
     ).rejects.toThrow(/Mock preview does not simulate/);
   });
 
-  it('still advertises luma and renodx kinds on refresh_remote_manifests', async () => {
+  it('resolves OptiScaler availability and rejects preview mutations explicitly', async () => {
+    const report = await mockInvoker('get_optiscaler_availability', {
+      gameId: 'steam:1',
+      manualOverride: false,
+    });
+    expect(report).toMatchObject({
+      game_id: 'steam:1',
+      install: { installed: false },
+      eligibility: { available: false },
+    });
+    await expect(
+      mockInvoker('install_optiscaler', {
+        gameId: 'steam:1',
+        modules: ['core'],
+        manualOverride: false,
+        gameContextToken: 'game-token',
+      }),
+    ).rejects.toThrow(/Mock preview does not simulate/);
+  });
+
+  it('advertises all add-on manifests on refresh_remote_manifests', async () => {
     const report = await mockInvoker('refresh_remote_manifests', undefined);
     expect(report).toMatchObject({
       kinds: {
         luma: { status: 'ok' },
         renodx: { status: 'ok' },
+        optiscaler: { status: 'ok' },
       },
     });
   });

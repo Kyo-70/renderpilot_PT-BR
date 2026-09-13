@@ -27,6 +27,112 @@ describe('createFileSafetyContext', () => {
     document.body.replaceChildren();
   });
 
+  it('returns fresh install authority immediately when no anti-cheat is detected', async () => {
+    let calls = 0;
+    const invoker = ((command: string) => {
+      if (command === 'get_game_file_safety_assessment') {
+        calls += 1;
+        return Promise.resolve({
+          game_id: 'game-a',
+          context_token: `game-token-${calls}`,
+          detected_engines: [],
+          scan_completeness: 'complete',
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    }) as DesktopInvoker;
+    disposeInvoker = registerPreviewInvoker(invoker);
+
+    component = mount(FileSafetyContextTestHost, {
+      target,
+      props: { initialGameId: 'game-a' },
+    });
+    const host = component as {
+      requireInstallTokens(scope: 'game'): Promise<{ gameContextToken: string } | null>;
+      getInstallConfirmation(): unknown;
+    };
+    await vi.waitFor(() => {
+      expect(calls).toBe(1);
+    });
+
+    await expect(host.requireInstallTokens('game')).resolves.toEqual({
+      gameContextToken: 'game-token-2',
+    });
+    expect(host.getInstallConfirmation()).toBeNull();
+  });
+
+  it('requires one explicit confirmation for a detected anti-cheat and preserves the tokens', async () => {
+    let calls = 0;
+    const invoker = ((command: string) => {
+      if (command === 'get_game_file_safety_assessment') {
+        calls += 1;
+        return Promise.resolve({
+          game_id: 'game-a',
+          context_token: `game-token-${calls}`,
+          detected_engines: ['EasyAntiCheat'],
+          scan_completeness: 'complete',
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    }) as DesktopInvoker;
+    disposeInvoker = registerPreviewInvoker(invoker);
+
+    component = mount(FileSafetyContextTestHost, {
+      target,
+      props: { initialGameId: 'game-a' },
+    });
+    const host = component as {
+      requireInstallTokens(scope: 'game'): Promise<{ gameContextToken: string } | null>;
+      resolveInstallConfirmation(accepted: boolean): void;
+      getInstallConfirmation(): { detectedEngines: string[] } | null;
+    };
+    await vi.waitFor(() => {
+      expect(calls).toBe(1);
+    });
+
+    const tokens = host.requireInstallTokens('game');
+    await vi.waitFor(() => {
+      expect(host.getInstallConfirmation()?.detectedEngines).toEqual(['EasyAntiCheat']);
+    });
+    host.resolveInstallConfirmation(true);
+
+    await expect(tokens).resolves.toEqual({ gameContextToken: 'game-token-2' });
+    expect(host.getInstallConfirmation()).toBeNull();
+  });
+
+  it('treats a rejected anti-cheat confirmation as a skipped install', async () => {
+    const invoker = ((command: string) => {
+      if (command === 'get_game_file_safety_assessment') {
+        return Promise.resolve({
+          game_id: 'game-a',
+          context_token: 'game-token',
+          detected_engines: ['BattlEye'],
+          scan_completeness: 'complete',
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    }) as DesktopInvoker;
+    disposeInvoker = registerPreviewInvoker(invoker);
+
+    component = mount(FileSafetyContextTestHost, {
+      target,
+      props: { initialGameId: 'game-a' },
+    });
+    const host = component as {
+      requireInstallTokens(scope: 'game'): Promise<{ gameContextToken: string } | null>;
+      resolveInstallConfirmation(accepted: boolean): void;
+      getInstallConfirmation(): unknown;
+    };
+
+    const tokens = host.requireInstallTokens('game');
+    await vi.waitFor(() => {
+      expect(host.getInstallConfirmation()).not.toBeNull();
+    });
+    host.resolveInstallConfirmation(false);
+
+    await expect(tokens).resolves.toBeNull();
+  });
+
   it("loads a newly selected game without waiting for the previous game's stalled request", async () => {
     let gameACalls = 0;
     let gameBCalls = 0;

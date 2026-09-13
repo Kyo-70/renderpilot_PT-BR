@@ -624,6 +624,8 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
     'ファイル安全性の評価が古くなっています。更新して再試行してください。',
   'user_message.safety_context_scope_mismatch':
     'ファイル安全性の評価が別のリソースに属しています。更新して再試行してください。',
+  'user_message.peer_topology_conflict':
+    'RenderPilot は現在のプロキシチェーンとこの変更を安全に調整できません。対象のアドオンを再スキャンまたは修復してから、もう一度お試しください。',
 
   'suggested_action.refresh_games': 'ゲームリストを更新して再試行してください。',
   'suggested_action.reload_game_details': 'ゲームの詳細を更新して再試行してください。',
@@ -636,6 +638,8 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'suggested_action.refresh_or_scan_game_folder':
     'リストを更新するか、フォルダを再スキャンしてください。',
   'suggested_action.reload_file_safety': 'ファイル安全性の評価を更新して再試行してください。',
+  'suggested_action.rescan_or_repair_addon':
+    '対象のアドオンを再スキャンまたは修復してから、もう一度お試しください。',
 
   'settings.about.title': 'アップデート',
   'settings.about.description': 'アプリケーションのアップデートを確認します。',
@@ -692,6 +696,10 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.renodx.switchError': 'ReShade チャンネルの切り替えに失敗しました',
   'gameDetails.renodx.unsupported': 'このゲームに利用できる RenoDX プロファイルはありません。',
   'gameDetails.renodx.incompatible': 'RenoDX をインストールできません：{reason}。',
+  'gameDetails.renodx.installTornWarning':
+    '以前の RenoDX 操作が正常に完了しませんでした。インストールを再実行してファイルを整合させてください。',
+  'gameDetails.renodx.installTornWarningInstalled':
+    '直前の RenoDX 操作が正常に完了しませんでした。修復または更新を実行してインストールを整合させてください。',
   'gameDetails.renodx.status.label': 'Status',
   'gameDetails.renodx.statusInstalled': 'インストール済み',
   'gameDetails.renodx.actionInstall': 'インストール',
@@ -762,15 +770,17 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.renodx.reason.api_unsupported': '非対応のグラフィックス API',
   'gameDetails.renodx.reason.api_not_allowed': 'このゲームでは許可されていないグラフィックス API',
   'gameDetails.renodx.reason.arch_unknown': '実行ファイルのアーキテクチャが不明',
-  'gameDetails.otherTab': 'その他',
+  'gameDetails.addonsTab': 'アドオン',
   'gameDetails.renodx.unavailable': '現在 RenoDX は利用できません。',
   'renodx.generic.universal': 'ユニバーサル RenoDX',
   'renodx.generic.unity': 'ユニバーサル RenoDX (Unity)',
   'gameDetails.renodx.generic.profileTooltip': '共有エンジンプロファイルを使用しています。',
   'renodx.phase.finalizing': '完了処理中…',
   'luma.phase.finalizing': '完了処理中…',
-  'gameDetails.renodx.confidenceLabel': 'RenoDX 互換性',
-  'gameDetails.renodx.confidenceVerified': '動作します',
+  'optiscaler.phase.verifying': '検証中…',
+  'optiscaler.phase.finalizing': '完了処理中…',
+  'gameDetails.renodx.confidenceLabel': '互換性',
+  'gameDetails.renodx.confidenceVerified': '確認済み',
   'gameDetails.renodx.confidenceExperimental': '対応中',
   'gameDetails.renodx.confidenceUntested': '未確認',
   'gameDetails.renodx.external':
@@ -853,6 +863,10 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.fileSafety.detectedMany':
     'アンチチートを検出しました: {engines}。ゲームファイルの変更は、アカウントの制限や停止につながる可能性があります。',
   'gameDetails.fileSafety.loadError': 'ファイル変更のリスクを確認できませんでした',
+  'gameDetails.fileSafety.installConfirmTitle': 'このゲームにアドオンをインストールしますか？',
+  'gameDetails.fileSafety.installConfirmBody':
+    'アンチチートが検出されました。アドオンをインストールするとゲームフォルダー内のファイルが変更されます。',
+  'gameDetails.fileSafety.installConfirmAction': 'インストール',
   'gameDetails.addon.blockedByOtherAddon.tracked':
     'このゲームには {installedAddon} がインストールされています — {blockedAddon} をインストールする前にアンインストールしてください。',
   'gameDetails.addon.blockedByOtherAddon.unmanaged':
@@ -862,6 +876,8 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'addon.availability.checking': '確認中…',
   // ── Game details: Luma ──
   'gameDetails.luma.title': 'Luma Framework',
+  'gameDetails.luma.uninstallBlockedByOptiscaler':
+    'このゲームの OptiScaler には Luma が必要です。先に OptiScaler をアンインストールしてください。',
   'gameDetails.luma.description': 'このゲームで利用可能な Luma の機能を以下に示します。',
   'gameDetails.luma.loading': '利用可否を確認しています…',
   'gameDetails.luma.installError': 'Luma のインストールに失敗しました',
@@ -897,8 +913,8 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.luma.dgvoodoo.managed':
     'RenderPilot がこの Luma プロファイル用に dgVoodoo2 {version} をインストールして設定します。',
   // ── Game details: Luma confidence ──
-  'gameDetails.luma.confidenceLabel': 'Luma 互換性',
-  'gameDetails.luma.confidenceVerified': '動作確認済み',
+  'gameDetails.luma.confidenceLabel': '互換性',
+  'gameDetails.luma.confidenceVerified': '確認済み',
   'gameDetails.luma.confidenceExperimental': '対応中',
   'gameDetails.luma.confidenceUntested': '未検証',
   'gameDetails.luma.generic.engineUnreal': 'Unreal Engine',
@@ -951,34 +967,156 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.luma.component.dgvoodoo': 'dgVoodoo2 ラッパー',
   'gameDetails.luma.component.dgvoodooDesc': '管理対象の D3D9 ブリッジ、バージョン {version}',
   // ── Game details: Luma launch arguments ──
-  'gameDetails.luma.launchArgs.instructions.steam':
+  'gameDetails.addon.launchArguments.instructions.steam':
     'Steam 経由でゲームを起動する場合は、ゲームを右クリック → プロパティ → 全般 → 起動オプションで追加してください。',
-  'gameDetails.luma.launchArgs.instructions.gog':
+  'gameDetails.addon.launchArguments.instructions.gog':
     'GOG Galaxy 経由でゲームを起動する場合は、ゲーム設定 → インストールの管理 → 構成で追加してください。',
-  'gameDetails.luma.launchArgs.instructions.epic':
+  'gameDetails.addon.launchArguments.instructions.epic':
     'Epic Games Launcher 経由でゲームを起動する場合は、ゲームを右クリック → 管理 → 追加のコマンドライン引数で追加してください。',
-  'gameDetails.luma.launchArgs.instructions.ea':
+  'gameDetails.addon.launchArguments.instructions.ea':
     'EA app 経由でゲームを起動する場合は、ゲームを選択 → 管理 → プロパティを表示 → 詳細な起動オプションで追加してください。',
-  'gameDetails.luma.launchArgs.instructions.ubisoft':
+  'gameDetails.addon.launchArguments.instructions.ubisoft':
     'Ubisoft Connect 経由でゲームを起動する場合は、ゲームを選択 → プロパティ → 起動引数を追加で追加してください。',
-  'gameDetails.luma.launchArgs.instructions.other':
+  'gameDetails.addon.launchArguments.instructions.other':
     '実際にゲームを起動する方法に引数を追加してください。ランチャー、ショートカットのリンク先、バッチファイル、または別のローダーに設定します。',
-  'gameDetails.luma.launchArgs.title': '起動引数が必要です',
-  'gameDetails.luma.launchArgs.dx11Title': 'この Luma プロファイルには DirectX 11 が必要です',
-  'gameDetails.luma.launchArgs.copyStep': '必要な起動引数をコピーしてください:',
-  'gameDetails.luma.launchArgs.copy': '引数をコピー',
-  'gameDetails.luma.launchArgs.copied': 'コピーしました',
-  'gameDetails.luma.launchArgs.copyFailed': '起動引数をコピーできませんでした',
+  'gameDetails.addon.launchArguments.requiredTitle': '起動引数が必要です',
+  'gameDetails.addon.launchArguments.recommendedTitle': '推奨される起動引数',
+  'gameDetails.addon.launchArguments.dx11Title': 'このアドオンには DirectX 11 が必要です',
+  'gameDetails.addon.launchArguments.copyRequiredStep': '必要な起動引数をコピーしてください：',
+  'gameDetails.addon.launchArguments.copyRecommendedStep':
+    '推奨される起動引数をコピーしてください：',
+  'gameDetails.addon.launchArguments.copy': '引数をコピー',
+  'gameDetails.addon.launchArguments.copied': 'コピーしました',
+  'gameDetails.addon.launchArguments.copyFailed': '起動引数をコピーできませんでした',
   // ── Game details: Luma attribution ──
   'gameDetails.luma.attribution': 'Luma Framework by Filoppi。',
   'gameDetails.luma.attributionLink': 'プロジェクトを見る',
   'gameDetails.luma.guidance.gameSetting': 'ゲーム内設定',
   'gameDetails.luma.guidance.engineIni': '手動 INI 変更',
-  'gameDetails.luma.guidance.launchArgument': '起動引数',
   'gameDetails.luma.guidance.warning': '重要',
   'gameDetails.luma.guidance.compatibility': '互換性に関する注意',
   'gameDetails.luma.guidance.externalTool': 'サードパーティーツール',
   'gameDetails.luma.guidance.copy': 'コピー',
   'gameDetails.luma.guidance.copied': 'コピーしました',
   'gameDetails.luma.guidance.copyFailed': 'コピーできませんでした',
+  // ── Game details: OptiScaler ──
+  'gameDetails.optiscaler.title': 'OptiScaler',
+  'gameDetails.optiscaler.description': '代替アップスケーリングとフレーム生成技術を追加します。',
+  'gameDetails.optiscaler.loading': '互換性を確認しています…',
+  'gameDetails.optiscaler.statusLabel': '状態',
+  'gameDetails.optiscaler.statusInstalled': 'インストール済み',
+  'gameDetails.optiscaler.statusUnmanaged': '管理対象外',
+  'gameDetails.optiscaler.compatibilityLabel': '互換性',
+  'gameDetails.optiscaler.compatibilityVerified': '確認済み',
+  'gameDetails.optiscaler.compatibilityConditional': '条件付き',
+  'gameDetails.optiscaler.compatibilityUnconfirmed': '未確認',
+  'gameDetails.optiscaler.compatibilityUnavailable': '利用不可',
+  'gameDetails.optiscaler.compatibilityUnsupported': '非対応',
+  'gameDetails.optiscaler.versionLabel': 'バージョン',
+  'gameDetails.optiscaler.integrationThrough': '統合方式',
+  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
+    'RenderPilot はこのゲームとの互換性を確認できませんでした。通常どおりインストールできますが、この構成での動作は検証されていません。',
+  'gameDetails.optiscaler.configure': '設定',
+  'gameDetails.optiscaler.configureBeforeInstall': 'コンポーネントを設定',
+  'gameDetails.optiscaler.settingsTitle': 'インストールするコンポーネント',
+  'gameDetails.optiscaler.settingsDescription': 'OptiScaler でゲーム内に追加する技術を選択します。',
+  'gameDetails.optiscaler.moduleRequired': '必須',
+  'gameDetails.optiscaler.settingsSave': '完了',
+  'gameDetails.optiscaler.settingsApply': '適用',
+  'gameDetails.optiscaler.confirmCompatibilityTitle': '互換性が未確認のままインストールしますか？',
+  'gameDetails.optiscaler.confirmCompatibilityBody':
+    '通常どおりインストールされますが、このゲーム構成は検証されていません。',
+  'gameDetails.optiscaler.confirmCompatibilityWarning':
+    'ゲームが起動しない、または表示に乱れが生じる可能性があります。その場合は OptiScaler を削除できます。',
+  'gameDetails.optiscaler.confirmInstallAnyway': 'インストール',
+  'gameDetails.optiscaler.checkUpdates': 'アップデートを確認',
+  'gameDetails.optiscaler.prerequisite.removeRenoDx':
+    'この OptiScaler 構成で Luma Framework をインストールする前に、RenoDX を削除してください。',
+  'gameDetails.optiscaler.prerequisite.lumaTorn':
+    '以前の Luma Framework のインストールは完了していません。OptiScaler をインストールする前に、Luma Framework を再インストールまたは修復してください。',
+  'gameDetails.optiscaler.prerequisite.lumaBroken':
+    '必要な Luma Framework のインストールが不完全です。OptiScaler をインストールする前に、Luma Framework を修復してください。',
+  'gameDetails.optiscaler.prerequisite.installLuma':
+    'この構成では、OptiScaler をインストールする前に Luma Framework をインストールしてください。',
+  'gameDetails.optiscaler.prerequisite.lumaUnavailable':
+    'この OptiScaler 構成には Luma Framework が必要ですが、このゲームでは利用できません。',
+  'gameDetails.optiscaler.uninstallConfirmTitle': 'OptiScaler を削除しますか？',
+  'gameDetails.optiscaler.uninstallConfirmBody':
+    'RenderPilot は管理対象の OptiScaler ファイルを削除し、以前のプロキシ構成を復元します。',
+  'gameDetails.optiscaler.uninstallConfirmAction': '削除',
+  'gameDetails.optiscaler.block.requiresX64':
+    'OptiScaler には検出済みの 64 ビット版ゲーム実行ファイルが必要です。',
+  'gameDetails.optiscaler.block.unsupportedApi':
+    'このゲームが使用するグラフィック API は OptiScaler でサポートされていません。',
+  'gameDetails.optiscaler.block.catalogUnsupported':
+    'このゲームは OptiScaler と互換性がないとされています。',
+  'gameDetails.optiscaler.block.releaseUnavailable':
+    '現在インストールできる OptiScaler リリースはありません。',
+  'gameDetails.optiscaler.block.modulesUnavailable':
+    '選択したコンポーネントの一部を利用できません。選択内容を確認してください。',
+  'gameDetails.optiscaler.block.proxyConflict':
+    '必要なファイル位置を別のグラフィック改変が使用しています。競合を解決してから OptiScaler をインストールしてください。',
+  'gameDetails.optiscaler.block.generic':
+    'このゲーム構成には OptiScaler をインストールできません。',
+  'gameDetails.optiscaler.module.core.name': 'OptiScaler コア',
+  'gameDetails.optiscaler.module.core.description':
+    'すべてのインストールで使用する必須ランタイムと設定です。',
+  'gameDetails.optiscaler.module.ffxDx12.name': 'DirectX 12 用 AMD FSR',
+  'gameDetails.optiscaler.module.ffxDx12.description':
+    'DirectX 12 ゲームに AMD のアップスケーリングとフレーム生成を追加します。',
+  'gameDetails.optiscaler.module.ffxVulkan.name': 'Vulkan 用 AMD FSR',
+  'gameDetails.optiscaler.module.ffxVulkan.description':
+    'Vulkan を使用するゲームに AMD アップスケーリングを追加します。',
+  'gameDetails.optiscaler.module.agility.name': 'DirectX 12 サポートファイル',
+  'gameDetails.optiscaler.module.agility.description':
+    '一部の DirectX 12 ゲームに必要な互換ランタイムです。',
+  'gameDetails.optiscaler.module.fakeNvapi.name': 'NVIDIA 互換レイヤー',
+  'gameDetails.optiscaler.module.fakeNvapi.description':
+    '一部のゲームやグラフィック機能が必要とする NVIDIA インターフェイスを提供します。',
+  'gameDetails.optiscaler.module.fsr3Bridge.name': 'FSR 3 フレーム生成ブリッジ',
+  'gameDetails.optiscaler.module.fsr3Bridge.description':
+    '対応するゲーム統合を AMD FSR 3 フレーム生成に接続します。',
+  'gameDetails.optiscaler.module.xess.name': 'Intel XeSS',
+  'gameDetails.optiscaler.module.xess.description':
+    'Intel XeSS をアップスケーリングの選択肢として利用可能にします。',
+  'gameDetails.optiscaler.module.optipatcher.name': 'ゲーム互換性修正',
+  'gameDetails.optiscaler.module.optipatcher.description':
+    '一部のゲームに必要な互換性修正を適用します。',
+  'gameDetails.optiscaler.module.nvidiaSr.name': 'NVIDIA DLSS ファイル',
+  'gameDetails.optiscaler.module.nvidiaSr.description':
+    'ゲームに含まれる互換性のある Super Resolution ファイルを使用します。',
+  'gameDetails.optiscaler.inputs': '検出された入力',
+  'gameDetails.optiscaler.confidenceLabel': 'Wiki互換性の確度',
+  'gameDetails.optiscaler.confidenceVerified': '確認済み',
+  'gameDetails.optiscaler.confidenceDetectedUnverified': '検出済み・未確認',
+  'gameDetails.optiscaler.confidenceManualOverride': 'エキスパート上書き',
+  'gameDetails.optiscaler.confidenceUnsupported': '未対応',
+  'gameDetails.optiscaler.drifted': '管理対象ファイルが変更されています。修復を推奨します',
+  'gameDetails.optiscaler.proxyChain': 'プロキシチェーン',
+  'gameDetails.optiscaler.relocationAvailable': '別のゲーム実行ファイルが選択されています',
+  'gameDetails.optiscaler.unmanaged':
+    'この OptiScaler インストールは既知のリリースと一致しないため、変更されていません。',
+  'gameDetails.optiscaler.modules': 'モジュール',
+  'gameDetails.optiscaler.moduleExistingGame':
+    'ゲーム内の既存ファイルを使用します。実行ファイルの隣に複製はインストールされません。',
+  'gameDetails.optiscaler.moduleCatalogDownload':
+    'ゲーム内に存在しないため、分離された OptiScaler ランタイムディレクトリへインストールします。',
+  'gameDetails.optiscaler.expertOverride': '未検証の静的検出をエキスパート設定で上書き',
+  'gameDetails.optiscaler.applyModules': 'モジュールを適用',
+  'gameDetails.optiscaler.update': '更新',
+  'gameDetails.optiscaler.repair': '修復',
+  'gameDetails.optiscaler.relocate': '移動',
+  'gameDetails.optiscaler.uninstall': 'OptiScaler を削除',
+  'gameDetails.optiscaler.install': 'インストール',
+  'gameDetails.optiscaler.installing': 'インストール中…',
+  'gameDetails.optiscaler.installError': 'OptiScaler のインストールに失敗しました',
+  'gameDetails.optiscaler.updateError': 'OptiScaler の更新に失敗しました',
+  'gameDetails.optiscaler.repairError': 'OptiScaler の修復に失敗しました',
+  'gameDetails.optiscaler.relocateError': 'OptiScaler の移動に失敗しました',
+  'gameDetails.optiscaler.modulesError': 'OptiScaler モジュールを変更できませんでした',
+  'gameDetails.optiscaler.uninstallError': 'OptiScaler の削除に失敗しました',
+  'gameDetails.optiscaler.attribution': 'cdozdil による OptiScaler。',
+  'gameDetails.optiscaler.attributionLink': 'プロジェクトを見る',
+  'user_message.luma_required_by_optiscaler':
+    'このゲームの OptiScaler には Luma が必要です。先に OptiScaler をアンインストールしてください。',
 });

@@ -16,6 +16,17 @@ import {
 } from './luma-store-test-fixtures';
 
 describe('createLumaStore', () => {
+  it('does not call the install command when the shared install warning is rejected', async () => {
+    const api = fakeApi();
+    const requireInstallSafetyTokens = vi.fn(() => Promise.resolve(null));
+    const store = createLumaStore({ api, requireInstallSafetyTokens });
+
+    await expect(store.install('steam:403640')).resolves.toBe('skipped');
+
+    expect(requireInstallSafetyTokens).toHaveBeenCalledWith('steam:403640', 'game');
+    expect(api.install).not.toHaveBeenCalled();
+  });
+
   it('waits for one in-flight safety context before installing', async () => {
     const safety = Promise.withResolvers<{ gameContextToken: string }>();
     const requireSafetyTokens = vi.fn(() => safety.promise);

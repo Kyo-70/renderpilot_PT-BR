@@ -44,13 +44,18 @@ export type {
 
 export {
   AddonAttribution,
+  AddonActionConfirmDialog,
   AddonBlockedMessage,
+  AddonBlockedView,
+  AddonCardFooter,
   AddonCardShell,
   AddonComponentRow,
-  AddonConfidenceBadge,
   AddonFieldLabel,
   AddonInstallableView,
   AddonInstalledPanel,
+  AddonSignalBadge,
   AddonStateMessage,
   AddonToolStatusBadge,
+  AddonUninstallAction,
 } from './ui';
+export type { AddonAttributionProps, AddonBadgeTone, AddonToolI18nPrefix } from './ui/types';

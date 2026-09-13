@@ -43,6 +43,10 @@ export type LumaStoreOptions = {
    */
   onGameDetailsInvalidate?: (gameId: string) => void | Promise<void>;
   requireSafetyTokens?: (gameId: string, scope: 'game') => Promise<MutationSafetyTokens>;
+  requireInstallSafetyTokens?: (
+    gameId: string,
+    scope: 'game',
+  ) => Promise<MutationSafetyTokens | null>;
   onSafetyContextError?: (error: unknown, scope: 'game') => void | Promise<void>;
 };
 
@@ -71,6 +75,7 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
     vcredistPresent: null,
     vcredistInstallerUrl: '',
     installTorn: false,
+    uninstallBlockedBy: null,
   });
   let outcome = $state<AvailabilityOutcome | null>(null);
   /** Last installable profile metadata — retained while installed if resolution drifts. */
@@ -127,6 +132,7 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
         vcredistPresent: null,
         vcredistInstallerUrl: '',
         installTorn: false,
+        uninstallBlockedBy: null,
       };
       outcome = null;
       // Same-game reload keeps retained profile meta so installable features
@@ -221,10 +227,14 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
   );
 
   async function install(gameId: string): Promise<AddonMutationResult> {
+    const installTokens = await options.requireInstallSafetyTokens?.(gameId, 'game');
+    if (options.requireInstallSafetyTokens && installTokens === null) {
+      return 'skipped';
+    }
     return core.runBusyMutation(
       gameId,
       async () => {
-        const tokens = await requireSafetyTokens?.(gameId, 'game');
+        const tokens = installTokens ?? (await requireSafetyTokens?.(gameId, 'game'));
         return tokens ? api.install(gameId, tokens.gameContextToken) : api.install(gameId);
       },
       {
@@ -290,6 +300,9 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
       },
       get installTorn() {
         return availabilitySnapshot.installTorn;
+      },
+      get uninstallBlockedBy() {
+        return availabilitySnapshot.uninstallBlockedBy;
       },
       get externalRequirement() {
         return externalRequirement;

@@ -20,6 +20,11 @@ export {
   translateMessageRef,
 } from './runtime.svelte';
 
+export {
+  OPTISCALER_MESSAGE_CONTEXTS,
+  OPTISCALER_SOURCE_CATALOG,
+} from './messages/overrides/optiscaler/contract.generated';
+
 export type {
   ExternalMessageInput,
   I18nInitializationResult,

@@ -89,4 +89,12 @@ describe('AddonCardShell', () => {
     expect(target.querySelector('a[href="https://example.test/project"]')).toBeNull();
     expect(target.textContent).not.toContain('Luma Framework by Filoppi.');
   });
+
+  it('shows attribution when enabled during loading or load error', () => {
+    render({ showLoading: true, showAttribution: true });
+    expect(target.textContent).toContain('Luma Framework by Filoppi.');
+
+    render({ showLoadError: true, showAttribution: true });
+    expect(target.textContent).toContain('Luma Framework by Filoppi.');
+  });
 });

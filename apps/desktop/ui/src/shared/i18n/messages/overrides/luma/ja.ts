@@ -1,90 +1,128 @@
+// Generated from renderpilot-libraries by scripts/sync-luma-i18n.mjs. Do not edit manually.
+
 import { defineLocalizedCatalog } from '../../contract';
-import {
-  expandLumaTranslations,
-  type LumaMessageTranslations,
-  type LumaSourceCatalog,
-} from './schema';
+import type { LumaSourceCatalog } from './contract.generated';
 
-const translations = {
-  publicMatchmaking:
-    'Luma のインストール中は公式の公開マッチメイキングを利用しないでください。BAN される可能性があります。',
-  deusExBorisEnb:
-    'Boris ENB（DX9）とは互換性がありません。Director’s Cut およびオリジナル版と互換性があります。Luma 使用時は Gold Filter Restoration MOD は不要です。',
-  dlssOnlyNoHdr: 'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
-  hatsuneExclusiveFullscreen:
-    '表示に問題が生じる場合は排他的フルスクリーンを避けてください。Alt+Enter で表示モードを切り替えられます。',
-  heavyRainSteamUltrawide: 'ウルトラワイド対応は Steam でのみ動作する可能性があります。',
-  xboxStore: 'Xbox Store 版とは互換性がありません。',
-  metroWindowed:
-    'ウィンドウまたはボーダーレスモードが必要です。MOD を使用するか、ゲーム設定ファイルでフルスクリーンを無効化してください。',
-  metroBorderless: 'ボーダーレスウィンドウモードを使用してください。',
-  preyData: 'Prey 用の追加 Luma データファイルは、アドオンと同じ場所に置いてください。',
-  massEffectNativeAa:
-    '利用できるのは DLAA / FSR 3 Native AA モードのみで、DLSS または FSR の超解像ではありません。',
-  manualLaunchArgument: 'この起動引数を手動で追加してください。',
-  aceFxaaHigh: 'ゲーム設定: AA「FXAA High」を選択してください。',
-  manualEngineIni: '次の設定を Engine.ini に手動で適用してください。',
-  callSeaEpic: 'ゲーム設定で全体品質を「Epic」にしてください。',
-  codeVeinAaHighest: 'ゲーム設定で AA を Highest にしてください。',
-  crabHighAntialiasing: 'ゲーム設定で High Anti-aliasing Type を選択してください。',
-  crashAaMedium: 'ゲーム設定: アンチエイリアス品質を少なくとも Medium (2x) に設定してください。',
-  clashAaVeryHigh: 'ゲーム設定で AA 品質を「Very High」にしてください。',
-  closeToSunAa4x: 'ゲーム設定で AA を 4X にしてください。',
-  darksidersAaEpic: 'ゲーム設定で AA を Epic にしてください。',
-  daymareOptiscalerUuu:
-    'Luma は単体では動作しますが、OptiScaler または UUU と併用するとクラッシュします。',
-  deadlineUltra: 'ゲーム設定で「Ultra」を選択してください。',
-  dieYoungTaa: 'ゲーム設定で TAA を「High」または「Epic」にしてください。',
-  dnfCharacterSelection: 'キャラクター選択画面ではアンチエイリアスが機能しません。',
-  kakarotBdzKfix:
-    'ゲーム設定: TAA を選択してください。Legacy 版では BDZKFix、HD 版ではその更新フォークを使用してください。',
-  filamentAaHigh: 'ゲーム設定で AA を「High」または「Very High」にしてください。',
-  goatHighAa: 'ゲーム設定で High AA を選択してください。',
-  guiltyGearStriveAa:
-    'キャラクター選択画面ではアンチエイリアスが機能しません。ゲーム内設定: AA「Temporal Anti Aliasing」。Engine.ini の [SystemSettings] に追加: r.DefaultFeature.AntiAliasing=2 および r.PostProcessAAQuality=4。',
-  itTakesTwoTitle: 'タイトル画面のシーケンス中のみ動作します。',
-  aaHigh: 'ゲーム設定で AA を「High」にしてください。',
-  kh3Txaa: 'ゲーム設定:「TXAA」を選択してください。',
-  mutantMotionBlur:
-    'ゲーム設定: AA「High」。動きの鮮明さを向上させるには、Engine.ini で r.motionblur.amount=0 を設定することを推奨します。',
-  orcsAaHigh: 'ゲーム設定で AA 品質を「High」にしてください。',
-  projectWingmanFxaa: 'ゲーム設定: AA「FXAA」を選択してください。',
-  scarletNexusTxaa: 'ゲーム設定で AA を「TXAA」にしてください。',
-  scornOptiscaler:
-    'FSR 2.1 をネイティブサポートしています。DLSS やその他のアップスケーラーは OptiScaler 経由で追加できます。',
-  smtLyallFix: 'TAA を強制するには Lyall’s Fix が必要です。',
-  spiritNorthUltra: 'ゲーム設定でグラフィック品質を「Ultra」にしてください。',
-  spyroHighTaa: 'ゲーム設定で High TAA を選択してください。',
-  supralandTaa: 'ゲーム設定で AA を「Temporal Anti Aliasing」にしてください。',
-  talesAriseSdk: 'UseUE4TAA=true を設定した Arise-SDK が必要です。',
-  tekkenNoD3D9Ex: '起動引数 -nod3d9ex が必要です。',
-  tetrisFxaa6: 'ゲーム設定: AA「FXAA:6」およびレンダリングスケール 100% を選択してください。',
-  sinkingCityOriginal: 'オリジナル版と互換性があります。Remastered 版との互換性は未確認です。',
-  vampyrTxaa6x: 'ゲーム設定で AA を TXAA 6X にしてください。',
-  edithFinchExit:
-    'DLAA は追加の変更なしで動作しますが、終了後にゲームが完全に閉じないことがあります。OptiScaler で解決できる場合があります。',
-  edithFinch4k:
-    'ゲームは 4K 解像度で動作が不安定になります。手動で Engine.ini の設定を適用する前に Effects を Low に設定してください。',
-  sherlockDx11Performance:
-    '起動引数 -dx11 は CPU 性能の低下を引き起こします。Auto Exposure を有効にした DLAA では草の縁にジャギーが生じます。',
-  fallout4DlssGtaoOnly: '現在、このプロファイルがサポートするのは DLSS と GTAO のみです。',
-  biomutantAaHighOrMax: 'ゲーム設定で AA を「High」または「Max」にしてください。',
-  blairWitchTxaaFull: 'ゲーム設定: TXAA および解像度スケーラビリティ「Full」を設定してください。',
-  flickeringIssues: '画面のちらつきが発生する場合があります。',
-  brambleEpicVram:
+export const lumaOverrides = defineLocalizedCatalog<'ja', LumaSourceCatalog>()({
+  'luma.ace-combat-7.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.ace-combat-7.game_setting': 'ゲーム設定: AA「FXAA High」を選択してください。',
+  'luma.ancestors-legacy.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.batman-arkham-knight.warning':
+    'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
+  'luma.biomutant.game_setting': 'ゲーム設定で AA を「High」または「Max」にしてください。',
+  'luma.blairwitch.game_setting':
+    'ゲーム設定: TXAA および解像度スケーラビリティ「Full」を設定してください。',
+  'luma.borderlands-3.warning': '画面のちらつきが発生する場合があります。',
+  'luma.bramblethemountainking.warning':
     'Epic 品質は VRAM を徐々に消費し、カクつきの原因になることがあります。Luma の動作中に High と Epic を何度も切り替えないでください。',
-  daemonDlaaReset:
+  'luma.call-of-the-sea.game_setting': 'ゲーム設定で全体品質を「Epic」にしてください。',
+  'luma.circus-electrique.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.clash-artifacts-of-chaos.game_setting':
+    'ゲーム設定で AA 品質を「Very High」にしてください。',
+  'luma.close-to-the-sun.game_setting': 'ゲーム設定で AA を 4X にしてください。',
+  'luma.cod-black-ops-3.warning':
+    'Luma のインストール中は公式の公開マッチメイキングを利用しないでください。BAN される可能性があります。',
+  'luma.code-vein.game_setting': 'ゲーム設定で AA を Highest にしてください。',
+  'luma.crab-champions.game_setting': 'ゲーム設定で High Anti-aliasing Type を選択してください。',
+  'luma.crash-bandicoot-4.game_setting':
+    'ゲーム設定: アンチエイリアス品質を少なくとも Medium (2x) に設定してください。',
+  'luma.cygni-all-guns-blazing.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.daemonxmachina.warning':
     'レベルのロードやグラフィック設定の変更により、強制的に r.TemporalAASamples=1 が設定され DLAA が無効化されます。',
-  easyAntiCheatBlocked: 'Easy Anti-Cheat によりブロックされます。',
-  echoDlaaAutoExposure:
+  'luma.darksiders-3.game_setting': 'ゲーム設定で AA を Epic にしてください。',
+  'luma.daymare-1998.compatibility':
+    'Luma は単体では動作しますが、OptiScaler または UUU と併用するとクラッシュします。',
+  'luma.deadline-delivery.game_setting': 'ゲーム設定で「Ultra」を選択してください。',
+  'luma.deceiveinc.compatibility': 'Easy Anti-Cheat によりブロックされます。',
+  'luma.destroy-all-humans.game_setting': 'ゲーム設定で AA を「Ultra」にしてください。',
+  'luma.deus-ex-human-revolution.compatibility':
+    'Boris ENB（DX9）とは互換性がありません。Director’s Cut およびオリジナル版と互換性があります。Luma 使用時は Gold Filter Restoration MOD は不要です。',
+  'luma.deus-ex-mankind-divided.warning':
+    'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
+  'luma.die-young.game_setting': 'ゲーム設定で TAA を「High」または「Epic」にしてください。',
+  'luma.dnf-duel.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.dnf-duel.game_setting': 'キャラクター選択画面ではアンチエイリアスが機能しません。',
+  'luma.dragon-ball-z-kakarot.game_setting':
+    'ゲーム設定: TAA を選択してください。Legacy 版では BDZKFix、HD 版ではその更新フォークを使用してください。',
+  'luma.dragon-quest-11-s.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.dragonquestxiechoesofanelusiveage.engine_ini':
+    '次の設定を Engine.ini に手動で適用してください。',
+  'luma.echo.warning':
     '最初のレベルをクリアすると DLAA が機能しなくなります。Auto Exposure を有効にすると光源が点滅し、無効にするとアンチエイリアス品質が著しく低下します。',
-  dx11BootFailure: 'DirectX 11 モードでは起動しません。',
-  rainCodeAaHighMaxResolution:
+  'luma.fallout-4.compatibility':
+    '現在、このプロファイルがサポートするのは DLSS と GTAO のみです。',
+  'luma.filament.game_setting': 'ゲーム設定で AA を「High」または「Very High」にしてください。',
+  'luma.goat-simulator-3.game_setting': 'ゲーム設定で High AA を選択してください。',
+  'luma.greedfall.warning':
+    'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
+  'luma.guilty-gear-strive.warning':
+    'キャラクター選択画面ではアンチエイリアスが機能しません。ゲーム内設定: AA「Temporal Anti Aliasing」。Engine.ini の [SystemSettings] に追加: r.DefaultFeature.AntiAliasing=2 および r.PostProcessAAQuality=4。',
+  'luma.hatsune-miku-project-diva-mega-mix-plus.warning':
+    '表示に問題が生じる場合は排他的フルスクリーンを避けてください。Alt+Enter で表示モードを切り替えられます。',
+  'luma.heavy-rain.warning': 'ウルトラワイド対応は Steam でのみ動作する可能性があります。',
+  'luma.hellletloose.compatibility': 'Easy Anti-Cheat によりブロックされます。',
+  'luma.inside.compatibility': 'Xbox Store 版とは互換性がありません。',
+  'luma.it-takes-two.warning': 'タイトル画面のシーケンス中のみ動作します。',
+  'luma.just-die-already.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.kao-the-kangaroo.game_setting': 'ゲーム設定で AA を「High」にしてください。',
+  'luma.kingdom-hearts-3.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.kingdom-hearts-3.game_setting': 'ゲーム設定:「TXAA」を選択してください。',
+  'luma.lara-croft-temple-of-osiris.compatibility': 'Xbox Store 版とは互換性がありません。',
+  'luma.littlenightmaresiii.compatibility': 'DirectX 11 モードでは起動しません。',
+  'luma.mass-effect-andromeda.compatibility':
+    '利用できるのは DLAA / FSR 3 Native AA モードのみで、DLSS または FSR の超解像ではありません。',
+  'luma.masterdetectivearchivesraincodeplus.game_setting':
     'ゲーム設定: AA 品質「High」および最大解像度スライダーを設定してください。',
-  roboquestTaaQuality3: 'ゲーム設定で TAA と品質「3」を選択してください。',
-  aaUltra: 'ゲーム設定で AA を「Ultra」にしてください。',
-} as const satisfies LumaMessageTranslations;
-
-export const lumaOverrides = defineLocalizedCatalog<'ja', LumaSourceCatalog>()(
-  expandLumaTranslations(translations),
-);
+  'luma.metro-2033-redux.warning':
+    'ウィンドウまたはボーダーレスモードが必要です。MOD を使用するか、ゲーム設定ファイルでフルスクリーンを無効化してください。',
+  'luma.metro-2033-redux.windowed_borderless_only':
+    'ボーダーレスウィンドウモードを使用してください。',
+  'luma.middle-earth-shadow-of-war.dlss-only':
+    'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
+  'luma.mothergunship.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.mutant-year-zero-road-to-eden.game_setting':
+    'ゲーム設定: AA「High」。動きの鮮明さを向上させるには、Engine.ini で r.motionblur.amount=0 を設定することを推奨します。',
+  'luma.narutotoborutoshinobistriker.compatibility': 'Easy Anti-Cheat によりブロックされます。',
+  'luma.no-more-heroes-3.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.orcs-must-die-3.game_setting': 'ゲーム設定で AA 品質を「High」にしてください。',
+  'luma.persona-3reload.compatibility': 'DirectX 11 モードでは起動しません。',
+  'luma.predecessor.compatibility': 'Easy Anti-Cheat によりブロックされます。',
+  'luma.prey-2017.prey_extra_data':
+    'Prey 用の追加 Luma データファイルは、アドオンと同じ場所に置いてください。',
+  'luma.project-wingman.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.project-wingman.game_setting': 'ゲーム設定: AA「FXAA」を選択してください。',
+  'luma.rad.game_setting': 'ゲーム設定で AA を「Ultra」にしてください。',
+  'luma.remnant-from-the-ashes.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.roboquest.game_setting': 'ゲーム設定で TAA と品質「3」を選択してください。',
+  'luma.scarlet-nexus.game_setting': 'ゲーム設定で AA を「TXAA」にしてください。',
+  'luma.scorn.warning':
+    'FSR 2.1 をネイティブサポートしています。DLSS やその他のアップスケーラーは OptiScaler 経由で追加できます。',
+  'luma.sherlock-holmes-chapter-one.warning':
+    '必要な起動引数 -dx11 により、CPU 性能が低下する場合があります。Auto Exposure を有効にした DLAA では、草の縁にジャギーが生じます。',
+  'luma.shin-megami-tensei-5-vengeance.warning': 'TAA を強制するには Lyall’s Fix が必要です。',
+  'luma.solar-ash.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.spirit-of-the-north.game_setting':
+    'ゲーム設定でグラフィック品質を「Ultra」にしてください。',
+  'luma.spongebob-squarepants-the-cosmic-shake.game_setting':
+    'ゲーム設定で AA を「Ultra」にしてください。',
+  'luma.spyro-reignited-trilogy.game_setting': 'ゲーム設定で High TAA を選択してください。',
+  'luma.styx-shards-of-darkness.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.submerged-hidden-depths.game_setting': 'ゲーム設定で AA を「High」にしてください。',
+  'luma.supraland.game_setting': 'ゲーム設定で AA を「Temporal Anti Aliasing」にしてください。',
+  'luma.tales-of-arise.warning': 'UseUE4TAA=true を設定した Arise-SDK が必要です。',
+  'luma.tekken-7.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.tetris-effect-connected.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.tetris-effect-connected.game_setting':
+    'ゲーム設定: AA「FXAA:6」およびレンダリングスケール 100% を選択してください。',
+  'luma.the-sinking-city.warning':
+    'オリジナル版と互換性があります。Remastered 版との互換性は未確認です。',
+  'luma.theouterworldsspacerschoiceedition.compatibility': 'DirectX 11 モードでは起動しません。',
+  'luma.tribes-of-midgard.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.vampyr.game_setting': 'ゲーム設定で AA を TXAA 6X にしてください。',
+  'luma.warhammer-40000-boltgun.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.what-remains-of-edith-finch.compatibility':
+    'DLAA は追加の変更なしで動作しますが、終了後にゲームが完全に閉じないことがあります。OptiScaler で解決できる場合があります。',
+  'luma.what-remains-of-edith-finch.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.what-remains-of-edith-finch.warning':
+    'ゲームは 4K 解像度で動作が不安定になります。手動で Engine.ini の設定を適用する前に Effects を Low に設定してください。',
+});

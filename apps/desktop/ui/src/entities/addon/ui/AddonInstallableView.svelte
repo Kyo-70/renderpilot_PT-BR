@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import AddonConfidenceBadge from './AddonConfidenceBadge.svelte';
+  import AddonCardFooter from './AddonCardFooter.svelte';
+  import AddonSignalBadge from './AddonSignalBadge.svelte';
   import AddonStateMessage from './AddonStateMessage.svelte';
   import { t, type MessageKeyWithoutParams } from '@shared/i18n';
   import { Button, Spinner } from '@shared/ui';
@@ -78,13 +79,13 @@
   }
 </script>
 
-<div class="flex w-full flex-col gap-3">
+<div class="flex w-full flex-1 flex-col gap-3">
   {#if store.confidence}
     <div class="flex flex-wrap items-center gap-2">
-      <AddonConfidenceBadge
-        confidence={store.confidence}
+      <AddonSignalBadge
+        tone={store.confidence}
         fieldLabel={t(labels.confidenceLabel)}
-        confidenceLabel={t(confidenceLabelKey[store.confidence])}
+        valueLabel={t(confidenceLabelKey[store.confidence])}
       />
       {@render confidenceTrailing?.()}
     </div>
@@ -108,12 +109,15 @@
     <AddonStateMessage tone="warning" icon="warning" message={installDisabledMessage} />
   {/if}
 
-  <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-    {@render actionRowLeading?.()}
+  <AddonCardFooter>
+    {#snippet leading()}
+      {@render actionRowLeading?.()}
+    {/snippet}
 
-    <div class="ms-auto flex flex-wrap items-center gap-2">
+    {#snippet actions()}
       {#if installBlocked}
         <Button type="button" size="sm" disabled>
+          <DownloadIcon class="size-4" aria-hidden="true" />
           {t(labels.installAction)}
         </Button>
       {:else}
@@ -127,6 +131,6 @@
           {installLabel}
         </Button>
       {/if}
-    </div>
-  </div>
+    {/snippet}
+  </AddonCardFooter>
 </div>

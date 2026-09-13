@@ -35,49 +35,27 @@ export function expandNvapiTranslations<const Translations extends NvapiTranslat
 `;
 }
 
-export function renderLumaContract({ groups, sourceCatalog, contexts }) {
+export function renderLumaContract({ sourceCatalog, contexts }) {
   return `${GENERATED_HEADER}
-export const LUMA_MESSAGE_GROUPS = ${JSON.stringify(groups, null, 2)} as const;
 export const LUMA_SOURCE_CATALOG = ${JSON.stringify(sourceCatalog, null, 2)} as const;
 export const LUMA_MESSAGE_CONTEXTS = ${JSON.stringify(contexts, null, 2)} as const;
 
-export type LumaMessagePhrase = keyof typeof LUMA_MESSAGE_GROUPS;
-export type LumaMessageTranslations = Readonly<Record<LumaMessagePhrase, string>>;
-export type LumaMessageKey =
-  (typeof LUMA_MESSAGE_GROUPS)[LumaMessagePhrase][number];
 export type LumaSourceCatalog = typeof LUMA_SOURCE_CATALOG;
-
-type LumaMessagePhraseFor<Key extends LumaMessageKey> = {
-  [Phrase in LumaMessagePhrase]: Key extends (typeof LUMA_MESSAGE_GROUPS)[Phrase][number]
-    ? Phrase
-    : never;
-}[LumaMessagePhrase];
-
-export type ExpandedLumaCatalog<
-  Translations extends LumaMessageTranslations,
-> = Readonly<{
-  [Key in LumaMessageKey]: Translations[LumaMessagePhraseFor<Key>];
-}>;
-
-export function expandLumaTranslations<
-  const Translations extends LumaMessageTranslations,
->(localized: Translations): ExpandedLumaCatalog<Translations> {
-  const expanded: Partial<Record<LumaMessageKey, string>> = {};
-
-  for (const [phrase, ids] of Object.entries(LUMA_MESSAGE_GROUPS) as [
-    LumaMessagePhrase,
-    readonly LumaMessageKey[],
-  ][]) {
-    for (const id of ids) {
-      if (Object.hasOwn(expanded, id)) {
-        throw new Error(\`Duplicate Luma message ID: \${id}\`);
-      }
-      expanded[id] = localized[phrase];
-    }
-  }
-
-  return expanded as ExpandedLumaCatalog<Translations>;
+export type LumaMessageKey = keyof LumaSourceCatalog;
+export type LumaMessageContext = (typeof LUMA_MESSAGE_CONTEXTS)[LumaMessageKey];
+export type LumaTranslations = Readonly<Record<LumaMessageKey, string>>;
+`;
 }
+
+export function renderOptiscalerContract({ sourceCatalog, contexts }) {
+  return `${GENERATED_HEADER}
+export const OPTISCALER_SOURCE_CATALOG = ${JSON.stringify(sourceCatalog, null, 2)} as const;
+export const OPTISCALER_MESSAGE_CONTEXTS = ${JSON.stringify(contexts, null, 2)} as const;
+
+export type OptiScalerSourceCatalog = typeof OPTISCALER_SOURCE_CATALOG;
+export type OptiScalerMessageKey = keyof OptiScalerSourceCatalog;
+export type OptiScalerMessageContext = (typeof OPTISCALER_MESSAGE_CONTEXTS)[OptiScalerMessageKey];
+export type OptiScalerTranslations = Readonly<Record<OptiScalerMessageKey, string>>;
 `;
 }
 

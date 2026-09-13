@@ -50,6 +50,20 @@ describe('createLumaStore', () => {
     expect(store.installTorn).toBe(true);
   });
 
+  it('exposes the persisted OptiScaler uninstall block only from availability', async () => {
+    const report: AvailabilityReport = {
+      ...INSTALLED,
+      uninstall_blocked_by: 'optiscaler',
+    };
+    const store = createLumaStore({
+      api: fakeApi({ getAvailability: vi.fn(() => Promise.resolve(report)) }),
+    });
+
+    await store.load('steam:403640');
+
+    expect(store.uninstallBlockedBy).toBe('optiscaler');
+  });
+
   it('surfaces launch arguments from the installable outcome before install', async () => {
     const report: AvailabilityReport = {
       ...NOT_INSTALLED_SAFE,

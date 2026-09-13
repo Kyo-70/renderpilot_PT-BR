@@ -2,7 +2,8 @@ import { analyzeMessageTemplate } from '../ui/src/shared/i18n/messages/template.
 
 const LUMA_CONTEXT_PATTERN = /^(?:guidance\.[a-z][a-z0-9_]*|availability\.blocked)$/;
 const LUMA_MESSAGE_ID_PATTERN = /^luma\.[a-z0-9-]+\.[a-z0-9_-]+$/;
-const LUMA_PHRASE_KEY_PATTERN = /^[a-z][A-Za-z0-9]*$/;
+const OPTISCALER_MESSAGE_ID_PATTERN = /^optiscaler-[a-z0-9-]+$/u;
+const OPTISCALER_KINDS = new Set(['compatibility', 'game_setting']);
 const NVAPI_IDENTIFIER_PATTERN = /^[a-z0-9_]+$/;
 
 const SUPPORTED_NVAPI_FAMILIES = new Set(['sr', 'fg', 'rr']);
@@ -61,65 +62,96 @@ function sortRecord(record) {
   );
 }
 
-/** Validates the checked-in, phrase-deduplicated Luma translation contract. */
+/** Validates the checked-in, reviewed Luma translation contract. */
 export function validateLumaContract(value) {
-  assertExactKeys(value, ['schemaVersion', 'phrases'], 'Luma contract');
+  assertExactKeys(value, ['schemaVersion', 'messages'], 'Luma contract');
   if (value.schemaVersion !== 1) {
     fail(`Luma contract has unsupported schemaVersion ${JSON.stringify(value.schemaVersion)}`);
   }
-  if (!Array.isArray(value.phrases)) {
-    fail('Luma contract phrases must be an array');
+  if (!Array.isArray(value.messages)) {
+    fail('Luma contract messages must be an array');
   }
 
-  const groups = {};
   const sourceCatalog = {};
   const contexts = {};
-  const sourceTexts = new Set();
 
-  for (const phrase of value.phrases) {
-    assertExactKeys(phrase, ['key', 'sourceText', 'messages'], 'Luma phrase');
-    const key = nonEmptyString(phrase.key, 'Luma phrase key');
-    if (!LUMA_PHRASE_KEY_PATTERN.test(key)) {
-      fail(`Luma phrase has invalid identifier ${JSON.stringify(key)}`);
+  for (const message of value.messages) {
+    assertExactKeys(message, ['id', 'sourceText', 'kind', 'context'], 'Luma message');
+    const id = nonEmptyString(message.id, 'Luma message ID');
+    if (!LUMA_MESSAGE_ID_PATTERN.test(id)) {
+      fail(`Luma message has invalid message ID ${JSON.stringify(id)}`);
     }
-    if (Object.hasOwn(groups, key)) {
-      fail(`duplicate Luma phrase key ${key}`);
+    if (Object.hasOwn(sourceCatalog, id)) {
+      fail(`duplicate Luma message ID ${id}`);
     }
-
-    const sourceText = assertExternalSourceText(phrase.sourceText, `Luma phrase ${key} sourceText`);
-    if (sourceTexts.has(sourceText)) {
-      fail(`duplicate Luma source text ${JSON.stringify(sourceText)}`);
+    const sourceText = assertExternalSourceText(
+      message.sourceText,
+      `Luma message ${id} sourceText`,
+    );
+    const kind = nonEmptyString(message.kind, `Luma message ${id} kind`);
+    const context = nonEmptyString(message.context, `Luma message ${id} context`);
+    if (!LUMA_CONTEXT_PATTERN.test(context)) {
+      fail(`Luma message ${id} has invalid context ${JSON.stringify(context)}`);
     }
-    sourceTexts.add(sourceText);
-
-    if (!Array.isArray(phrase.messages) || phrase.messages.length === 0) {
-      fail(`Luma phrase ${key} must contain at least one message`);
-    }
-
-    groups[key] = phrase.messages.map((message) => {
-      assertExactKeys(message, ['id', 'context'], `Luma phrase ${key} message`);
-      const id = nonEmptyString(message.id, `Luma phrase ${key} message ID`);
-      if (!LUMA_MESSAGE_ID_PATTERN.test(id)) {
-        fail(`Luma phrase ${key} has invalid message ID ${JSON.stringify(id)}`);
+    if (context === 'availability.blocked') {
+      if (kind !== 'blocked') {
+        fail(
+          `Luma message ${id} with context ${JSON.stringify(context)} must have kind "blocked", got ${JSON.stringify(kind)}`,
+        );
       }
-      if (Object.hasOwn(sourceCatalog, id)) {
-        fail(`duplicate Luma message ID ${id}`);
-      }
-      const context = nonEmptyString(message.context, `Luma message ${id} context`);
-      if (!LUMA_CONTEXT_PATTERN.test(context)) {
-        fail(`Luma message ${id} has invalid context ${JSON.stringify(context)}`);
-      }
-      sourceCatalog[id] = sourceText;
-      contexts[id] = context;
-      return id;
-    });
+    } else if (context !== `guidance.${kind}`) {
+      fail(
+        `Luma message ${id} kind ${JSON.stringify(kind)} does not match context ${JSON.stringify(context)}`,
+      );
+    }
+    sourceCatalog[id] = sourceText;
+    contexts[id] = context;
   }
 
-  if (Object.keys(groups).length === 0) {
-    fail('Luma contract must contain at least one phrase');
+  if (Object.keys(sourceCatalog).length === 0) {
+    fail('Luma contract must contain at least one message');
   }
   return {
-    groups,
+    sourceCatalog: sortRecord(sourceCatalog),
+    contexts: sortRecord(contexts),
+  };
+}
+
+/** Validates the checked-in, reviewed OptiScaler compatibility-message contract. */
+export function validateOptiscalerContract(value) {
+  assertExactKeys(value, ['schemaVersion', 'messages'], 'OptiScaler contract');
+  if (value.schemaVersion !== 1) {
+    fail(
+      `OptiScaler contract has unsupported schemaVersion ${JSON.stringify(value.schemaVersion)}`,
+    );
+  }
+  if (!Array.isArray(value.messages) || value.messages.length === 0) {
+    fail('OptiScaler contract messages must be a non-empty array');
+  }
+
+  const sourceCatalog = {};
+  const contexts = {};
+
+  for (const message of value.messages) {
+    assertExactKeys(message, ['id', 'sourceText', 'kind', 'context'], 'OptiScaler message');
+    const id = nonEmptyString(message.id, 'OptiScaler message id');
+    if (!OPTISCALER_MESSAGE_ID_PATTERN.test(id) || Object.hasOwn(sourceCatalog, id)) {
+      fail(`invalid or duplicate OptiScaler message id ${JSON.stringify(id)}`);
+    }
+    const sourceText = assertExternalSourceText(
+      message.sourceText,
+      `OptiScaler message ${id} sourceText`,
+    );
+    const kind = nonEmptyString(message.kind, `OptiScaler message ${id} kind`);
+    const context = nonEmptyString(message.context, `OptiScaler message ${id} context`);
+    if (!OPTISCALER_KINDS.has(kind) || kind !== context) {
+      fail(`OptiScaler message ${id} has an invalid kind/context`);
+    }
+    sourceCatalog[id] = sourceText;
+    contexts[id] = context;
+  }
+
+  return {
     sourceCatalog: sortRecord(sourceCatalog),
     contexts: sortRecord(contexts),
   };

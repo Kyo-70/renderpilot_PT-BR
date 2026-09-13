@@ -15,6 +15,7 @@ import {
   validateDesktopCommandErrorContract,
   validateLumaContract,
   validateNvapiContract,
+  validateOptiscalerContract,
   validateExternalCatalogBoundaries,
   validateEditorialPolicy,
   validatePluralCategories,
@@ -25,6 +26,7 @@ import {
   renderDesktopCommandErrorContract,
   renderLumaContract,
   renderNvapiContract,
+  renderOptiscalerContract,
 } from './i18n-contracts/renderer.mjs';
 
 const APP_ROOT = path.resolve(import.meta.dirname, '..');
@@ -34,7 +36,11 @@ const FORMAT_CONFIG = path.join(APP_ROOT, '.oxfmtrc.json');
 const INPUTS = {
   english: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/en.ts'),
   messageModel: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/model.ts'),
-  luma: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma/contract.json'),
+  luma: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma/source.generated.json'),
+  optiscaler: path.join(
+    APP_ROOT,
+    'ui/src/shared/i18n/messages/overrides/optiscaler/source.generated.json',
+  ),
   nvapi: path.join(
     REPOSITORY_ROOT,
     'crates/renderpilot-orchestration/src/dlss/bundled/dlss_settings.json',
@@ -46,7 +52,11 @@ const INPUTS = {
 
 const OUTPUTS = {
   contractVersion: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/generated/contract-version.ts'),
-  luma: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma/schema.ts'),
+  luma: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma/contract.generated.ts'),
+  optiscaler: path.join(
+    APP_ROOT,
+    'ui/src/shared/i18n/messages/overrides/optiscaler/contract.generated.ts',
+  ),
   nvapi: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/nvapi/contract.generated.ts'),
   desktopCommandErrors: path.join(
     APP_ROOT,
@@ -90,6 +100,10 @@ export function parseLumaContract(value) {
   return withInputContext(INPUTS.luma, () => validateLumaContract(value));
 }
 
+export function parseOptiscalerContract(value) {
+  return withInputContext(INPUTS.optiscaler, () => validateOptiscalerContract(value));
+}
+
 export function parseNvapiContract(value) {
   return parseValidatedNvapiContract(value).sourceCatalog;
 }
@@ -110,7 +124,12 @@ function parseValidatedNvapiContract(value) {
   return withInputContext(INPUTS.nvapi, () => validateNvapiContract(value));
 }
 
-export { analyzeMessageTemplate, validateExternalCatalogBoundaries };
+export {
+  analyzeMessageTemplate,
+  validateExternalCatalogBoundaries,
+  validateLumaContract,
+  validateOptiscalerContract,
+};
 
 export function formatGeneratedSource(filePath, source, configPath = FORMAT_CONFIG) {
   return formatSource(filePath, source, configPath, APP_ROOT);
@@ -121,6 +140,7 @@ export async function createI18nContractOutputs() {
     englishText,
     messageModelText,
     lumaText,
+    optiscalerText,
     nvapiText,
     desktopCommandErrorsText,
     addGameWarningsText,
@@ -129,6 +149,7 @@ export async function createI18nContractOutputs() {
     readFile(INPUTS.english, 'utf8'),
     readFile(INPUTS.messageModel, 'utf8'),
     readFile(INPUTS.luma, 'utf8'),
+    readFile(INPUTS.optiscaler, 'utf8'),
     readFile(INPUTS.nvapi, 'utf8'),
     readFile(INPUTS.desktopCommandErrors, 'utf8'),
     readFile(INPUTS.addGameWarnings, 'utf8'),
@@ -138,6 +159,9 @@ export async function createI18nContractOutputs() {
   const english = parseEnglishContract(englishText);
   const pluralCategories = parsePluralCategories(messageModelText);
   const luma = parseLumaContract(withInputContext(INPUTS.luma, () => parseJsonSource(lumaText)));
+  const optiscaler = parseOptiscalerContract(
+    withInputContext(INPUTS.optiscaler, () => parseJsonSource(optiscalerText)),
+  );
   const nvapi = parseValidatedNvapiContract(
     withInputContext(INPUTS.nvapi, () => parseJsonSource(nvapiText)),
   );
@@ -152,12 +176,13 @@ export async function createI18nContractOutputs() {
   const editorialPolicy = withInputContext(INPUTS.editorialPolicy, () =>
     validateEditorialPolicy(parseJsonSource(editorialPolicyText), { english, nvapi }),
   );
-  validateExternalCatalogBoundaries(english, luma, nvapi);
+  validateExternalCatalogBoundaries(english, luma, nvapi, optiscaler);
   const contract = createSemanticContract({
     english,
     pluralCategories,
     luma,
     nvapi,
+    optiscaler,
   });
 
   return new Map(
@@ -165,6 +190,7 @@ export async function createI18nContractOutputs() {
       [
         [OUTPUTS.contractVersion, renderContractVersion(createContractVersion(contract))],
         [OUTPUTS.luma, renderLumaContract(luma)],
+        [OUTPUTS.optiscaler, renderOptiscalerContract(optiscaler)],
         [
           OUTPUTS.nvapi,
           renderNvapiContract(

@@ -44,7 +44,12 @@ describe('createGameDetailsTabs', () => {
     { capabilities: [], expected: null },
     { capabilities: ['renodx'] as const, expected: ['renodx'] },
     { capabilities: ['luma'] as const, expected: ['luma'] },
+    { capabilities: ['optiscaler'] as const, expected: ['optiscaler'] },
     { capabilities: ['luma', 'renodx', 'luma'] as const, expected: ['renodx', 'luma'] },
+    {
+      capabilities: ['optiscaler', 'luma', 'renodx'] as const,
+      expected: ['renodx', 'luma', 'optiscaler'],
+    },
   ])('derives a canonical add-on tab for $capabilities', ({ capabilities, expected }) => {
     const tabs = createGameDetailsTabs(
       createGameDetails({ addon_capabilities: [...capabilities] }),

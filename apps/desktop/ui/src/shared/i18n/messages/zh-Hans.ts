@@ -563,6 +563,8 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'user_message.safety_context_missing': '文件安全检查尚未准备就绪。请刷新评估后重试。',
   'user_message.safety_context_stale': '文件安全评估已过期。请刷新后重试。',
   'user_message.safety_context_scope_mismatch': '文件安全评估属于其他资源。请刷新后重试。',
+  'user_message.peer_topology_conflict':
+    'RenderPilot 无法安全地将此更改与当前代理链协调。请重新扫描或修复受影响的附加组件，然后重试。',
 
   'suggested_action.refresh_games': '刷新游戏列表并重试。',
   'suggested_action.reload_game_details': '刷新游戏详情并重试。',
@@ -574,6 +576,7 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'suggested_action.rebuild_operation_plan': '请重新开始操作。',
   'suggested_action.refresh_or_scan_game_folder': '刷新列表或重新扫描文件夹。',
   'suggested_action.reload_file_safety': '刷新文件安全评估后重试。',
+  'suggested_action.rescan_or_repair_addon': '请重新扫描或修复受影响的附加组件，然后重试。',
 
   'settings.about.title': '更新',
   'settings.about.description': '检查应用程序更新。',
@@ -627,6 +630,10 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'gameDetails.renodx.switchError': 'ReShade 通道切换失败',
   'gameDetails.renodx.unsupported': '本游戏没有可用的 RenoDX 配置。',
   'gameDetails.renodx.incompatible': '无法安装 RenoDX：{reason}。',
+  'gameDetails.renodx.installTornWarning':
+    '之前的 RenoDX 操作未正常完成。请重新安装以协调相关文件。',
+  'gameDetails.renodx.installTornWarningInstalled':
+    '上次 RenoDX 操作未正常完成。请使用修复或更新来协调安装。',
   'gameDetails.renodx.status.label': 'Status',
   'gameDetails.renodx.statusInstalled': '已安装',
   'gameDetails.renodx.actionInstall': '安装',
@@ -690,15 +697,17 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'gameDetails.renodx.reason.api_unsupported': '不支持的图形 API',
   'gameDetails.renodx.reason.api_not_allowed': '此游戏不允许该图形 API',
   'gameDetails.renodx.reason.arch_unknown': '无法确定可执行文件架构',
-  'gameDetails.otherTab': '其他',
+  'gameDetails.addonsTab': '附加组件',
   'gameDetails.renodx.unavailable': 'RenoDX 当前不可用。',
   'renodx.generic.universal': '通用 RenoDX',
   'renodx.generic.unity': '通用 RenoDX (Unity)',
   'gameDetails.renodx.generic.profileTooltip': '正在使用共享的引擎配置。',
   'renodx.phase.finalizing': '完成中…',
   'luma.phase.finalizing': '完成中…',
-  'gameDetails.renodx.confidenceLabel': 'RenoDX 兼容性',
-  'gameDetails.renodx.confidenceVerified': '可用',
+  'optiscaler.phase.verifying': '正在验证…',
+  'optiscaler.phase.finalizing': '完成中…',
+  'gameDetails.renodx.confidenceLabel': '兼容性',
+  'gameDetails.renodx.confidenceVerified': '已确认',
   'gameDetails.renodx.confidenceExperimental': '进行中',
   'gameDetails.renodx.confidenceUntested': '未验证',
   'gameDetails.renodx.external': '此 RenoDX 附加组件由外部分发，需手动下载。',
@@ -771,6 +780,10 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'gameDetails.fileSafety.detectedMany':
     '检测到反作弊：{engines}。修改游戏文件可能导致账号受限或封禁。',
   'gameDetails.fileSafety.loadError': '无法检查文件修改风险',
+  'gameDetails.fileSafety.installConfirmTitle': '要在此游戏中安装插件吗？',
+  'gameDetails.fileSafety.installConfirmBody':
+    '检测到反作弊系统。安装插件会修改游戏文件夹中的文件。',
+  'gameDetails.fileSafety.installConfirmAction': '安装',
   'gameDetails.addon.blockedByOtherAddon.tracked':
     '此游戏已安装 {installedAddon} — 请先卸载它，再安装 {blockedAddon}。',
   'gameDetails.addon.blockedByOtherAddon.unmanaged':
@@ -780,6 +793,8 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'addon.availability.checking': '正在检查…',
   // ── Game details: Luma ──
   'gameDetails.luma.title': 'Luma Framework',
+  'gameDetails.luma.uninstallBlockedByOptiscaler':
+    '此游戏的 OptiScaler 需要 Luma。请先卸载 OptiScaler。',
   'gameDetails.luma.description': '下方列出了此游戏可用的 Luma 功能。',
   'gameDetails.luma.loading': '正在检查可用性…',
   'gameDetails.luma.installError': 'Luma 安装失败',
@@ -814,8 +829,8 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'gameDetails.luma.dgvoodoo.managed':
     'RenderPilot 将为此 Luma 配置文件安装并配置 dgVoodoo2 {version}。',
   // ── Game details: Luma confidence ──
-  'gameDetails.luma.confidenceLabel': 'Luma 兼容性',
-  'gameDetails.luma.confidenceVerified': '可用',
+  'gameDetails.luma.confidenceLabel': '兼容性',
+  'gameDetails.luma.confidenceVerified': '已确认',
   'gameDetails.luma.confidenceExperimental': '完善中',
   'gameDetails.luma.confidenceUntested': '未验证',
   'gameDetails.luma.generic.engineUnreal': 'Unreal Engine',
@@ -866,34 +881,142 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   'gameDetails.luma.component.dgvoodoo': 'dgVoodoo2 包装器',
   'gameDetails.luma.component.dgvoodooDesc': '托管的 D3D9 桥接，版本 {version}',
   // ── Game details: Luma launch arguments ──
-  'gameDetails.luma.launchArgs.instructions.steam':
+  'gameDetails.addon.launchArguments.instructions.steam':
     '如果通过 Steam 启动游戏，请在此添加：右键点击游戏 → 属性 → 常规 → 启动选项。',
-  'gameDetails.luma.launchArgs.instructions.gog':
+  'gameDetails.addon.launchArguments.instructions.gog':
     '如果通过 GOG Galaxy 启动游戏，请在此添加：游戏设置 → 管理安装 → 配置。',
-  'gameDetails.luma.launchArgs.instructions.epic':
+  'gameDetails.addon.launchArguments.instructions.epic':
     '如果通过 Epic Games Launcher 启动游戏，请在此添加：右键点击游戏 → 管理 → 附加命令行参数。',
-  'gameDetails.luma.launchArgs.instructions.ea':
+  'gameDetails.addon.launchArguments.instructions.ea':
     '如果通过 EA app 启动游戏，请在此添加：选择游戏 → 管理 → 查看属性 → 高级启动选项。',
-  'gameDetails.luma.launchArgs.instructions.ubisoft':
+  'gameDetails.addon.launchArguments.instructions.ubisoft':
     '如果通过 Ubisoft Connect 启动游戏，请在此添加：选择游戏 → 属性 → 添加启动参数。',
-  'gameDetails.luma.launchArgs.instructions.other':
+  'gameDetails.addon.launchArguments.instructions.other':
     '请使用实际启动游戏的方式添加参数：启动器、快捷方式目标、批处理文件或其他加载器。',
-  'gameDetails.luma.launchArgs.title': '需要启动参数',
-  'gameDetails.luma.launchArgs.dx11Title': '此 Luma 配置文件需要 DirectX 11',
-  'gameDetails.luma.launchArgs.copyStep': '复制所需的启动参数：',
-  'gameDetails.luma.launchArgs.copy': '复制参数',
-  'gameDetails.luma.launchArgs.copied': '已复制',
-  'gameDetails.luma.launchArgs.copyFailed': '无法复制启动参数',
+  'gameDetails.addon.launchArguments.requiredTitle': '需要启动参数',
+  'gameDetails.addon.launchArguments.recommendedTitle': '建议使用的启动参数',
+  'gameDetails.addon.launchArguments.dx11Title': '此附加组件需要 DirectX 11',
+  'gameDetails.addon.launchArguments.copyRequiredStep': '复制所需的启动参数：',
+  'gameDetails.addon.launchArguments.copyRecommendedStep': '复制建议使用的启动参数：',
+  'gameDetails.addon.launchArguments.copy': '复制参数',
+  'gameDetails.addon.launchArguments.copied': '已复制',
+  'gameDetails.addon.launchArguments.copyFailed': '无法复制启动参数',
   // ── Game details: Luma attribution ──
   'gameDetails.luma.attribution': 'Luma Framework 由 Filoppi 开发。',
   'gameDetails.luma.attributionLink': '查看项目',
   'gameDetails.luma.guidance.gameSetting': '游戏内设置',
   'gameDetails.luma.guidance.engineIni': '手动修改 INI',
-  'gameDetails.luma.guidance.launchArgument': '启动参数',
   'gameDetails.luma.guidance.warning': '重要',
   'gameDetails.luma.guidance.compatibility': '兼容性说明',
   'gameDetails.luma.guidance.externalTool': '第三方工具',
   'gameDetails.luma.guidance.copy': '复制',
   'gameDetails.luma.guidance.copied': '已复制',
   'gameDetails.luma.guidance.copyFailed': '无法复制',
+  // ── Game details: OptiScaler ──
+  'gameDetails.optiscaler.title': 'OptiScaler',
+  'gameDetails.optiscaler.description': '添加其他图像缩放和帧生成技术。',
+  'gameDetails.optiscaler.loading': '正在检查兼容性…',
+  'gameDetails.optiscaler.statusLabel': '状态',
+  'gameDetails.optiscaler.statusInstalled': '已安装',
+  'gameDetails.optiscaler.statusUnmanaged': '未受管理',
+  'gameDetails.optiscaler.compatibilityLabel': '兼容性',
+  'gameDetails.optiscaler.compatibilityVerified': '已确认',
+  'gameDetails.optiscaler.compatibilityConditional': '有条件支持',
+  'gameDetails.optiscaler.compatibilityUnconfirmed': '未确认',
+  'gameDetails.optiscaler.compatibilityUnavailable': '不可用',
+  'gameDetails.optiscaler.compatibilityUnsupported': '不支持',
+  'gameDetails.optiscaler.versionLabel': '版本',
+  'gameDetails.optiscaler.integrationThrough': '集成方式',
+  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
+    'RenderPilot 无法确认与此游戏的兼容性。安装方式相同，但尚未验证此配置的结果。',
+  'gameDetails.optiscaler.configure': '配置',
+  'gameDetails.optiscaler.configureBeforeInstall': '配置组件',
+  'gameDetails.optiscaler.settingsTitle': '安装组件',
+  'gameDetails.optiscaler.settingsDescription': '选择要让 OptiScaler 在游戏中提供的技术。',
+  'gameDetails.optiscaler.moduleRequired': '必需',
+  'gameDetails.optiscaler.settingsSave': '完成',
+  'gameDetails.optiscaler.settingsApply': '应用',
+  'gameDetails.optiscaler.confirmCompatibilityTitle': '在未确认兼容性的情况下安装？',
+  'gameDetails.optiscaler.confirmCompatibilityBody': '安装方式与平常相同，但尚未验证此游戏配置。',
+  'gameDetails.optiscaler.confirmCompatibilityWarning':
+    '游戏可能无法启动或出现画面异常。如果发生这种情况，可以移除 OptiScaler。',
+  'gameDetails.optiscaler.confirmInstallAnyway': '安装',
+  'gameDetails.optiscaler.checkUpdates': '检查更新',
+  'gameDetails.optiscaler.prerequisite.removeRenoDx':
+    '请先移除 RenoDX，再为此 OptiScaler 配置安装 Luma Framework。',
+  'gameDetails.optiscaler.prerequisite.lumaTorn':
+    '此前的 Luma Framework 安装未完成。请先重新安装或修复 Luma Framework，再安装 OptiScaler。',
+  'gameDetails.optiscaler.prerequisite.lumaBroken':
+    '所需的 Luma Framework 安装不完整。请先修复 Luma Framework，再安装 OptiScaler。',
+  'gameDetails.optiscaler.prerequisite.installLuma':
+    '此配置需要先安装 Luma Framework，然后才能安装 OptiScaler。',
+  'gameDetails.optiscaler.prerequisite.lumaUnavailable':
+    '此 OptiScaler 配置需要 Luma Framework，但该游戏无法使用它。',
+  'gameDetails.optiscaler.uninstallConfirmTitle': '要移除 OptiScaler 吗？',
+  'gameDetails.optiscaler.uninstallConfirmBody':
+    'RenderPilot 将移除受管理的 OptiScaler 文件，并恢复之前的代理布局。',
+  'gameDetails.optiscaler.uninstallConfirmAction': '移除',
+  'gameDetails.optiscaler.block.requiresX64': 'OptiScaler 需要已检测到的 64 位游戏可执行文件。',
+  'gameDetails.optiscaler.block.unsupportedApi': 'OptiScaler 不支持此游戏使用的图形 API。',
+  'gameDetails.optiscaler.block.catalogUnsupported': '此游戏被标记为与 OptiScaler 不兼容。',
+  'gameDetails.optiscaler.block.releaseUnavailable': '当前没有可安装的 OptiScaler 发行版本。',
+  'gameDetails.optiscaler.block.modulesUnavailable': '一个或多个所选组件不可用。请检查组件选择。',
+  'gameDetails.optiscaler.block.proxyConflict':
+    '其他图形修改占用了所需的文件位置。请先解决冲突，再安装 OptiScaler。',
+  'gameDetails.optiscaler.block.generic': '无法为此游戏配置安装 OptiScaler。',
+  'gameDetails.optiscaler.module.core.name': 'OptiScaler 核心',
+  'gameDetails.optiscaler.module.core.description': '每次安装都会使用的必需运行时和设置。',
+  'gameDetails.optiscaler.module.ffxDx12.name': '适用于 DirectX 12 的 AMD FSR',
+  'gameDetails.optiscaler.module.ffxDx12.description':
+    '为 DirectX 12 游戏添加 AMD 图像缩放和帧生成支持。',
+  'gameDetails.optiscaler.module.ffxVulkan.name': '适用于 Vulkan 的 AMD FSR',
+  'gameDetails.optiscaler.module.ffxVulkan.description':
+    '为使用 Vulkan 的游戏添加 AMD 图像缩放支持。',
+  'gameDetails.optiscaler.module.agility.name': 'DirectX 12 支持文件',
+  'gameDetails.optiscaler.module.agility.description': '部分 DirectX 12 游戏所需的兼容性运行时。',
+  'gameDetails.optiscaler.module.fakeNvapi.name': 'NVIDIA 兼容层',
+  'gameDetails.optiscaler.module.fakeNvapi.description':
+    '提供部分游戏和图形功能所需的 NVIDIA 接口。',
+  'gameDetails.optiscaler.module.fsr3Bridge.name': 'FSR 3 帧生成桥接器',
+  'gameDetails.optiscaler.module.fsr3Bridge.description':
+    '将受支持的游戏集成连接到 AMD FSR 3 帧生成。',
+  'gameDetails.optiscaler.module.xess.name': 'Intel XeSS 图像缩放',
+  'gameDetails.optiscaler.module.xess.description': '提供 Intel XeSS 作为图像缩放选项。',
+  'gameDetails.optiscaler.module.optipatcher.name': '游戏兼容性修复',
+  'gameDetails.optiscaler.module.optipatcher.description': '应用部分游戏所需的针对性兼容修复。',
+  'gameDetails.optiscaler.module.nvidiaSr.name': 'NVIDIA DLSS 文件',
+  'gameDetails.optiscaler.module.nvidiaSr.description':
+    '使用游戏已经提供的兼容 Super Resolution 文件。',
+  'gameDetails.optiscaler.inputs': '检测到的输入',
+  'gameDetails.optiscaler.confidenceLabel': 'Wiki 兼容性可信度',
+  'gameDetails.optiscaler.confidenceVerified': '已验证',
+  'gameDetails.optiscaler.confidenceDetectedUnverified': '已检测，未验证',
+  'gameDetails.optiscaler.confidenceManualOverride': '专家覆盖',
+  'gameDetails.optiscaler.confidenceUnsupported': '不支持',
+  'gameDetails.optiscaler.drifted': '受管理文件已更改；建议修复',
+  'gameDetails.optiscaler.proxyChain': '代理链',
+  'gameDetails.optiscaler.relocationAvailable': '已选择其他游戏可执行文件',
+  'gameDetails.optiscaler.unmanaged': '此 OptiScaler 安装与任何已知版本均不匹配，因此未作更改。',
+  'gameDetails.optiscaler.modules': '模块',
+  'gameDetails.optiscaler.moduleExistingGame': '使用现有游戏文件；不会在可执行文件旁安装重复文件。',
+  'gameDetails.optiscaler.moduleCatalogDownload':
+    '游戏中没有此组件；将安装到隔离的 OptiScaler 运行时文件夹。',
+  'gameDetails.optiscaler.expertOverride': '未验证静态输入的专家覆盖',
+  'gameDetails.optiscaler.applyModules': '应用模块',
+  'gameDetails.optiscaler.update': '更新',
+  'gameDetails.optiscaler.repair': '修复',
+  'gameDetails.optiscaler.relocate': '移动',
+  'gameDetails.optiscaler.uninstall': '移除 OptiScaler',
+  'gameDetails.optiscaler.install': '安装',
+  'gameDetails.optiscaler.installing': '正在安装…',
+  'gameDetails.optiscaler.installError': 'OptiScaler 安装失败',
+  'gameDetails.optiscaler.updateError': 'OptiScaler 更新失败',
+  'gameDetails.optiscaler.repairError': 'OptiScaler 修复失败',
+  'gameDetails.optiscaler.relocateError': 'OptiScaler 移动失败',
+  'gameDetails.optiscaler.modulesError': '无法更改 OptiScaler 模块',
+  'gameDetails.optiscaler.uninstallError': 'OptiScaler 移除失败',
+  'gameDetails.optiscaler.attribution': 'OptiScaler 由 cdozdil 开发。',
+  'gameDetails.optiscaler.attributionLink': '查看项目',
+  'user_message.luma_required_by_optiscaler':
+    '此游戏的 OptiScaler 需要 Luma。请先卸载 OptiScaler。',
 });

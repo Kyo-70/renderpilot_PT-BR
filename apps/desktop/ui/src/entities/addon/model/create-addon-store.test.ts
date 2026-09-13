@@ -835,4 +835,91 @@ describe('createAddonStore', () => {
     expect(store.installedAt).toBe(1_700_000_000_000);
     expect(store.updatedAt).toBe(1_700_000_999_999);
   });
+
+  it('retains loaded state and committed chrome on same-game background reload', async () => {
+    const refreshLoad = Promise.withResolvers<TestAvailabilityReport>();
+    let call = 0;
+    const api = fakeApi({
+      getAvailability: vi.fn((_gameId: string) => {
+        call += 1;
+        return call === 1 ? Promise.resolve(INSTALLED_AVAILABILITY) : refreshLoad.promise;
+      }),
+    });
+    const { store } = createTestStore(api);
+
+    await store.load('g1');
+    expect(store.isInstalled).toBe(true);
+    expect(store.loaded).toBe(true);
+
+    const pending = store.load('g1');
+    // During same-game reload, loaded remains true and state is preserved
+    expect(store.loading).toBe(true);
+    expect(store.loaded).toBe(true);
+    expect(store.isInstalled).toBe(true);
+
+    refreshLoad.resolve(INSTALLED_AVAILABILITY);
+    await pending;
+
+    expect(store.loading).toBe(false);
+    expect(store.loaded).toBe(true);
+    expect(store.isInstalled).toBe(true);
+  });
+
+  it('clears committed chrome and loaded state when navigating to another game', async () => {
+    const g2Load = Promise.withResolvers<TestAvailabilityReport>();
+    const resetToolState = vi.fn();
+    const api = fakeApi({
+      getAvailability: vi.fn((gameId: string) => {
+        return gameId === 'g1' ? Promise.resolve(INSTALLED_AVAILABILITY) : g2Load.promise;
+      }),
+    });
+    const { store } = createTestStore(api, resetToolState);
+
+    await store.load('g1');
+    expect(store.isInstalled).toBe(true);
+    expect(store.loaded).toBe(true);
+    expect(resetToolState).toHaveBeenCalledWith('g1');
+
+    resetToolState.mockClear();
+
+    const pending = store.load('g2');
+    // Navigating to a new game drops previous game chrome immediately
+    expect(store.loading).toBe(true);
+    expect(store.loaded).toBe(false);
+    expect(store.isInstalled).toBe(false);
+    expect(resetToolState).toHaveBeenCalledWith('g2');
+
+    g2Load.resolve(NOT_INSTALLED_AVAILABILITY);
+    await pending;
+
+    expect(store.loading).toBe(false);
+    expect(store.loaded).toBe(true);
+    expect(store.isInstalled).toBe(false);
+  });
+
+  it('retains committed state and sets loadError when same-game background refresh fails', async () => {
+    let call = 0;
+    const api = fakeApi({
+      getAvailability: vi.fn((_gameId: string) => {
+        call += 1;
+        return call === 1
+          ? Promise.resolve(INSTALLED_AVAILABILITY)
+          : Promise.reject(new Error('probe failed'));
+      }),
+    });
+    const { store } = createTestStore(api);
+
+    await store.load('g1');
+    expect(store.isInstalled).toBe(true);
+    expect(store.loaded).toBe(true);
+    expect(store.loadError).toBeNull();
+
+    await store.load('g1');
+
+    // On failed refresh, committed state is preserved while loadError is captured
+    expect(store.loading).toBe(false);
+    expect(store.loaded).toBe(true);
+    expect(store.isInstalled).toBe(true);
+    expect(store.loadError).not.toBeNull();
+  });
 });

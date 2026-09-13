@@ -4,9 +4,8 @@ import { canonicalAddonCapabilities } from './addon-capabilities';
 
 describe('canonicalAddonCapabilities', () => {
   it('normalizes, validates, deduplicates, and applies product order', () => {
-    expect(canonicalAddonCapabilities([' luma ', 'renodx', 'luma', 'unknown', '  '])).toEqual([
-      'renodx',
-      'luma',
-    ]);
+    expect(
+      canonicalAddonCapabilities([' optiscaler ', 'luma', 'renodx', 'luma', 'unknown', '  ']),
+    ).toEqual(['renodx', 'luma', 'optiscaler']);
   });
 });

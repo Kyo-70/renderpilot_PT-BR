@@ -6,9 +6,7 @@ export type CopyFeedbackKeys = {
   copyFailed: MessageKeyWithoutParams;
 };
 
-/**
- * Writes text to the clipboard and shows a success/error toast.
- */
+/** Writes text to the clipboard and reports the resulting user-visible state. */
 export async function copyWithFeedback(text: string, keys: CopyFeedbackKeys): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);

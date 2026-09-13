@@ -10,6 +10,7 @@ import {
   type AddonCapability,
 } from '@entities/game';
 import { createLumaStore } from '@features/luma';
+import { createOptiScalerStore, type OptiScalerStore } from '@features/optiscaler';
 import { createRenoDxStore } from '@features/renodx';
 import type { MutationSafetyTokens } from '@entities/addon';
 import type { FileSafetyScope } from './create-file-safety-context.svelte';
@@ -21,6 +22,10 @@ type CreateGameAddonsContextOptions = {
   getCapabilities: () => readonly AddonCapability[];
   onGameDetailsInvalidate?: (gameId: string) => void | Promise<void>;
   requireSafetyTokens?: (gameId: string, scope: FileSafetyScope) => Promise<MutationSafetyTokens>;
+  requireInstallSafetyTokens?: (
+    gameId: string,
+    scope: FileSafetyScope,
+  ) => Promise<MutationSafetyTokens | null>;
   onSafetyContextError?: (error: unknown, scope: FileSafetyScope) => void | Promise<void>;
 };
 
@@ -32,26 +37,54 @@ function normalizeOptionalGameId(gameId: string | null): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-/** Page-owned RenoDX/Luma registry, activation policy, and aggregate state. */
+/** Page-owned add-on registry, activation policy, and aggregate state. */
 export function createGameAddonsContext(options: CreateGameAddonsContextOptions) {
   let destroyed = false;
+  const requireSafetyTokens = options.requireSafetyTokens;
+  const requireInstallSafetyTokens = options.requireInstallSafetyTokens;
   const gameId = $derived(normalizeOptionalGameId(options.getGameId()));
   const capabilities = $derived(canonicalAddonCapabilities(options.getCapabilities()));
 
-  const { stores } = createExclusiveAddonStores(
+  const exclusivePeerReload = {
+    run: (_changedGameId: string) => undefined,
+  };
+  const optiscaler: OptiScalerStore = createOptiScalerStore({
+    onAddonStateChange: (changedGameId) => {
+      exclusivePeerReload.run(changedGameId);
+    },
+    onGameDetailsInvalidate: (changedGameId) => options.onGameDetailsInvalidate?.(changedGameId),
+    requireSafetyTokens: requireSafetyTokens
+      ? (changedGameId) => requireSafetyTokens(changedGameId, 'game')
+      : undefined,
+    requireInstallSafetyTokens: requireInstallSafetyTokens
+      ? (changedGameId) => requireInstallSafetyTokens(changedGameId, 'game')
+      : undefined,
+    onSafetyContextError: (error) => options.onSafetyContextError?.(error, 'game'),
+  });
+
+  async function invalidateAfterPeerMutation(changedGameId: string): Promise<void> {
+    await options.onGameDetailsInvalidate?.(changedGameId);
+    if (!destroyed && gameId !== null && areSameGameIds(changedGameId, gameId)) {
+      await optiscaler.load(changedGameId);
+    }
+  }
+
+  const exclusiveStores = createExclusiveAddonStores(
     {
       renodx: ({ onExclusivityChange }) =>
         createRenoDxStore({
           onExclusivityChange,
-          onGameDetailsInvalidate: options.onGameDetailsInvalidate,
+          onGameDetailsInvalidate: invalidateAfterPeerMutation,
           requireSafetyTokens: options.requireSafetyTokens,
+          requireInstallSafetyTokens: options.requireInstallSafetyTokens,
           onSafetyContextError: options.onSafetyContextError,
         }),
       luma: ({ onExclusivityChange }) =>
         createLumaStore({
           onExclusivityChange,
-          onGameDetailsInvalidate: options.onGameDetailsInvalidate,
+          onGameDetailsInvalidate: invalidateAfterPeerMutation,
           requireSafetyTokens: options.requireSafetyTokens,
+          requireInstallSafetyTokens: options.requireInstallSafetyTokens,
           onSafetyContextError: (error) => options.onSafetyContextError?.(error, 'game'),
         }),
     },
@@ -63,17 +96,24 @@ export function createGameAddonsContext(options: CreateGameAddonsContextOptions)
         capabilities.includes(peer),
     },
   );
+  const stores = exclusiveStores.stores;
+  exclusivePeerReload.run = (changedGameId) => {
+    exclusiveStores.reloadPeers(changedGameId);
+  };
 
   const storesByCapability = {
     renodx: stores.renodx,
     luma: stores.luma,
-  } satisfies Record<AddonCapability, (typeof stores)[keyof typeof stores]>;
+    optiscaler,
+  };
   const storeEntries = ALL_ADDON_CAPABILITIES.map((capability) => ({
     capability,
     store: storesByCapability[capability],
   }));
   const enabledStores = $derived(capabilities.map((capability) => storesByCapability[capability]));
-  const updateCount = $derived(enabledStores.filter((store) => store.updateAvailable).length);
+  const updateCount = $derived(
+    capabilities.filter((capability) => storesByCapability[capability].updateAvailable).length,
+  );
   const busy = $derived(enabledStores.some((store) => store.busy));
   const addonUpdates = $derived<RunUpdateAllOptions['addonUpdates']>(
     capabilities

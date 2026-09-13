@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 export const CONTRACT_SCHEMA_VERSION = 2;
 
-export function createSemanticContract({ english, pluralCategories, luma, nvapi }) {
+export function createSemanticContract({ english, pluralCategories, luma, nvapi, optiscaler }) {
   return {
     schemaVersion: CONTRACT_SCHEMA_VERSION,
     english,
@@ -10,6 +10,7 @@ export function createSemanticContract({ english, pluralCategories, luma, nvapi 
     externalSources: {
       luma: luma.sourceCatalog,
       nvapi: nvapi.sourceCatalog,
+      optiscaler: optiscaler.sourceCatalog,
     },
   };
 }

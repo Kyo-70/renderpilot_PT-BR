@@ -28,8 +28,10 @@ import { mockState, createMockState } from './desktop-state';
 import {
   mockAddonWriteUnsupported,
   mockLumaUpdateReport,
+  mockOptiScalerUpdateReport,
   mockRenoDxUpdateReport,
   mockUnsupportedLumaAvailability,
+  mockUnsupportedOptiScalerAvailability,
   mockUnsupportedRenoDxAvailability,
   mockVulkanLayerManagementStatus,
   mockVulkanLayerStatus,
@@ -74,6 +76,7 @@ async function dispatchCommand(command: DesktopCommand, payload: unknown): Promi
           libraries: { status: 'ok' },
           renodx: { status: 'ok' },
           luma: { status: 'ok' },
+          optiscaler: { status: 'ok' },
           reshade: { status: 'ok' },
         },
       };
@@ -232,6 +235,23 @@ async function dispatchCommand(command: DesktopCommand, payload: unknown): Promi
     case 'renodx_check_update':
       readStringField(command, payload, 'gameId');
       return mockRenoDxUpdateReport();
+
+    case 'get_optiscaler_availability': {
+      const gameId = readStringField(command, payload, 'gameId');
+      return mockUnsupportedOptiScalerAvailability(gameId);
+    }
+
+    case 'check_optiscaler_update':
+      readStringField(command, payload, 'gameId');
+      return mockOptiScalerUpdateReport();
+
+    case 'install_optiscaler':
+    case 'update_optiscaler':
+    case 'repair_optiscaler':
+    case 'set_optiscaler_modules':
+    case 'relocate_optiscaler':
+    case 'uninstall_optiscaler':
+      return mockAddonWriteUnsupported();
 
     case 'renodx_dlss_fix_availability':
       readStringField(command, payload, 'gameId');

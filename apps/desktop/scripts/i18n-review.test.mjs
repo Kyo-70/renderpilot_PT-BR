@@ -9,11 +9,11 @@ import {
   REVIEW_LOCALES,
 } from './i18n-review/report.mjs';
 
-test('review report exposes all Luma and NVAPI messages for every translated locale', async () => {
+test('review report exposes all external messages for every translated locale', async () => {
   for (const locale of REVIEW_LOCALES) {
     const report = await createReviewReport(locale);
-    assert.equal(report.messages.length, 274);
-    assert.equal(new Set(report.messages.map(({ key }) => key)).size, 274);
+    assert.equal(report.messages.length, 410);
+    assert.equal(new Set(report.messages.map(({ key }) => key)).size, 410);
     assert.ok(report.messages.every(({ source, translation }) => source && translation));
     assert.equal(report.editorialPolicy.nvidiaFamilyTerms !== undefined, true);
   }
@@ -24,7 +24,7 @@ test('review output is deterministic and includes policy metadata', async () => 
   assert.equal(formatReviewReport(report, 'json'), formatReviewReport(report, 'json'));
   const tsv = formatReviewReport(report, 'tsv');
   assert.match(tsv, /^key\tcontext\tsource\ttranslation\teditorial_policy\n/);
-  assert.equal(tsv.trimEnd().split('\n').length, 275);
+  assert.equal(tsv.trimEnd().split('\n').length, 411);
 });
 
 test('review CLI accepts only complete, unambiguous arguments', () => {
@@ -61,5 +61,14 @@ test('review parser rejects non-literal and duplicate translations', () => {
   assert.throws(
     () => parseTranslationSource("const translations = { key: 'one', key: 'two' };"),
     /duplicate translation/,
+  );
+  assert.throws(
+    () =>
+      parseTranslationSource(
+        "const optiscalerOverrides = otherFactory()({ key: 'value' });",
+        'optiscaler/ru.ts',
+        { variableName: 'optiscalerOverrides', factoryName: 'defineLocalizedCatalog' },
+      ),
+    /defineLocalizedCatalog/,
   );
 });

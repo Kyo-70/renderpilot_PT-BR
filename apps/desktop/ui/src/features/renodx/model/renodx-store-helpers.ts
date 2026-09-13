@@ -15,11 +15,17 @@ export type AvailabilitySnapshot = {
   actions: RenoDxActions;
   reshadeStableSupported: boolean;
   renodxAddon: RenoDxAddonState | null;
+  installTorn: boolean;
 };
 
 export type AvailabilitySnapshotSource = Pick<
   AvailabilityReport,
-  'host_detection' | 'host_facts' | 'actions' | 'reshade_stable_supported' | 'renodx_addon'
+  | 'host_detection'
+  | 'host_facts'
+  | 'actions'
+  | 'reshade_stable_supported'
+  | 'renodx_addon'
+  | 'install_torn'
 >;
 
 /** RenoDX defaults to the stable ReShade channel until an availability report
@@ -34,6 +40,7 @@ export function availabilitySnapshotFromReport(
   return mapAvailabilitySnapshot(report, {
     reshadeStableSupported: report.reshade_stable_supported,
     renodxAddon: report.renodx_addon,
+    installTorn: report.install_torn,
   });
 }
 

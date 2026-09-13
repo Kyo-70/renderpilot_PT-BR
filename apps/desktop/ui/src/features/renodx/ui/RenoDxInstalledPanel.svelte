@@ -3,6 +3,7 @@
     AddonAttribution,
     AddonComponentRow,
     AddonInstalledPanel,
+    AddonStateMessage,
     createInstalledLabels,
   } from '@entities/addon';
   import { t } from '@shared/i18n';
@@ -100,6 +101,16 @@
   {addonDescription}
   onRepair={handleRepair}
 >
+  {#snippet topWarnings()}
+    {#if store.installTorn}
+      <AddonStateMessage
+        tone="warning"
+        icon="warning"
+        message={t('gameDetails.renodx.installTornWarningInstalled')}
+      />
+    {/if}
+  {/snippet}
+
   {#snippet reshadeActions()}
     {#if showChannelControl}
       <RenoDxChannelControl

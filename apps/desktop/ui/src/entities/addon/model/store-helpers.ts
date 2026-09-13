@@ -158,18 +158,18 @@ export function withDeactivation<TState extends AddonInstallStateBase, TUpdateRe
  * Clears `busy` so navigation / reload owns the UI chrome: a discarded mutation
  * cannot leave the spinner stuck after its token is superseded.
  *
- * Navigation loads (`preserveLoadError === false`) clear install chrome
- * (`state` / `loaded`) so switching games cannot flash the previous game's
- * installed panel while the new availability is in flight. Same-game retry
- * (`preserveLoadError === true`) retains prior state/error so installed chrome
- * stays honest under a load failure.
+ * Navigation loads (`preserveLoadError === false` and `retainChrome === false`)
+ * clear install chrome (`state` / `loaded`) so switching games cannot flash the
+ * previous game's installed panel while the new availability is in flight.
+ * Background refreshes and same-game retries (`retainChrome === true`) retain
+ * prior state/reports so committed UI remains mounted without flashing spinners.
  */
 export function withLoadBegin<TState, TUpdateReport>(
   core: AddonCoreSnapshot<TState, TUpdateReport>,
   preserveLoadError = false,
+  retainChrome = preserveLoadError,
 ): SnapshotTransition<TState, TUpdateReport> {
   const token = nextRequestId(core.requestId);
-  const retainChrome = preserveLoadError;
   return {
     token,
     next: {
@@ -177,14 +177,14 @@ export function withLoadBegin<TState, TUpdateReport>(
       requestId: token,
       loading: true,
       busy: false,
-      // Navigation: drop previous game chrome. Retry: keep installed + error.
+      // Navigation: drop previous game chrome. Retry / background refresh: keep installed.
       state: retainChrome ? core.state : null,
       loaded: retainChrome ? core.loaded : false,
       loadError: preserveLoadError ? core.loadError : null,
-      updateReport: null,
+      updateReport: retainChrome ? core.updateReport : null,
       updateProbing: false,
       probeFailed: false,
-      lastCheckedAt: null,
+      lastCheckedAt: retainChrome ? core.lastCheckedAt : null,
     },
   };
 }

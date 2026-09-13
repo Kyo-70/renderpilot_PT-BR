@@ -15,6 +15,8 @@
 
   type Props = {
     busy?: boolean;
+    /** A parent-owned reason that makes removal unavailable before opening the dialog. */
+    disabled?: boolean;
     actionKey: MessageKeyWithoutParams;
     confirmTitleKey: MessageKeyWithoutParams;
     confirmBodyKey: MessageKeyWithoutParams;
@@ -24,6 +26,7 @@
 
   let {
     busy = false,
+    disabled: externallyDisabled = false,
     actionKey,
     confirmTitleKey,
     confirmBodyKey,
@@ -34,7 +37,7 @@
   let open = $state(false);
   let confirming = $state(false);
 
-  const disabled = $derived(busy || confirming);
+  const disabled = $derived(externallyDisabled || busy || confirming);
 
   function openConfirmDialog(): void {
     if (disabled) {

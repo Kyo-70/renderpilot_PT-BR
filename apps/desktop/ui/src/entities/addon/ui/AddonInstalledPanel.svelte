@@ -11,11 +11,16 @@
   import { Badge, Button, ItemGroup, Spinner } from '@shared/ui';
 
   import { isMutationSuccess } from '../model/busy-mutation';
-  import type { AddonInstalledLabels } from '../model/presenters';
-  import { actionDisabledMessage } from '../model/presenters';
+  import {
+    actionDisabledMessage,
+    createConfidenceLabelKeys,
+    type AddonInstalledLabels,
+  } from '../model/presenters';
   import type { AddonStoreView } from '../model/store-view';
   import type { ActionDescriptor } from '../model/types';
+  import AddonCardFooter from './AddonCardFooter.svelte';
   import AddonComponentRow from './AddonComponentRow.svelte';
+  import AddonSignalBadge from './AddonSignalBadge.svelte';
   import AddonFieldLabel from './AddonFieldLabel.svelte';
   import AddonStateMessage from './AddonStateMessage.svelte';
   import AddonToolStatusBadge from './AddonToolStatusBadge.svelte';
@@ -26,6 +31,7 @@
     AddonStoreView,
     | 'busy'
     | 'freshness'
+    | 'confidence'
     | 'addonDated'
     | 'installedAt'
     | 'lastCheckedAt'
@@ -52,6 +58,8 @@
      * (e.g. Luma payload force-full reconverge). Host repair still wins when present.
      */
     repairAction?: ActionDescriptor;
+    /** A neutral, parent-owned reason that prevents uninstalling this add-on. */
+    uninstallDisabledReason?: string | null;
     topWarnings?: Snippet;
     afterDateCallouts?: Snippet;
     reshadeActions?: Snippet;
@@ -70,6 +78,7 @@
     addonDescription,
     onRepair,
     repairAction: toolRepairAction,
+    uninstallDisabledReason = null,
     topWarnings,
     afterDateCallouts,
     reshadeActions,
@@ -106,6 +115,9 @@
   const repairDisabledMessage = $derived(actionDisabledMessage(repairAction));
 
   const primaryHostDisabledMessage = $derived(updateDisabledMessage ?? repairDisabledMessage);
+  const uninstallBlocked = $derived(uninstallDisabledReason !== null);
+
+  const confidenceLabelKeys = $derived(createConfidenceLabelKeys(statusI18nPrefix));
 
   function handleCheckForUpdates(): void {
     if (checkUpdatesDisabled) {
@@ -124,7 +136,7 @@
   }
 
   async function handleUninstall(): Promise<boolean | undefined> {
-    if (busy) {
+    if (busy || uninstallBlocked) {
       return false;
     }
 
@@ -134,11 +146,19 @@
   }
 </script>
 
-<div class="flex w-full flex-col gap-4">
+<div class="flex w-full flex-1 flex-col gap-4">
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
     <AddonFieldLabel label={t(labels.statusLabel)} class="flex-nowrap gap-1.5">
       <Badge variant="secondary">{t(labels.statusInstalled)}</Badge>
     </AddonFieldLabel>
+
+    {#if store.confidence}
+      <AddonSignalBadge
+        tone={store.confidence}
+        fieldLabel={t(labels.confidenceLabel)}
+        valueLabel={t(confidenceLabelKeys[store.confidence])}
+      />
+    {/if}
 
     <AddonFieldLabel label={t(labels.freshnessLabel)} class="flex-nowrap gap-1.5">
       <AddonToolStatusBadge status={store.freshness} i18nPrefix={statusI18nPrefix} />
@@ -197,10 +217,16 @@
     <AddonStateMessage tone="warning" icon="warning" message={primaryHostDisabledMessage} />
   {/if}
 
-  <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-    {@render actionRowLeading?.()}
+  {#if uninstallDisabledReason}
+    <AddonStateMessage tone="default" icon="info" message={uninstallDisabledReason} />
+  {/if}
 
-    <div class="ms-auto flex flex-wrap items-center gap-2">
+  <AddonCardFooter>
+    {#snippet leading()}
+      {@render actionRowLeading?.()}
+    {/snippet}
+
+    {#snippet actions()}
       <Button
         type="button"
         variant="outline"
@@ -250,12 +276,13 @@
 
       <AddonUninstallAction
         {busy}
+        disabled={uninstallBlocked}
         actionKey={labels.actionUninstall}
         confirmTitleKey={labels.uninstallConfirmTitle}
         confirmBodyKey={labels.uninstallConfirmBody}
         confirmActionKey={labels.uninstallConfirmAction}
         onConfirm={handleUninstall}
       />
-    </div>
-  </div>
+    {/snippet}
+  </AddonCardFooter>
 </div>

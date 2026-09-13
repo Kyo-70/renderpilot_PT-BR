@@ -1,7 +1,8 @@
 <script lang="ts">
   import {
     AddonAttribution,
-    AddonConfidenceBadge,
+    AddonCardFooter,
+    AddonSignalBadge,
     createConfidenceLabelKeys,
   } from '@entities/addon';
   import { openExternal } from '@shared/api';
@@ -141,24 +142,26 @@
   bind:this={externalDropEl}
   role="region"
   aria-label={dropHint}
-  class="flex w-full flex-col gap-3 rounded-md transition-shadow"
+  class="flex w-full flex-1 flex-col gap-3 rounded-md transition-shadow"
   class:ring-2={drop.dragActive}
   class:ring-primary={drop.dragActive}
 >
   {#if store.externalConfidence}
-    <AddonConfidenceBadge
-      confidence={store.externalConfidence}
+    <AddonSignalBadge
+      tone={store.externalConfidence}
       fieldLabel={t('gameDetails.renodx.confidenceLabel')}
-      confidenceLabel={t(CONFIDENCE_LABEL_KEY[store.externalConfidence])}
+      valueLabel={t(CONFIDENCE_LABEL_KEY[store.externalConfidence])}
     />
   {/if}
 
   <p class="text-sm text-muted-foreground">{dropHint}</p>
 
-  <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-    <AddonAttribution {...RENODX_ATTRIBUTION} />
+  <AddonCardFooter>
+    {#snippet leading()}
+      <AddonAttribution {...RENODX_ATTRIBUTION} />
+    {/snippet}
 
-    <div class="ms-auto flex flex-wrap items-center gap-2">
+    {#snippet actions()}
       {#if showHostChannelControl}
         <RenoDxChannelControl
           class="max-w-72"
@@ -179,6 +182,6 @@
           {externalLabel}
         </Button>
       </div>
-    </div>
-  </div>
+    {/snippet}
+  </AddonCardFooter>
 </div>

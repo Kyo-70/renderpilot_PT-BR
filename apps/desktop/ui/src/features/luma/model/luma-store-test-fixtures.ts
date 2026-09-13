@@ -35,6 +35,7 @@ export function availability(
     vcredist_present: null,
     vcredist_installer_url: 'https://aka.ms/vs/17/release/vc_redist.x64.exe',
     install_torn: false,
+    uninstall_blocked_by: null,
     ...report,
   };
 }

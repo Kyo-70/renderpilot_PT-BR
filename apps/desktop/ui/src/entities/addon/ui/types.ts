@@ -1,14 +1,15 @@
-/**
- * UI-layer types for shared add-on components. Kept as plain `.ts` so they can
- * be re-exported from the barrel without relying on `export type` from `.svelte`
- * (TypeScript cannot re-export those reliably).
- */
-
+import type { MessageKeyWithoutParams } from '@shared/i18n';
 import type { ToolI18nPrefix } from '../model/tool-message-key';
-import type { MatchConfidence } from '../model/types';
 
-/** Confidence badge vocabulary — same wire contract as {@link MatchConfidence}. */
-export type AddonMatchConfidence = MatchConfidence;
+/** Visual presentation tone for status and signal badges (confidence, compatibility, etc.). */
+export type AddonBadgeTone = 'verified' | 'experimental' | 'untested' | 'unsupported';
 
 /** i18n key prefix for tool-specific freshness / status copy. */
 export type AddonToolI18nPrefix = ToolI18nPrefix;
+
+/** Attribution link descriptor for add-on cards. */
+export type AddonAttributionProps = {
+  textKey: MessageKeyWithoutParams;
+  linkKey: MessageKeyWithoutParams;
+  href: string;
+};

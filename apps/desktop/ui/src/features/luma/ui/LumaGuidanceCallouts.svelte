@@ -3,10 +3,10 @@
   import FileCode2Icon from '@lucide/svelte/icons/file-code-2';
   import Settings2Icon from '@lucide/svelte/icons/settings-2';
   import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert';
-  import TerminalIcon from '@lucide/svelte/icons/terminal';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
   import WrenchIcon from '@lucide/svelte/icons/wrench';
   import { t, translateExternalMessage, type MessageKeyWithoutParams } from '@shared/i18n';
+  import { copyWithFeedback } from '@shared/lib';
   import {
     Alert,
     AlertDescription,
@@ -17,7 +17,6 @@
     TooltipTrigger,
   } from '@shared/ui';
 
-  import { copyWithFeedback } from '../model/copy-feedback';
   import type { LumaGuidance, LumaGuidanceKind } from '../model/types';
 
   type Props = { guidance: LumaGuidance[] };
@@ -27,7 +26,6 @@
   const TITLE_KEYS = {
     game_setting: 'gameDetails.luma.guidance.gameSetting',
     engine_ini: 'gameDetails.luma.guidance.engineIni',
-    launch_argument: 'gameDetails.luma.guidance.launchArgument',
     warning: 'gameDetails.luma.guidance.warning',
     compatibility: 'gameDetails.luma.guidance.compatibility',
     external_tool: 'gameDetails.luma.guidance.externalTool',
@@ -36,7 +34,6 @@
   const ICONS = {
     game_setting: Settings2Icon,
     engine_ini: FileCode2Icon,
-    launch_argument: TerminalIcon,
     warning: TriangleAlertIcon,
     compatibility: ShieldAlertIcon,
     external_tool: WrenchIcon,

@@ -14,6 +14,7 @@ export type AvailabilitySnapshot = {
   vcredistPresent: boolean | null;
   vcredistInstallerUrl: string;
   installTorn: boolean;
+  uninstallBlockedBy: AvailabilityReport['uninstall_blocked_by'];
 };
 
 export type AvailabilitySnapshotSource = Pick<
@@ -24,6 +25,7 @@ export type AvailabilitySnapshotSource = Pick<
   | 'vcredist_present'
   | 'vcredist_installer_url'
   | 'install_torn'
+  | 'uninstall_blocked_by'
 >;
 
 /** Luma always installs the nightly ReShade host — there is no channel switch. */
@@ -38,6 +40,7 @@ export function availabilitySnapshotFromReport(
     vcredistPresent: report.vcredist_present,
     vcredistInstallerUrl: report.vcredist_installer_url,
     installTorn: report.install_torn,
+    uninstallBlockedBy: report.uninstall_blocked_by,
   });
 }
 

@@ -110,6 +110,33 @@ export type DesktopCommandPayloadMap = {
   renodx_vulkan_layer_management_status: undefined;
   renodx_apply_vulkan_layer: { reshadeChannel: string };
   renodx_remove_vulkan_layer: undefined;
+  get_optiscaler_availability: { gameId: string; manualOverride?: boolean };
+  check_optiscaler_update: { gameId: string };
+  install_optiscaler: {
+    gameId: string;
+    modules: string[];
+    manualOverride: boolean;
+    gameContextToken?: string;
+  };
+  update_optiscaler: {
+    gameId: string;
+    gameContextToken?: string;
+  };
+  repair_optiscaler: {
+    gameId: string;
+    gameContextToken?: string;
+  };
+  set_optiscaler_modules: {
+    gameId: string;
+    modules: string[];
+    gameContextToken?: string;
+  };
+  relocate_optiscaler: {
+    gameId: string;
+    targetExe: string;
+    gameContextToken?: string;
+  };
+  uninstall_optiscaler: { gameId: string };
 };
 
 export type DesktopCommandResultMap = {
@@ -170,6 +197,14 @@ export type DesktopCommandResultMap = {
   renodx_vulkan_layer_management_status: unknown;
   renodx_apply_vulkan_layer: unknown;
   renodx_remove_vulkan_layer: unknown;
+  get_optiscaler_availability: unknown;
+  check_optiscaler_update: unknown;
+  install_optiscaler: unknown;
+  update_optiscaler: unknown;
+  repair_optiscaler: unknown;
+  set_optiscaler_modules: unknown;
+  relocate_optiscaler: unknown;
+  uninstall_optiscaler: unknown;
 };
 
 export type DesktopCommand = keyof DesktopCommandPayloadMap & keyof DesktopCommandResultMap;
@@ -228,6 +263,14 @@ const ALL_DESKTOP_COMMANDS = [
   'renodx_vulkan_layer_management_status',
   'renodx_apply_vulkan_layer',
   'renodx_remove_vulkan_layer',
+  'get_optiscaler_availability',
+  'check_optiscaler_update',
+  'install_optiscaler',
+  'update_optiscaler',
+  'repair_optiscaler',
+  'set_optiscaler_modules',
+  'relocate_optiscaler',
+  'uninstall_optiscaler',
 ] as const satisfies readonly DesktopCommand[];
 
 const DESKTOP_COMMAND_SET = new Set<string>(ALL_DESKTOP_COMMANDS);

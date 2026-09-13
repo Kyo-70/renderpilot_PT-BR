@@ -33,6 +33,10 @@ export type RenoDxHostMutationOptions = {
     gameId: string,
     scope: 'game' | 'game_and_shared',
   ) => Promise<MutationSafetyTokens>;
+  requireInstallSafetyTokens?: (
+    gameId: string,
+    scope: 'game' | 'game_and_shared',
+  ) => Promise<MutationSafetyTokens | null>;
   afterInstallLikeCommit: (
     gameId: string,
     token: number,
@@ -73,6 +77,7 @@ export function createRenoDxHostMutations(options: RenoDxHostMutationOptions) {
     onChannelSwitched,
     channelIsSupported,
     requireSafetyTokens,
+    requireInstallSafetyTokens,
     afterInstallLikeCommit,
     afterCapabilityCommit,
   } = options;
@@ -88,10 +93,14 @@ export function createRenoDxHostMutations(options: RenoDxHostMutationOptions) {
     const safetyScope = safetyScopeForHost(
       plannedInstallHostKind(getOutcome(), getManualInstallHostKind()),
     );
+    const installTokens = await requireInstallSafetyTokens?.(gameId, safetyScope);
+    if (requireInstallSafetyTokens && installTokens === null) {
+      return 'skipped';
+    }
     return core.runBusyMutation(
       gameId,
       async () => {
-        const tokens = await requireSafetyTokens?.(gameId, safetyScope);
+        const tokens = installTokens ?? (await requireSafetyTokens?.(gameId, safetyScope));
         return tokens
           ? api.install(gameId, channel, tokens.gameContextToken, tokens.sharedVulkanContextToken)
           : api.install(gameId, channel);
@@ -116,10 +125,14 @@ export function createRenoDxHostMutations(options: RenoDxHostMutationOptions) {
     const safetyScope = safetyScopeForHost(
       plannedInstallHostKind(getOutcome(), getManualInstallHostKind()),
     );
+    const installTokens = await requireInstallSafetyTokens?.(gameId, safetyScope);
+    if (requireInstallSafetyTokens && installTokens === null) {
+      return 'skipped';
+    }
     return core.runBusyMutation(
       gameId,
       async () => {
-        const tokens = await requireSafetyTokens?.(gameId, safetyScope);
+        const tokens = installTokens ?? (await requireSafetyTokens?.(gameId, safetyScope));
         return tokens
           ? api.installFromFile(
               gameId,

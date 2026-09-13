@@ -55,6 +55,14 @@ export type CreateAddonStoreConfig<
   /** Tool-specific host snapshot refresh after a mutation (local scan). */
   applyHostRefresh: (report: TAvailabilityReport) => void;
   /**
+   * Invalidates tool-owned availability presentation when the backend has
+   * committed a different durable install state, before its replacement local
+   * availability scan begins. The callback must be synchronous and pure with
+   * respect to I/O: it keeps no observation from the old state visible under
+   * the newly committed state.
+   */
+  invalidateAvailabilityForCommittedState?: (state: TState) => void;
+  /**
    * Clears tool-owned state when navigation starts or the store is deactivated.
    * A normalized game id permits same-game cache retention; `null` requires a
    * complete reset. Explicit retry retains the current tool state.
@@ -108,6 +116,7 @@ export function createAddonStore<
     onExclusivityChange,
     applyLoadReport,
     applyHostRefresh,
+    invalidateAvailabilityForCommittedState,
     resetToolState,
     buildUpdateReportForInstall,
     buildProbeFailureReport,
@@ -122,6 +131,7 @@ export function createAddonStore<
   // proxy tracking on a structure we never mutate in place.
   let core = $state.raw(createInitialAddonCoreSnapshot<TState, TUpdateReport>());
   let safetyContextError = $state.raw<unknown>(null);
+  let loadedGameId: string | null = null;
 
   const isInstalled = $derived(core.state?.status === 'installed');
   const updateAvailable = $derived(
@@ -153,11 +163,15 @@ export function createAddonStore<
 
   async function loadAvailability(gameId: string, preserveLoadError: boolean): Promise<void> {
     const normalizedGameId = gameId.trim();
-    const { next, token } = withLoadBegin(core, preserveLoadError);
+    const isSameGame = loadedGameId !== null && loadedGameId === normalizedGameId;
+    loadedGameId = normalizedGameId;
+    const isRefresh = isSameGame && core.loaded;
+    const retainChrome = preserveLoadError || isRefresh;
+    const { next, token } = withLoadBegin(core, preserveLoadError, retainChrome);
     core = next;
     // Navigation loads clear tool chrome so outcome flags from the previous game
     // cannot drive the card while the new game's availability is in flight.
-    if (!preserveLoadError) {
+    if (!retainChrome) {
       resetToolState?.(normalizedGameId);
     }
     let succeeded = false;
@@ -196,6 +210,7 @@ export function createAddonStore<
   function deactivate(): void {
     core = withDeactivation(core);
     resetToolState?.(null);
+    loadedGameId = null;
   }
 
   /** Keeps the previous failure visible while this explicit retry is in progress. */
@@ -210,6 +225,7 @@ export function createAddonStore<
   function commitMutationResult(nextState: TState): number {
     const { next, token } = withMutationCommit(core, nextState, buildUpdateReportForInstall);
     core = next;
+    invalidateAvailabilityForCommittedState?.(nextState);
     return token;
   }
 

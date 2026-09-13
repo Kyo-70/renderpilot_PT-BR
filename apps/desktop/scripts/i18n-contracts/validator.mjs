@@ -3,6 +3,7 @@ import {
   ExternalContractValidationError,
   projectSupportedNvapiCatalog,
   validateLumaContract as validateLumaContractCore,
+  validateOptiscalerContract as validateOptiscalerContractCore,
 } from '../external-contract-core.mjs';
 
 function fail(message) {
@@ -359,11 +360,24 @@ export function validateNvapiContract(value) {
   }
 }
 
-export function validateExternalCatalogBoundaries(english, luma, nvapi) {
+/** Validates the small, reviewed OptiScaler compatibility-message source. */
+export function validateOptiscalerContract(value) {
+  try {
+    return validateOptiscalerContractCore(value);
+  } catch (cause) {
+    if (cause instanceof ExternalContractValidationError) {
+      fail(cause.message);
+    }
+    throw cause;
+  }
+}
+
+export function validateExternalCatalogBoundaries(english, luma, nvapi, optiscaler) {
   const owners = [
     ['English', Object.keys(english)],
     ['Luma', Object.keys(luma.sourceCatalog)],
     ['NVAPI', Object.keys(nvapi.sourceCatalog)],
+    ['OptiScaler', Object.keys(optiscaler.sourceCatalog)],
   ];
   const seen = new Map();
   for (const [owner, keys] of owners) {
@@ -410,6 +424,7 @@ export function validateEditorialPolicy(value, { english, nvapi }) {
       'nvidiaSources',
       'launcherProductNames',
       'protectedTokens',
+      'localizedUiLiterals',
       'technicalOnlyStaticKeys',
       'nvapiVerbatimValues',
       'nvapiSemanticTranslations',
@@ -440,6 +455,31 @@ export function validateEditorialPolicy(value, { english, nvapi }) {
   );
   for (const [launcher, productName] of Object.entries(value.launcherProductNames)) {
     nonEmptyString(productName, `editorial policy launcher product ${launcher}`);
+  }
+  if (
+    !value.localizedUiLiterals ||
+    typeof value.localizedUiLiterals !== 'object' ||
+    Array.isArray(value.localizedUiLiterals)
+  ) {
+    fail('editorial policy localizedUiLiterals must be an object');
+  }
+  for (const [sourceLiteral, localizedLiterals] of Object.entries(value.localizedUiLiterals)) {
+    nonEmptyString(sourceLiteral, 'editorial policy localized UI source literal');
+    if (
+      !localizedLiterals ||
+      typeof localizedLiterals !== 'object' ||
+      Array.isArray(localizedLiterals)
+    ) {
+      fail(`editorial policy localized UI literal ${sourceLiteral} must be an object`);
+    }
+    assertExactKeys(
+      localizedLiterals,
+      NON_ENGLISH_LOCALES,
+      `editorial policy localized UI literal ${sourceLiteral}`,
+    );
+    for (const [locale, literal] of Object.entries(localizedLiterals)) {
+      nonEmptyString(literal, `editorial policy localized UI literal ${sourceLiteral}.${locale}`);
+    }
   }
   for (const locale of NON_ENGLISH_LOCALES) {
     const terms = value.nvidiaFamilyTerms[locale];
@@ -528,7 +568,7 @@ export function validateEditorialPolicy(value, { english, nvapi }) {
     }
   }
   for (const launcher of LAUNCHER_KEYS) {
-    const key = `gameDetails.luma.launchArgs.instructions.${launcher}`;
+    const key = `gameDetails.addon.launchArguments.instructions.${launcher}`;
     if (!Object.hasOwn(english, key)) {
       fail(`editorial policy launcher key is not in the English catalog: ${key}`);
     }

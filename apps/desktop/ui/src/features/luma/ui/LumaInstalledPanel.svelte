@@ -8,14 +8,13 @@
     isReshadeChannel,
   } from '@entities/addon';
   import { t } from '@shared/i18n';
-  import { Badge } from '@shared/ui';
+  import { Badge, LaunchArgumentsCallout } from '@shared/ui';
 
   import type { LumaStore } from '../model/create-luma-store.svelte';
   import { LUMA_ATTRIBUTION } from '../model/attribution';
   import { dgVoodooRequirement } from '../model/external-requirements';
   import { payloadRepairAction as resolvePayloadRepairAction } from '../model/luma-store-helpers';
   import { describeReshadeHost } from '../model/luma-presenters';
-  import LumaLaunchArgsCallout from './LumaLaunchArgsCallout.svelte';
   import LumaFeatures from './LumaFeatures.svelte';
   import LumaGuidanceCallouts from './LumaGuidanceCallouts.svelte';
   import LumaVcredistCallout from './LumaVcredistCallout.svelte';
@@ -65,6 +64,11 @@
   const reshadeChannelLabel = $derived(
     isReshadeChannel(store.reshadeChannel) ? t(CHANNEL_LABEL[store.reshadeChannel]) : null,
   );
+  const uninstallDisabledReason = $derived(
+    store.uninstallBlockedBy === 'optiscaler'
+      ? t('gameDetails.luma.uninstallBlockedByOptiscaler')
+      : null,
+  );
 
   function handleRepair(): void {
     void store.repair(gameId);
@@ -81,6 +85,7 @@
   {addonDescription}
   onRepair={handleRepair}
   repairAction={payloadRepairAction}
+  {uninstallDisabledReason}
 >
   {#snippet topWarnings()}
     {#if store.installTorn}
@@ -98,7 +103,10 @@
     {#if store.vcredistPresent === false}
       <LumaVcredistCallout installerUrl={store.vcredistInstallerUrl} />
     {/if}
-    <LumaLaunchArgsCallout launchArgs={store.launchArgs} {launcher} />
+    <LaunchArgumentsCallout
+      launch={{ arguments: store.launchArgs, requirement: 'required' }}
+      {launcher}
+    />
   {/snippet}
 
   {#snippet reshadeActions()}

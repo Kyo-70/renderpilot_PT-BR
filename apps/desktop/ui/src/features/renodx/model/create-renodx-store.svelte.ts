@@ -42,6 +42,10 @@ export type RenoDxStoreOptions = {
     gameId: string,
     scope: 'game' | 'game_and_shared',
   ) => Promise<MutationSafetyTokens>;
+  requireInstallSafetyTokens?: (
+    gameId: string,
+    scope: 'game' | 'game_and_shared',
+  ) => Promise<MutationSafetyTokens | null>;
   onSafetyContextError?: (
     error: unknown,
     scope: 'game' | 'game_and_shared',
@@ -63,11 +67,27 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
     actions: {},
     reshadeStableSupported: true,
     renodxAddon: null,
+    installTorn: false,
   });
   let selectedReshadeChannel = $state<ReshadeChannel>('stable');
   let outcome = $state<AvailabilityOutcome | null>(null);
   let manualInstall = $state<ManualFileInstall | null>(null);
   let vulkanLayer = $state<VulkanLayerReport | null>(null);
+
+  function resetAvailabilityPresentation(): void {
+    availabilitySnapshot = {
+      hostDetection: 'absent',
+      hostFacts: defaultHostFacts(),
+      actions: {},
+      reshadeStableSupported: true,
+      renodxAddon: null,
+      installTorn: false,
+    };
+    selectedReshadeChannel = 'stable';
+    outcome = null;
+    manualInstall = null;
+    vulkanLayer = null;
+  }
 
   function applyAvailabilitySnapshot(
     report: Parameters<typeof availabilitySnapshotFromReport>[0],
@@ -109,18 +129,13 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       manualInstall = report.manual_install;
       vulkanLayer = report.vulkan_layer;
     },
+    invalidateAvailabilityForCommittedState: (state) => {
+      if (state.status === 'not_installed') {
+        resetAvailabilityPresentation();
+      }
+    },
     resetToolState: (_gameId) => {
-      availabilitySnapshot = {
-        hostDetection: 'absent',
-        hostFacts: defaultHostFacts(),
-        actions: {},
-        reshadeStableSupported: true,
-        renodxAddon: null,
-      };
-      selectedReshadeChannel = 'stable';
-      outcome = null;
-      manualInstall = null;
-      vulkanLayer = null;
+      resetAvailabilityPresentation();
     },
     buildUpdateReportForInstall: (nextState) => {
       if (nextState.status !== 'installed') {
@@ -206,6 +221,7 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       };
     },
     requireSafetyTokens,
+    requireInstallSafetyTokens: options.requireInstallSafetyTokens,
     afterInstallLikeCommit: companion.afterInstallLikeCommit,
     afterCapabilityCommit: companion.afterCapabilityCommit,
   });
@@ -238,6 +254,9 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       get renodxAddon() {
         return availabilitySnapshot.renodxAddon;
       },
+      get installTorn() {
+        return availabilitySnapshot.installTorn;
+      },
       get manualInstall() {
         return manualInstall;
       },
@@ -258,6 +277,9 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       },
       get externalConfidence() {
         return externalConfidence;
+      },
+      get confidence() {
+        return outcome?.kind === 'installable' ? outcome.confidence : externalConfidence;
       },
       get genericProfile() {
         return genericProfile;

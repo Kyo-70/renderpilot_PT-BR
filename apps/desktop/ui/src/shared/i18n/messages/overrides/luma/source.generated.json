@@ -1,0 +1,539 @@
+{
+  "schemaVersion": 1,
+  "messages": [
+    {
+      "id": "luma.ace-combat-7.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.ace-combat-7.game_setting",
+      "sourceText": "In the game settings, use: AA \"FXAA High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.ancestors-legacy.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.batman-arkham-knight.warning",
+      "sourceText": "This profile supports DLSS only; HDR is not currently supported.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.biomutant.game_setting",
+      "sourceText": "In the game settings, use: AA \"High\" or \"Max\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.blairwitch.game_setting",
+      "sourceText": "In the game settings, use: TXAA and Resolution Scalability \"Full\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.borderlands-3.warning",
+      "sourceText": "Visual flickering may occur.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.bramblethemountainking.warning",
+      "sourceText": "Epic quality can steadily fill VRAM and cause stuttering. Avoid repeatedly switching between High and Epic while Luma is active.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.call-of-the-sea.game_setting",
+      "sourceText": "In the game settings, use: Global quality \"Epic\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.circus-electrique.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.clash-artifacts-of-chaos.game_setting",
+      "sourceText": "In the game settings, use: AA quality \"Very High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.close-to-the-sun.game_setting",
+      "sourceText": "In the game settings, use: AA 4X.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.cod-black-ops-3.warning",
+      "sourceText": "Avoid official public matchmaking while Luma is installed. This may result in a ban.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.code-vein.game_setting",
+      "sourceText": "In the game settings, use: AA Highest.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.crab-champions.game_setting",
+      "sourceText": "In the game settings, use: High Anti-aliasing Type.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.crash-bandicoot-4.game_setting",
+      "sourceText": "In the game settings, use: at least Medium (2x) Anti-aliasing Quality.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.cygni-all-guns-blazing.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.daemonxmachina.warning",
+      "sourceText": "Loading a level or changing graphics settings forces r.TemporalAASamples=1 and disables DLAA.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.darksiders-3.game_setting",
+      "sourceText": "In the game settings, use: AA Epic.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.daymare-1998.compatibility",
+      "sourceText": "Luma works on its own but crashes when combined with OptiScaler or UUU.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.deadline-delivery.game_setting",
+      "sourceText": "In the game settings, use: \"Ultra\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.deceiveinc.compatibility",
+      "sourceText": "Blocked by Easy Anti-Cheat.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.destroy-all-humans.game_setting",
+      "sourceText": "In the game settings, use: AA \"Ultra\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.deus-ex-human-revolution.compatibility",
+      "sourceText": "Not compatible with Boris ENB (DX9). Compatible with the Director's Cut and original edition. The Gold Filter Restoration mod is redundant with Luma.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.deus-ex-mankind-divided.warning",
+      "sourceText": "This profile supports DLSS only; HDR is not currently supported.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.die-young.game_setting",
+      "sourceText": "In the game settings, use: TAA \"High\" or \"Epic\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.dnf-duel.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.dnf-duel.game_setting",
+      "sourceText": "Anti-aliasing does not work on the character selection screen.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.dragon-ball-z-kakarot.game_setting",
+      "sourceText": "In the game settings, use: TAA. Use BDZKFix for the Legacy version or its updated fork for the HD version.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.dragon-quest-11-s.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.dragonquestxiechoesofanelusiveage.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.echo.warning",
+      "sourceText": "DLAA stops working after the first level. With Auto Exposure enabled, light sources strobe; with Auto Exposure disabled, anti-aliasing quality degrades significantly.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.fallout-4.compatibility",
+      "sourceText": "This profile currently supports only DLSS and GTAO.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.filament.game_setting",
+      "sourceText": "In the game settings, use: AA \"High\" or \"Very High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.goat-simulator-3.game_setting",
+      "sourceText": "In the game settings, use: High AA.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.greedfall.warning",
+      "sourceText": "This profile supports DLSS only; HDR is not currently supported.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.guilty-gear-strive.warning",
+      "sourceText": "Anti-aliasing does not work on the character selection screen. In-game: AA \"Temporal Anti Aliasing\". In Engine.ini under [SystemSettings], add: r.DefaultFeature.AntiAliasing=2 and r.PostProcessAAQuality=4.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.hatsune-miku-project-diva-mega-mix-plus.warning",
+      "sourceText": "If display issues occur, avoid Exclusive Fullscreen. Press Alt+Enter to switch modes.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.heavy-rain.warning",
+      "sourceText": "Ultrawide support may only work on Steam.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.hellletloose.compatibility",
+      "sourceText": "Blocked by Easy Anti-Cheat.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.inside.compatibility",
+      "sourceText": "Not compatible with the Xbox Store version.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.it-takes-two.warning",
+      "sourceText": "Only works during the title screen sequence.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.just-die-already.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.kao-the-kangaroo.game_setting",
+      "sourceText": "In the game settings, use: AA \"High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.kingdom-hearts-3.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.kingdom-hearts-3.game_setting",
+      "sourceText": "In the game settings, use: \"TXAA\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.lara-croft-temple-of-osiris.compatibility",
+      "sourceText": "Not compatible with the Xbox Store version.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.littlenightmaresiii.compatibility",
+      "sourceText": "Does not launch in DirectX 11 mode.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.mass-effect-andromeda.compatibility",
+      "sourceText": "Only DLAA / FSR 3 Native AA modes are available; this is not DLSS or FSR super-resolution.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.masterdetectivearchivesraincodeplus.game_setting",
+      "sourceText": "In the game settings, use: AA quality \"High\" and maximum resolution scale.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.metro-2033-redux.warning",
+      "sourceText": "Requires windowed or borderless mode, configured via mods or by disabling fullscreen in the game config.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.metro-2033-redux.windowed_borderless_only",
+      "sourceText": "Use borderless windowed mode.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.middle-earth-shadow-of-war.dlss-only",
+      "sourceText": "This profile supports DLSS only; HDR is not currently supported.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.mothergunship.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.mutant-year-zero-road-to-eden.game_setting",
+      "sourceText": "In the game settings, use: AA \"High\". For improved motion clarity, set r.motionblur.amount=0 in Engine.ini.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.narutotoborutoshinobistriker.compatibility",
+      "sourceText": "Blocked by Easy Anti-Cheat.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.no-more-heroes-3.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.orcs-must-die-3.game_setting",
+      "sourceText": "In the game settings, use: AA quality \"High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.persona-3reload.compatibility",
+      "sourceText": "Does not launch in DirectX 11 mode.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.predecessor.compatibility",
+      "sourceText": "Blocked by Easy Anti-Cheat.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.prey-2017.prey_extra_data",
+      "sourceText": "Keep Prey's additional Luma data files together with the add-on.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.project-wingman.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.project-wingman.game_setting",
+      "sourceText": "In the game settings, use: AA \"FXAA\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.rad.game_setting",
+      "sourceText": "In the game settings, use: AA \"Ultra\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.remnant-from-the-ashes.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.roboquest.game_setting",
+      "sourceText": "In the game settings, use: TAA, Quality \"3\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.scarlet-nexus.game_setting",
+      "sourceText": "In the game settings, use: AA \"TXAA\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.scorn.warning",
+      "sourceText": "Has native support for FSR 2.1; DLSS or other upscalers can be added via OptiScaler.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.sherlock-holmes-chapter-one.warning",
+      "sourceText": "The required -dx11 launch argument may reduce CPU performance. With Auto Exposure enabled, DLAA produces jagged edges on grass.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.shin-megami-tensei-5-vengeance.warning",
+      "sourceText": "Requires Lyall's Fix to force TAA.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.solar-ash.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.spirit-of-the-north.game_setting",
+      "sourceText": "In the game settings, use: Graphics Quality \"Ultra\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.spongebob-squarepants-the-cosmic-shake.game_setting",
+      "sourceText": "In the game settings, use: AA \"Ultra\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.spyro-reignited-trilogy.game_setting",
+      "sourceText": "In the game settings, use: High TAA.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.styx-shards-of-darkness.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.submerged-hidden-depths.game_setting",
+      "sourceText": "In the game settings, use: AA \"High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.supraland.game_setting",
+      "sourceText": "In the game settings, use: AA \"Temporal Anti Aliasing\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.tales-of-arise.warning",
+      "sourceText": "Requires Arise-SDK with UseUE4TAA=true.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.tekken-7.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.tetris-effect-connected.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.tetris-effect-connected.game_setting",
+      "sourceText": "In the game settings, use: AA \"FXAA:6\" and Rendering Scale 100%.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.the-sinking-city.warning",
+      "sourceText": "Compatible with the original release; compatibility with the Remastered edition is unconfirmed.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.theouterworldsspacerschoiceedition.compatibility",
+      "sourceText": "Does not launch in DirectX 11 mode.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.tribes-of-midgard.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.vampyr.game_setting",
+      "sourceText": "In the game settings, use: AA TXAA 6X.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.warhammer-40000-boltgun.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.what-remains-of-edith-finch.compatibility",
+      "sourceText": "DLAA works without extra changes, but the game may not fully close after exit. OptiScaler can resolve the exit issue.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "luma.what-remains-of-edith-finch.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.what-remains-of-edith-finch.warning",
+      "sourceText": "The game is unstable at 4K resolution. Set Effects to Low before applying manual Engine.ini settings.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    }
+  ]
+}

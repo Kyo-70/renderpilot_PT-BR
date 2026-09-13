@@ -21,6 +21,7 @@ export function mockUnsupportedLumaAvailability(): unknown {
     vcredist_present: null,
     vcredist_installer_url: 'https://aka.ms/vs/17/release/vc_redist.x64.exe',
     install_torn: false,
+    uninstall_blocked_by: null,
     outcome: { kind: 'unsupported' },
   };
 }
@@ -55,6 +56,7 @@ export function mockUnsupportedRenoDxAvailability(): unknown {
     actions: {},
     reshade_stable_supported: true,
     renodx_addon: null,
+    install_torn: false,
     outcome: { kind: 'unsupported' },
     manual_install: null,
     vulkan_layer: MOCK_VULKAN_LAYER,
@@ -67,6 +69,43 @@ export function mockRenoDxUpdateReport(): unknown {
     host: null,
     dlssFix: null,
     overall: 'current',
+  };
+}
+
+export function mockUnsupportedOptiScalerAvailability(gameId: string): unknown {
+  return {
+    game_id: gameId,
+    install: { installed: false, release: null },
+    eligibility: {
+      available: false,
+      block_code: 'catalog_unsupported',
+      manual_override: false,
+    },
+    selected_release: null,
+    relocation: null,
+    proxy_conflict: null,
+    compatibility: { status: 'unsupported', declared_inputs: [], launch: null, guidance: [] },
+    prerequisite: { state: 'none' },
+    modules: [],
+    lifecycle: {
+      update_available: false,
+      repair_required: false,
+      drifted: false,
+      unmanaged: false,
+      maintenance_available: false,
+      maintenance_block_code: null,
+    },
+  };
+}
+
+export function mockOptiScalerUpdateReport(): unknown {
+  return {
+    overall: 'current',
+    installed_release: null,
+    available_release: null,
+    update_available: false,
+    repair_required: false,
+    drifted: false,
   };
 }
 
