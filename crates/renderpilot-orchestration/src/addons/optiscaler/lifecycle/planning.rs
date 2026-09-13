@@ -9,8 +9,6 @@ pub(crate) struct InstallOptiScalerRequest<'a> {
     pub safety: crate::GameSafetyPermit,
     /// Optional explicit module selection; defaults are used when absent.
     pub modules: Option<&'a [String]>,
-    /// Expert override for detected-but-unverified input configurations.
-    pub manual_override: bool,
     /// Optional download progress observer.
     pub progress: Option<&'a ProgressObserver<'a>>,
 }

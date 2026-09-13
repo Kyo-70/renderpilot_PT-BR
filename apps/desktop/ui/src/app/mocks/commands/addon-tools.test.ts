@@ -29,7 +29,6 @@ describe('mock addon-tools IPC', () => {
   it('resolves OptiScaler availability and rejects preview mutations explicitly', async () => {
     const report = await mockInvoker('get_optiscaler_availability', {
       gameId: 'steam:1',
-      manualOverride: false,
     });
     expect(report).toMatchObject({
       game_id: 'steam:1',
@@ -40,7 +39,6 @@ describe('mock addon-tools IPC', () => {
       mockInvoker('install_optiscaler', {
         gameId: 'steam:1',
         modules: ['core'],
-        manualOverride: false,
         gameContextToken: 'game-token',
       }),
     ).rejects.toThrow(/Mock preview does not simulate/);

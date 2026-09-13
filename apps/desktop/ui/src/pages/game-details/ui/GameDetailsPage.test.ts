@@ -61,7 +61,6 @@ function unsupportedOptiScalerAvailability(): unknown {
     eligibility: {
       available: false,
       block_code: 'catalog_unsupported',
-      manual_override: false,
     },
     selected_release: null,
     relocation: null,

@@ -47,7 +47,7 @@ export function createOptiScalerStore(
     loading = true;
     loadError = null;
     try {
-      const next = await api.availability(gameId, false);
+      const next = await api.availability(gameId);
       if (token !== requestId) {
         return;
       }
@@ -151,11 +151,7 @@ export function createOptiScalerStore(
     safetyContextError = null;
   }
 
-  async function install(
-    gameId: string,
-    modules: string[],
-    manualOverride = false,
-  ): Promise<AddonMutationResult> {
+  async function install(gameId: string, modules: string[]): Promise<AddonMutationResult> {
     // Do not introduce an extra scheduling turn when no page safety gate is
     // configured. The mutation must claim its busy slot before another load
     // can invalidate that game's presentation request.
@@ -170,9 +166,7 @@ export function createOptiScalerStore(
       errorKey: 'gameDetails.optiscaler.installError',
       action: async () => {
         const token = installTokens?.gameContextToken ?? (await gameSafetyToken(gameId));
-        return token
-          ? api.install(gameId, modules, manualOverride, token)
-          : api.install(gameId, modules, manualOverride);
+        return token ? api.install(gameId, modules, token) : api.install(gameId, modules);
       },
       reload: true,
       invalidatePeers: true,

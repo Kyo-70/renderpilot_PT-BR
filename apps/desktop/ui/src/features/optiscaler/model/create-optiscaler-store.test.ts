@@ -134,8 +134,8 @@ describe('createOptiScalerStore', () => {
     const store = createOptiScalerStore({ api, onAddonStateChange });
     await store.load('steam:1');
 
-    const first = store.install('steam:1', ['core'], false);
-    const second = await store.install('steam:1', ['core'], false);
+    const first = store.install('steam:1', ['core']);
+    const second = await store.install('steam:1', ['core']);
     expect(second).toBe('skipped');
     resolveInstall(operation('steam:1'));
 
@@ -143,17 +143,17 @@ describe('createOptiScalerStore', () => {
     expect(onAddonStateChange).toHaveBeenCalledWith('steam:1');
   });
 
-  it('uses compatibility override only for the installation attempt that requests it', async () => {
+  it('uses the same install contract for every installation attempt', async () => {
     const currentApi = fakeApi();
     const store = createOptiScalerStore({ api: currentApi });
     await store.load('steam:1');
 
-    await store.install('steam:1', ['core'], true);
-    await store.install('steam:1', ['core'], false);
+    await store.install('steam:1', ['core']);
+    await store.install('steam:1', ['core']);
 
-    expect(currentApi.install).toHaveBeenNthCalledWith(1, 'steam:1', ['core'], true);
-    expect(currentApi.install).toHaveBeenNthCalledWith(2, 'steam:1', ['core'], false);
-    expect(currentApi.availability).toHaveBeenCalledWith('steam:1', false);
+    expect(currentApi.install).toHaveBeenNthCalledWith(1, 'steam:1', ['core']);
+    expect(currentApi.install).toHaveBeenNthCalledWith(2, 'steam:1', ['core']);
+    expect(currentApi.availability).toHaveBeenCalledWith('steam:1');
   });
 
   it('does not call the install command when the shared install warning is rejected', async () => {
@@ -175,12 +175,12 @@ describe('createOptiScalerStore', () => {
     const store = createOptiScalerStore({ api: currentApi, requireSafetyTokens });
     await store.load('steam:1');
 
-    await store.install('steam:1', ['core'], true);
+    await store.install('steam:1', ['core']);
     await store.repair('steam:1');
 
     expect(requireSafetyTokens).toHaveBeenNthCalledWith(1, 'steam:1', 'game');
     expect(requireSafetyTokens).toHaveBeenNthCalledWith(2, 'steam:1', 'game');
-    expect(currentApi.install).toHaveBeenCalledWith('steam:1', ['core'], true, 'fresh-game-token');
+    expect(currentApi.install).toHaveBeenCalledWith('steam:1', ['core'], 'fresh-game-token');
     expect(currentApi.repair).toHaveBeenCalledWith('steam:1', 'fresh-game-token');
   });
 
@@ -199,7 +199,7 @@ describe('createOptiScalerStore', () => {
     const store = createOptiScalerStore({ api });
     await store.load('steam:1');
 
-    const installing = store.install('steam:1', ['core'], false);
+    const installing = store.install('steam:1', ['core']);
     await store.load('steam:2');
     resolveInstall(operation('steam:1'));
 
@@ -220,7 +220,7 @@ describe('createOptiScalerStore', () => {
     const store = createOptiScalerStore({ api });
     await store.load('steam:1');
 
-    const installing = store.install('steam:1', ['core'], false);
+    const installing = store.install('steam:1', ['core']);
     store.deactivate();
     await store.load('steam:2');
 
@@ -237,7 +237,7 @@ describe('createOptiScalerStore', () => {
     const onGameDetailsInvalidate = vi.fn();
     const store = createOptiScalerStore({ api, onGameDetailsInvalidate });
 
-    await store.install('steam:1', ['core'], false);
+    await store.install('steam:1', ['core']);
     expect(onGameDetailsInvalidate).toHaveBeenCalledTimes(1);
     expect(onGameDetailsInvalidate).toHaveBeenCalledWith('steam:1');
 
@@ -260,7 +260,7 @@ describe('createOptiScalerStore', () => {
     );
     const store = createOptiScalerStore({ api, onGameDetailsInvalidate });
 
-    const result = await store.install('steam:1', ['core'], false);
+    const result = await store.install('steam:1', ['core']);
     expect(invalidateSettled).toBe(true);
     expect(result).toBe('ok');
     expect(store.busy).toBe(false);
@@ -346,7 +346,7 @@ describe('createOptiScalerStore', () => {
     await store.load('steam:1');
     expect(store.state).toBeNull();
 
-    const installing = store.install('steam:1', ['core'], false);
+    const installing = store.install('steam:1', ['core']);
     await vi.waitFor(() => {
       expect(installApi).toHaveBeenCalledOnce();
       expect(store.state).not.toBeNull();

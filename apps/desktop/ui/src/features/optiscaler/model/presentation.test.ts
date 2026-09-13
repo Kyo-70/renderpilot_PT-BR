@@ -58,19 +58,18 @@ describe('OptiScaler presentation transitions', () => {
     expect(optiscalerInstallVisible(baseReport, false)).toBe(true);
   });
 
-  it('classifies a soft compatibility block as installable with confirmation', () => {
+  it('keeps an unknown configuration without detected input hard blocked', () => {
     const base = buildOptiScalerAvailability();
     const report = buildOptiScalerAvailability({
       eligibility: {
         ...base.eligibility,
         available: false,
-        block_code: 'unverified_input',
-        manual_override: true,
+        block_code: 'input_not_detected',
       },
     });
 
-    expect(optiscalerCardState(report)).toBe('unconfirmed');
-    expect(optiscalerActionAvailability(report, false, false).install).toBe(true);
+    expect(optiscalerCardState(report)).toBe('blocked');
+    expect(optiscalerActionAvailability(report, false, false).install).toBe(false);
   });
 
   it('excludes unavailable or unmanaged installs from managed target actions', () => {
@@ -104,7 +103,7 @@ describe('OptiScaler presentation transitions', () => {
 
   it('keeps persisted maintenance available when current compatibility is no longer positive', () => {
     const report = buildOptiScalerAvailability({
-      eligibility: { available: false, block_code: 'catalog_unsupported', manual_override: false },
+      eligibility: { available: false, block_code: 'catalog_unsupported' },
       lifecycle: {
         ...baseReport.lifecycle,
         maintenance_available: true,
@@ -138,7 +137,7 @@ describe('OptiScaler presentation transitions', () => {
     expect(optiscalerActionAvailability(proxyConflict, false, false).install).toBe(false);
 
     const archBlock = buildOptiScalerAvailability({
-      eligibility: { available: false, block_code: 'requires_x64', manual_override: false },
+      eligibility: { available: false, block_code: 'requires_x64' },
     });
     expect(optiscalerInstallVisible(archBlock, false)).toBe(true);
     expect(optiscalerActionAvailability(archBlock, false, false).install).toBe(false);
@@ -170,7 +169,7 @@ describe('OptiScaler presentation transitions', () => {
 
     const eligibilityBlock = buildOptiScalerAvailability({
       prerequisite: { state: 'none' },
-      eligibility: { available: false, block_code: 'requires_x64', manual_override: false },
+      eligibility: { available: false, block_code: 'requires_x64' },
     });
     expect(optiscalerBlockedAlertPresentation(eligibilityBlock)).toEqual({
       tone: 'warning',

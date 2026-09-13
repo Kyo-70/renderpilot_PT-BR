@@ -110,12 +110,11 @@ export type DesktopCommandPayloadMap = {
   renodx_vulkan_layer_management_status: undefined;
   renodx_apply_vulkan_layer: { reshadeChannel: string };
   renodx_remove_vulkan_layer: undefined;
-  get_optiscaler_availability: { gameId: string; manualOverride?: boolean };
+  get_optiscaler_availability: { gameId: string };
   check_optiscaler_update: { gameId: string };
   install_optiscaler: {
     gameId: string;
     modules: string[];
-    manualOverride: boolean;
     gameContextToken?: string;
   };
   update_optiscaler: {

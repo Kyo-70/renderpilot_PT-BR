@@ -46,8 +46,7 @@ async fn update_with_intent(
         let snapshot = capture_lifecycle_snapshot(request.context, &game_id)?;
         ensure_managed_install_snapshot(&snapshot)?;
         let availability =
-            matcher::evaluation_off_runtime(request.context, request.manifest, &game_id, true)
-                .await?;
+            matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
         (snapshot, availability)
     };
     let old_state = initial_snapshot
@@ -116,7 +115,7 @@ async fn update_with_intent(
             .await?;
     ensure_lifecycle_snapshot_unchanged(request.context, &game_id, &initial_snapshot)?;
     let availability =
-        matcher::evaluation_off_runtime(request.context, request.manifest, &game_id, true).await?;
+        matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
     ensure_apply_allowed(&availability)?;
     ensure_selected_modules_available(&availability, &modules)?;
     apply_release_off_runtime(&ApplyPlan {

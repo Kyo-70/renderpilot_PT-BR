@@ -1085,13 +1085,11 @@ export const ru = defineLocalizedCatalog<'ru', EnglishCatalog>()({
   'gameDetails.optiscaler.compatibilityLabel': 'Совместимость',
   'gameDetails.optiscaler.compatibilityVerified': 'Подтверждена',
   'gameDetails.optiscaler.compatibilityConditional': 'С условиями',
-  'gameDetails.optiscaler.compatibilityUnconfirmed': 'Не подтверждена',
+  'gameDetails.optiscaler.compatibilityUnknown': 'Неизвестна',
   'gameDetails.optiscaler.compatibilityUnavailable': 'Недоступно',
   'gameDetails.optiscaler.compatibilityUnsupported': 'Не поддерживается',
   'gameDetails.optiscaler.versionLabel': 'Версия',
   'gameDetails.optiscaler.integrationThrough': 'Интеграция через',
-  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
-    'RenderPilot не удалось подтвердить совместимость с этой игрой. Установка выполняется так же, но результат для этой конфигурации не проверен.',
   'gameDetails.optiscaler.configure': 'Настроить',
   'gameDetails.optiscaler.configureBeforeInstall': 'Настроить компоненты',
   'gameDetails.optiscaler.settingsTitle': 'Компоненты установки',
@@ -1100,13 +1098,6 @@ export const ru = defineLocalizedCatalog<'ru', EnglishCatalog>()({
   'gameDetails.optiscaler.moduleRequired': 'Обязательно',
   'gameDetails.optiscaler.settingsSave': 'Готово',
   'gameDetails.optiscaler.settingsApply': 'Применить',
-  'gameDetails.optiscaler.confirmCompatibilityTitle':
-    'Установить без подтверждённой совместимости?',
-  'gameDetails.optiscaler.confirmCompatibilityBody':
-    'Установка выполняется обычным способом, но эта конфигурация игры ещё не проверена.',
-  'gameDetails.optiscaler.confirmCompatibilityWarning':
-    'Игра может не запуститься или показывать артефакты. Если это произойдёт, OptiScaler можно удалить.',
-  'gameDetails.optiscaler.confirmInstallAnyway': 'Установить',
   'gameDetails.optiscaler.checkUpdates': 'Проверить обновления',
   'gameDetails.optiscaler.prerequisite.removeRenoDx':
     'Удалите RenoDX, прежде чем устанавливать Luma Framework для этой конфигурации OptiScaler.',
@@ -1167,7 +1158,6 @@ export const ru = defineLocalizedCatalog<'ru', EnglishCatalog>()({
   'gameDetails.optiscaler.confidenceLabel': 'Уверенность совместимости по Wiki',
   'gameDetails.optiscaler.confidenceVerified': 'Проверено',
   'gameDetails.optiscaler.confidenceDetectedUnverified': 'Обнаружено, но не проверено',
-  'gameDetails.optiscaler.confidenceManualOverride': 'Экспертное разрешение',
   'gameDetails.optiscaler.confidenceUnsupported': 'Не поддерживается',
   'gameDetails.optiscaler.drifted': 'Управляемые файлы изменены; рекомендуется восстановление',
   'gameDetails.optiscaler.proxyChain': 'Цепочка прокси',
@@ -1179,8 +1169,6 @@ export const ru = defineLocalizedCatalog<'ru', EnglishCatalog>()({
     'Используется существующий файл игры; копия рядом с exe не создаётся.',
   'gameDetails.optiscaler.moduleCatalogDownload':
     'В игре файла нет; он будет установлен в изолированный каталог OptiScaler.',
-  'gameDetails.optiscaler.expertOverride':
-    'Экспертное разрешение для непроверенного статического входа',
   'gameDetails.optiscaler.applyModules': 'Применить модули',
   'gameDetails.optiscaler.update': 'Обновить',
   'gameDetails.optiscaler.repair': 'Восстановить',

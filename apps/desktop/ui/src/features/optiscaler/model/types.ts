@@ -4,7 +4,6 @@ export type OptiScalerCompatibilityBlockCode =
   | 'requires_x64'
   | 'unsupported_graphics_api'
   | 'catalog_unsupported'
-  | 'unverified_input'
   | 'input_not_detected'
   | 'release_unavailable'
   | 'selected_modules_unavailable'
@@ -52,7 +51,6 @@ export type OptiScalerAvailability = {
   eligibility: {
     available: boolean;
     block_code: OptiScalerCompatibilityBlockCode | null;
-    manual_override: boolean;
   };
   selected_release: string | null;
   relocation: {

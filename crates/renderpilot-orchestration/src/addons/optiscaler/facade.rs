@@ -20,8 +20,6 @@ pub struct InstallOptiScalerRequest<'a> {
     pub safety: crate::GameSafetyPermit,
     /// Optional explicit module selection.
     pub modules: Option<&'a [String]>,
-    /// Whether the user accepted unverified compatibility.
-    pub manual_override: bool,
     /// Optional artifact-download progress observer.
     pub progress: Option<&'a ProgressObserver<'a>>,
 }
@@ -96,11 +94,9 @@ impl RelocateOptiScalerRequest<'_> {
 pub async fn availability(
     context: &Context,
     game_id: &GameId,
-    manual_override: bool,
 ) -> Result<OptiScalerAvailability, ServiceError> {
     let manifest = super::manifest_store::get_or_fetch_manifest().await?;
-    let result =
-        super::availability_with_manifest(context, &manifest, game_id, manual_override).await?;
+    let result = super::availability_with_manifest(context, &manifest, game_id).await?;
     Ok(result)
 }
 
@@ -116,7 +112,6 @@ pub async fn install(
         manifest: &manifest,
         safety: request.safety,
         modules: request.modules,
-        manual_override: request.manual_override,
         progress: request.progress,
     })
     .await?;

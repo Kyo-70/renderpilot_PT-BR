@@ -219,8 +219,6 @@ pub enum OptiScalerCompatibilityBlockCode {
     UnsupportedGraphicsApi,
     /// A catalogue rule explicitly marks the game unsupported.
     CatalogUnsupported,
-    /// A read-only FSR input requires an explicit user confirmation.
-    UnverifiedInput,
     /// No compatible upscaling input was detected.
     InputNotDetected,
     /// The release catalogue has no installable current release.
@@ -431,9 +429,6 @@ pub struct OptiScalerAvailability {
     pub blocked_reason: Option<String>,
     /// Stable blocking category suitable for localized UI copy.
     pub compatibility_block_code: Option<OptiScalerCompatibilityBlockCode>,
-    /// Whether the current soft compatibility block can be acknowledged for
-    /// one installation attempt.
-    pub manual_override_available: bool,
     /// Graphics APIs detected for the selected executable.
     pub detected_apis: Vec<GraphicsApi>,
     /// Exact compatibility knowledge and reviewed guidance.

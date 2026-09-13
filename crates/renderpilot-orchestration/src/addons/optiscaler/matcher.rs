@@ -24,16 +24,10 @@ use proxy::{PlanningMode as ProxyPlanningMode, plan as proxy_plan};
 mod capability;
 mod compatibility;
 mod drift;
-#[cfg(test)]
-use compatibility::requires_fsr_input_override;
 use compatibility::{
     EvaluationMode as CompatibilityMode, evaluate as evaluate_compatibility, proxy_conflict_message,
 };
 mod modules;
-#[cfg(test)]
-use super::types::OptiScalerCompatibilityStatus;
-#[cfg(test)]
-use super::types::OptiScalerEvidence;
 use super::types::{
     OptiScalerCompatibilityBlockCode, OptiScalerManifest, OptiScalerModuleProvisioning,
     OptiScalerPrerequisiteState, OptiScalerRelease, OptiScalerRelocationBlockCode,
@@ -55,14 +49,12 @@ pub(crate) fn evaluate(
     manifest: &OptiScalerManifest,
     catalog: &super::compatibility_catalog::OptiScalerCompatibilityCatalog,
     game_id: &GameId,
-    manual_override: bool,
 ) -> Result<EvaluatedAvailability, ServiceError> {
     let mut evaluation = availability_with_target(EvaluationRequest {
         context,
         manifest,
         catalog,
         game_id,
-        manual_override,
         target: EvaluationTarget::ConfiguredOrInstalled,
     })?;
     if let Some(target) = evaluation
@@ -75,7 +67,6 @@ pub(crate) fn evaluate(
             manifest,
             catalog,
             game_id,
-            manual_override: true,
             target: EvaluationTarget::Relocation(&target),
         })?;
         evaluation.relocation = Some(EvaluatedRelocation {
@@ -96,10 +87,9 @@ pub(crate) async fn evaluation_off_runtime(
     context: &Context,
     manifest: &OptiScalerManifest,
     game_id: &GameId,
-    manual_override: bool,
 ) -> Result<EvaluatedAvailability, ServiceError> {
     let catalog = super::compatibility_catalog::get_or_fetch_catalog().await?;
-    evaluate(context, manifest, &catalog, game_id, manual_override)
+    evaluate(context, manifest, &catalog, game_id)
 }
 
 /// Relocation availability analysis boundary for OptiScaler lifecycle orchestrators.
@@ -125,7 +115,6 @@ fn relocation_evaluation(
         manifest,
         catalog,
         game_id,
-        manual_override: true,
         target: EvaluationTarget::Relocation(target_exe),
     })
 }
@@ -142,7 +131,6 @@ struct EvaluationRequest<'a> {
     manifest: &'a OptiScalerManifest,
     catalog: &'a super::compatibility_catalog::OptiScalerCompatibilityCatalog,
     game_id: &'a GameId,
-    manual_override: bool,
     target: EvaluationTarget<'a>,
 }
 
@@ -154,7 +142,6 @@ fn availability_with_target(
         manifest,
         catalog,
         game_id,
-        manual_override,
         target,
     } = request;
     let game = require_game(context, game_id)?;
@@ -208,13 +195,11 @@ fn availability_with_target(
         &components,
         resolved,
         release.is_some(),
-        installed_state.is_some(),
         if proxy_mode == ProxyPlanningMode::ExistingInstall {
             CompatibilityMode::ManagedTarget
         } else {
             CompatibilityMode::Candidate
         },
-        manual_override,
     );
     let mut blocked_reason = compatibility.blocked_reason;
     let mut compatibility_block_code = compatibility.block_code;
@@ -322,14 +307,7 @@ fn availability_with_target(
     let selected_modules_unavailable = modules
         .iter()
         .any(|module| module.selected && !module.available);
-    let soft_compatibility_block = matches!(
-        compatibility_block_code,
-        Some(
-            OptiScalerCompatibilityBlockCode::UnverifiedInput
-                | OptiScalerCompatibilityBlockCode::InputNotDetected
-        )
-    );
-    if selected_modules_unavailable && (blocked_reason.is_none() || soft_compatibility_block) {
+    if selected_modules_unavailable && blocked_reason.is_none() {
         compatibility_block_code =
             Some(OptiScalerCompatibilityBlockCode::SelectedModulesUnavailable);
         blocked_reason = Some(
@@ -374,26 +352,11 @@ fn availability_with_target(
         && target_dir
             .as_deref()
             .is_some_and(super::tool::unmanaged_install_present);
-    let manual_override_available = installed_state.is_none()
-        && !manual_override
-        && matches!(
-            compatibility_block_code,
-            Some(
-                OptiScalerCompatibilityBlockCode::UnverifiedInput
-                    | OptiScalerCompatibilityBlockCode::InputNotDetected
-            )
-        )
-        && proxy.conflict.is_none()
-        && release.is_some()
-        && !selected_modules_unavailable
-        && !unmanaged;
-
     Ok(EvaluatedAvailability {
         game_id: game_id.clone(),
         launcher: analysis.facts.launcher,
         blocked_reason,
         compatibility_block_code,
-        manual_override_available,
         detected_apis: analysis.facts.graphics.apis().to_vec(),
         accepted_prerequisite_binding,
         compatibility: super::types::OptiScalerCompatibility {
@@ -684,10 +647,9 @@ mod tests {
         let manifest =
             super::super::types::OptiScalerManifest::try_from(wire).expect("valid proxy fixture");
 
-        let availability =
-            super::super::availability_with_manifest(&context, &manifest, &game_id, true)
-                .await
-                .expect("availability reconciliation");
+        let availability = super::super::availability_with_manifest(&context, &manifest, &game_id)
+            .await
+            .expect("availability reconciliation");
 
         assert!(availability.install_state.is_some());
         let topology = context
@@ -873,37 +835,5 @@ mod tests {
 
         assert!(selected.contains("core"));
         assert!(!selected.contains("nvidia_rr"));
-    }
-
-    #[test]
-    fn read_only_fsr_input_requires_an_expert_override_without_a_curated_rule() {
-        let evidence = [OptiScalerEvidence {
-            technology: GraphicsTechnology::AmdFsr,
-            paths: vec!["ffx_fsr2_api_x64.dll".to_owned()],
-        }];
-        assert!(requires_fsr_input_override(
-            false,
-            false,
-            &evidence,
-            OptiScalerCompatibilityStatus::Unknown
-        ));
-        assert!(!requires_fsr_input_override(
-            true,
-            false,
-            &evidence,
-            OptiScalerCompatibilityStatus::Unknown
-        ));
-        assert!(!requires_fsr_input_override(
-            false,
-            true,
-            &evidence,
-            OptiScalerCompatibilityStatus::Unknown
-        ));
-        assert!(!requires_fsr_input_override(
-            false,
-            false,
-            &evidence,
-            OptiScalerCompatibilityStatus::Working
-        ));
     }
 }

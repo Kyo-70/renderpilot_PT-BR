@@ -9,7 +9,6 @@ vi.mock('@shared/notifications', () => ({
   publishPresentedErrorNotification: vi.fn(),
 }));
 
-import type { MutationSafetyTokens } from '@entities/addon';
 import type { OptiScalerApi } from '../api/desktop';
 import { createOptiScalerStore } from '../model/create-optiscaler-store.svelte';
 import type { OptiScalerAvailability, OptiScalerOperationResult } from '../model/types';
@@ -188,50 +187,36 @@ describe('OptiScalerCard', () => {
     expect(selectedRow?.className).not.toContain('bg-primary');
   });
 
-  it('offers the regular Install action for unconfirmed compatibility and asks once', async () => {
-    const unconfirmed = report({
+  it('keeps an unknown configuration without detected input hard blocked', async () => {
+    const blocked = report({
       install: { installed: false, release: null },
       eligibility: {
         available: false,
-        block_code: 'unverified_input',
-        manual_override: true,
+        block_code: 'input_not_detected',
       },
     });
-    const { currentApi } = await render(unconfirmed);
+    await render(blocked);
 
-    expect(target.textContent).toContain('Not confirmed');
+    expect(target.textContent).toContain('Unknown');
     expect(target.textContent).toContain('v0.9.3');
-    expect(target.textContent).toContain("RenderPilot couldn't confirm compatibility");
-    expect(target.textContent).not.toContain('Expert override');
-
-    findButton('Install', target)?.click();
-    flushSync();
-    const dialog = document.querySelector('[role="dialog"][data-state="open"]');
-    expect(dialog?.textContent).toContain('Install without confirmed compatibility?');
-
-    findButton('Install', dialog ?? document)?.click();
-    flushSync();
+    expect(findButton('Install', target)?.disabled).toBe(true);
     expect(document.querySelector('[role="dialog"][data-state="open"]')).toBeNull();
-    await vi.waitFor(() => {
-      expect(currentApi.install).toHaveBeenCalledWith(gameId, ['core', 'ffx_dx12'], true);
-    });
   });
 
-  it('closes compatibility confirmation before awaiting safety tokens to prevent concurrent dialogs', async () => {
-    let resolveTokens!: (tokens: MutationSafetyTokens | null) => void;
-    const tokensPromise = new Promise<MutationSafetyTokens | null>((resolve) => {
-      resolveTokens = resolve;
-    });
-    const requireInstallSafetyTokens = vi.fn(() => tokensPromise);
-
+  it('installs a directly eligible configuration without confirmation', async () => {
     const currentApi = api(
       report({
         install: { installed: false, release: null },
-        eligibility: { available: true, block_code: null, manual_override: true },
-        compatibility: { status: 'unknown', declared_inputs: [], launch: null, guidance: [] },
+        eligibility: { available: true, block_code: null },
+        compatibility: {
+          status: 'unknown',
+          declared_inputs: ['fsr2_plus'],
+          launch: null,
+          guidance: [],
+        },
       }),
     );
-    const store = createOptiScalerStore({ api: currentApi, requireInstallSafetyTokens });
+    const store = createOptiScalerStore({ api: currentApi });
     await store.load(gameId);
     component = mount(OptiScalerCardTestHost, {
       target,
@@ -240,29 +225,10 @@ describe('OptiScalerCard', () => {
     flushSync();
 
     findButton('Install', target)?.click();
-    flushSync();
-
-    const dialog = document.querySelector('[role="dialog"][data-state="open"]');
-    expect(dialog).not.toBeNull();
-    expect(dialog?.textContent).toContain('Install without confirmed compatibility?');
-
-    findButton('Install', dialog ?? document)?.click();
-    flushSync();
-
-    // The compatibility dialog must be closed immediately while safety token acquisition is pending
-    expect(document.querySelector('[role="dialog"][data-state="open"]')).toBeNull();
-    expect(requireInstallSafetyTokens).toHaveBeenCalledOnce();
-
-    resolveTokens({ gameContextToken: 'safe-token' });
-
     await vi.waitFor(() => {
-      expect(currentApi.install).toHaveBeenCalledWith(
-        gameId,
-        ['core', 'ffx_dx12'],
-        true,
-        'safe-token',
-      );
+      expect(currentApi.install).toHaveBeenCalledWith(gameId, ['core', 'ffx_dx12']);
     });
+    expect(document.querySelector('[role="dialog"][data-state="open"]')).toBeNull();
   });
 
   it('renders reviewed compatibility guidance through its stable localized message id', async () => {

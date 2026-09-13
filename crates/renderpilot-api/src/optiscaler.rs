@@ -28,7 +28,6 @@ struct DesktopOptiScalerInstall {
 struct DesktopOptiScalerEligibility {
     available: bool,
     block_code: Option<optiscaler::types::OptiScalerCompatibilityBlockCode>,
-    manual_override: bool,
 }
 
 #[derive(Serialize)]
@@ -127,7 +126,6 @@ impl From<optiscaler::types::OptiScalerAvailability> for DesktopOptiScalerAvaila
             eligibility: DesktopOptiScalerEligibility {
                 available: value.available,
                 block_code: value.compatibility_block_code,
-                manual_override: value.manual_override_available,
             },
             selected_release: value.selected_release,
             relocation,
@@ -214,11 +212,10 @@ impl From<optiscaler::types::OptiScalerUpdateCheck> for DesktopOptiScalerUpdateC
 pub async fn get_optiscaler_availability(
     context: &Context,
     game_id: impl Into<String>,
-    manual_override: bool,
 ) -> JsonResult {
     let game_id = parse_game_id(game_id)?;
     to_json(DesktopOptiScalerAvailability::from(
-        optiscaler::availability(context, &game_id, manual_override).await?,
+        optiscaler::availability(context, &game_id).await?,
     ))
 }
 
@@ -227,7 +224,6 @@ pub async fn install_optiscaler(
     context: &Context,
     game_id: impl Into<String>,
     modules: Option<&[String]>,
-    manual_override: bool,
     game_context_token: Option<String>,
     progress: Option<&ProgressObserver<'_>>,
 ) -> JsonResult {
@@ -238,7 +234,6 @@ pub async fn install_optiscaler(
         optiscaler::install(InstallOptiScalerRequest {
             context,
             modules,
-            manual_override,
             safety,
             progress,
         })
@@ -399,7 +394,6 @@ mod tests {
             available: true,
             blocked_reason: Some("internal blocking diagnostic".to_owned()),
             compatibility_block_code: None,
-            manual_override_available: false,
             detected_apis: Vec::new(),
             compatibility: optiscaler::types::OptiScalerCompatibility {
                 status: optiscaler::types::OptiScalerCompatibilityStatus::Working,
@@ -438,10 +432,8 @@ mod tests {
         let game_id = "manual:missing-optiscaler-safety";
 
         assert_missing_game_context(
-            &poll_ready(install_optiscaler(
-                &context, game_id, None, false, None, None,
-            ))
-            .expect_err("install must require game context"),
+            &poll_ready(install_optiscaler(&context, game_id, None, None, None))
+                .expect_err("install must require game context"),
         );
         assert_missing_game_context(
             &poll_ready(update_optiscaler(&context, game_id, None, None))
@@ -481,7 +473,6 @@ mod tests {
             eligibility: DesktopOptiScalerEligibility {
                 available: true,
                 block_code: None,
-                manual_override: false,
             },
             selected_release: Some("v1".to_owned()),
             relocation: None,

@@ -11,20 +11,14 @@ use super::{CommandBoundary, JsonCommandResult, download_progress_emitter, requi
 #[tauri::command]
 pub async fn get_optiscaler_availability(
     game_id: String,
-    manual_override: Option<bool>,
     context: tauri::State<'_, Arc<Context>>,
 ) -> JsonCommandResult {
     let boundary = CommandBoundary::new(CommandOperation::OptiScalerAvailability);
     let (game_id, context) = require_game_context(&boundary, game_id, &context)?;
     boundary
-        .run_async(move || async move {
-            desktop::get_optiscaler_availability(
-                &context,
-                game_id,
-                manual_override.unwrap_or(false),
-            )
-            .await
-        })
+        .run_async(
+            move || async move { desktop::get_optiscaler_availability(&context, game_id).await },
+        )
         .await
 }
 
@@ -33,7 +27,6 @@ pub async fn install_optiscaler(
     app: tauri::AppHandle,
     game_id: String,
     modules: Option<Vec<String>>,
-    manual_override: Option<bool>,
     game_context_token: Option<String>,
     context: tauri::State<'_, Arc<Context>>,
 ) -> JsonCommandResult {
@@ -46,7 +39,6 @@ pub async fn install_optiscaler(
                 &context,
                 game_id,
                 modules.as_deref(),
-                manual_override.unwrap_or(false),
                 game_context_token,
                 Some(&emit as &desktop::ProgressObserver<'_>),
             )

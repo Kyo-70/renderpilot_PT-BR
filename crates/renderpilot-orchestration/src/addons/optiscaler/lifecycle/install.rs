@@ -15,13 +15,8 @@ pub async fn install(
             crate::mutation_boundary::enter_game_mutation_boundary_async(request.context, &game_id)
                 .await?;
         let snapshot = capture_lifecycle_snapshot(request.context, &game_id)?;
-        let availability = matcher::evaluation_off_runtime(
-            request.context,
-            request.manifest,
-            &game_id,
-            request.manual_override,
-        )
-        .await?;
+        let availability =
+            matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
         (availability, snapshot)
     };
     ensure_fresh_install_snapshot(&initial_snapshot)?;
@@ -32,7 +27,6 @@ pub async fn install(
             request.manifest,
             &game_id,
             AdoptionPolicy::UserRequested,
-            request.manual_override,
             &availability,
         )
         .await?
@@ -80,13 +74,8 @@ pub async fn install(
         crate::mutation_boundary::enter_game_mutation_boundary_async(request.context, &game_id)
             .await?;
     ensure_lifecycle_snapshot_unchanged(request.context, &game_id, &initial_snapshot)?;
-    let revalidated = matcher::evaluation_off_runtime(
-        request.context,
-        request.manifest,
-        &game_id,
-        request.manual_override,
-    )
-    .await?;
+    let revalidated =
+        matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
     ensure_apply_allowed(&revalidated)?;
     ensure_target_unchanged(&target, &revalidated)?;
     ensure_selected_modules_available(&revalidated, &modules)?;

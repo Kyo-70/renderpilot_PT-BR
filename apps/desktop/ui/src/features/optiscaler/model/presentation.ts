@@ -8,12 +8,7 @@ import type {
   OptiScalerModuleAvailability,
 } from './types';
 
-export type OptiScalerCardState =
-  | 'installed'
-  | 'installable'
-  | 'unconfirmed'
-  | 'blocked'
-  | 'unmanaged';
+export type OptiScalerCardState = 'installed' | 'installable' | 'blocked' | 'unmanaged';
 
 export function selectedModuleIds(report: OptiScalerAvailability): string[] {
   return report.modules.filter((module) => module.selected).map((module) => module.id);
@@ -113,9 +108,6 @@ export function optiscalerCardState(report: OptiScalerAvailability): OptiScalerC
   if (report.eligibility.available && !report.proxy_conflict) {
     return 'installable';
   }
-  if (report.eligibility.manual_override && !report.proxy_conflict) {
-    return 'unconfirmed';
-  }
   return 'blocked';
 }
 
@@ -164,12 +156,7 @@ function optiscalerInstallEligible(report: OptiScalerAvailability, installed: bo
     !report.proxy_conflict &&
     !report.lifecycle.unmanaged &&
     (report.prerequisite.state === 'none' || report.prerequisite.state === 'satisfied');
-  const softOverrideAvailable =
-    report.eligibility.manual_override &&
-    !report.proxy_conflict &&
-    (report.prerequisite.state === 'none' || report.prerequisite.state === 'satisfied') &&
-    !report.lifecycle.unmanaged;
-  return !installed && (targetAvailable || softOverrideAvailable);
+  return !installed && targetAvailable;
 }
 
 const declaredInputLabels = {

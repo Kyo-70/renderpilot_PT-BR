@@ -919,13 +919,11 @@ export const zhHant = defineLocalizedCatalog<'zh-Hant', EnglishCatalog>()({
   'gameDetails.optiscaler.compatibilityLabel': '相容性',
   'gameDetails.optiscaler.compatibilityVerified': '已確認',
   'gameDetails.optiscaler.compatibilityConditional': '有條件支援',
-  'gameDetails.optiscaler.compatibilityUnconfirmed': '未確認',
+  'gameDetails.optiscaler.compatibilityUnknown': '未知',
   'gameDetails.optiscaler.compatibilityUnavailable': '無法使用',
   'gameDetails.optiscaler.compatibilityUnsupported': '不支援',
   'gameDetails.optiscaler.versionLabel': '版本',
   'gameDetails.optiscaler.integrationThrough': '整合方式',
-  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
-    'RenderPilot 無法確認與此遊戲的相容性。安裝方式相同，但尚未驗證此設定的結果。',
   'gameDetails.optiscaler.configure': '設定',
   'gameDetails.optiscaler.configureBeforeInstall': '設定元件',
   'gameDetails.optiscaler.settingsTitle': '安裝元件',
@@ -933,11 +931,6 @@ export const zhHant = defineLocalizedCatalog<'zh-Hant', EnglishCatalog>()({
   'gameDetails.optiscaler.moduleRequired': '必要',
   'gameDetails.optiscaler.settingsSave': '完成',
   'gameDetails.optiscaler.settingsApply': '套用',
-  'gameDetails.optiscaler.confirmCompatibilityTitle': '在未確認相容性的情況下安裝？',
-  'gameDetails.optiscaler.confirmCompatibilityBody': '安裝方式與平常相同，但尚未驗證此遊戲設定。',
-  'gameDetails.optiscaler.confirmCompatibilityWarning':
-    '遊戲可能無法啟動或出現畫面異常。若發生這種情況，可以移除 OptiScaler。',
-  'gameDetails.optiscaler.confirmInstallAnyway': '安裝',
   'gameDetails.optiscaler.checkUpdates': '檢查更新',
   'gameDetails.optiscaler.prerequisite.removeRenoDx':
     '請先移除 RenoDX，再為此 OptiScaler 設定安裝 Luma Framework。',
@@ -987,7 +980,6 @@ export const zhHant = defineLocalizedCatalog<'zh-Hant', EnglishCatalog>()({
   'gameDetails.optiscaler.confidenceLabel': 'Wiki 相容性可信度',
   'gameDetails.optiscaler.confidenceVerified': '已驗證',
   'gameDetails.optiscaler.confidenceDetectedUnverified': '已偵測，未驗證',
-  'gameDetails.optiscaler.confidenceManualOverride': '專家覆寫',
   'gameDetails.optiscaler.confidenceUnsupported': '不支援',
   'gameDetails.optiscaler.drifted': '受管理檔案已變更；建議修復',
   'gameDetails.optiscaler.proxyChain': '代理鏈',
@@ -998,7 +990,6 @@ export const zhHant = defineLocalizedCatalog<'zh-Hant', EnglishCatalog>()({
   'gameDetails.optiscaler.moduleExistingGame': '使用現有的遊戲檔案；不會在執行檔旁安裝重複檔案。',
   'gameDetails.optiscaler.moduleCatalogDownload':
     '遊戲中沒有此元件；將安裝至隔離的 OptiScaler 執行階段資料夾。',
-  'gameDetails.optiscaler.expertOverride': '未驗證靜態輸入的專家覆寫',
   'gameDetails.optiscaler.applyModules': '套用模組',
   'gameDetails.optiscaler.update': '更新',
   'gameDetails.optiscaler.repair': '修復',

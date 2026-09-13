@@ -6,7 +6,6 @@
   import { untrack } from 'svelte';
 
   import {
-    AddonActionConfirmDialog,
     AddonAttribution,
     AddonCardFooter,
     AddonCardShell,
@@ -58,7 +57,7 @@
   const compatibilityStatusKeys = {
     working: 'gameDetails.optiscaler.compatibilityVerified',
     conditional: 'gameDetails.optiscaler.compatibilityConditional',
-    unknown: 'gameDetails.optiscaler.compatibilityUnconfirmed',
+    unknown: 'gameDetails.optiscaler.compatibilityUnknown',
     unsupported: 'gameDetails.optiscaler.compatibilityUnsupported',
   } as const satisfies Record<OptiScalerCompatibilityStatus, MessageKeyWithoutParams>;
 
@@ -66,8 +65,7 @@
     requires_x64: 'gameDetails.optiscaler.block.requiresX64',
     unsupported_graphics_api: 'gameDetails.optiscaler.block.unsupportedApi',
     catalog_unsupported: 'gameDetails.optiscaler.block.catalogUnsupported',
-    unverified_input: 'gameDetails.optiscaler.compatibilityUnconfirmedBody',
-    input_not_detected: 'gameDetails.optiscaler.compatibilityUnconfirmedBody',
+    input_not_detected: 'gameDetails.optiscaler.block.generic',
     release_unavailable: 'gameDetails.optiscaler.block.releaseUnavailable',
     selected_modules_unavailable: 'gameDetails.optiscaler.block.modulesUnavailable',
     catalog_identity_conflict: 'gameDetails.optiscaler.block.generic',
@@ -183,13 +181,7 @@
         {/if}
       </div>
 
-      {#if cardState === 'unconfirmed'}
-        <AddonStateMessage
-          tone="warning"
-          icon="warning"
-          message={t('gameDetails.optiscaler.compatibilityUnconfirmedBody')}
-        />
-      {:else if cardState === 'unmanaged'}
+      {#if cardState === 'unmanaged'}
         <AddonStateMessage
           tone="warning"
           icon="warning"
@@ -371,22 +363,6 @@
         controller.settingsOpen = open;
       }}
       onSave={controller.saveModules}
-    />
-
-    <AddonActionConfirmDialog
-      open={controller.confirmOpen}
-      busy={store.busy}
-      tone="warning"
-      title={controller.confirmTitle}
-      description={controller.confirmDescription}
-      warning={controller.confirmWarning}
-      confirmLabel={controller.confirmLabel}
-      onOpenChange={(open: boolean) => {
-        controller.confirmOpen = open;
-      }}
-      onConfirm={() => {
-        void controller.confirmPendingAction();
-      }}
     />
   {/if}
 </AddonCardShell>

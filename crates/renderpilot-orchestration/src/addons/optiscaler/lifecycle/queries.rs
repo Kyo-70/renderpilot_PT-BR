@@ -20,7 +20,7 @@ pub async fn check_update(
         });
     };
     let release = current_release(manifest)?;
-    let availability = matcher::evaluation_off_runtime(context, manifest, game_id, true).await?;
+    let availability = matcher::evaluation_off_runtime(context, manifest, game_id).await?;
     Ok(OptiScalerUpdateCheck {
         overall: if availability.update_available {
             crate::addons::update::UpdateStatus::Available

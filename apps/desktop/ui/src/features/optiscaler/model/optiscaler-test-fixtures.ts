@@ -14,7 +14,6 @@ export function buildOptiScalerAvailability(
     eligibility: {
       available: true,
       block_code: null,
-      manual_override: false,
     },
     selected_release: 'stable',
     relocation: null,

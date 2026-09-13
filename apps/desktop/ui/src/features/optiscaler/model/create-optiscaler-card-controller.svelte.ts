@@ -1,25 +1,18 @@
 import { isMutationSuccess, type AddonMutationResult } from '@entities/addon';
-import { t } from '@shared/i18n';
 
 import { selectedModuleIds } from './presentation';
 import type { OptiScalerStore } from './create-optiscaler-store.svelte';
 
-export type OptiScalerConfirmAction = 'install' | 'update' | 'repair' | 'modules' | 'relocate';
+export type OptiScalerAction = 'install' | 'update' | 'repair' | 'modules' | 'relocate';
 
-/** Owns transient action, module-selection and confirmation state for the card. */
+/** Owns transient action and module-selection state for the card. */
 export function createOptiScalerCardController(gameId: () => string, store: OptiScalerStore) {
   let selectedModules = $state<string[]>([]);
   let settingsOpen = $state(false);
-  let confirmOpen = $state(false);
-  let confirmAction = $state<OptiScalerConfirmAction>('install');
   let pendingModules = $state<string[] | null>(null);
 
   const report = $derived(store.report);
   const installed = $derived(report?.install.installed ?? false);
-  const confirmTitle = $derived(t('gameDetails.optiscaler.confirmCompatibilityTitle'));
-  const confirmDescription = $derived(t('gameDetails.optiscaler.confirmCompatibilityBody'));
-  const confirmWarning = $derived(t('gameDetails.optiscaler.confirmCompatibilityWarning'));
-  const confirmLabel = $derived(t('gameDetails.optiscaler.confirmInstallAnyway'));
 
   $effect(() => {
     if (report) {
@@ -27,21 +20,14 @@ export function createOptiScalerCardController(gameId: () => string, store: Opti
     }
   });
 
-  async function execute(
-    action: OptiScalerConfirmAction,
-    confirmed = false,
-  ): Promise<AddonMutationResult> {
+  async function execute(action: OptiScalerAction): Promise<AddonMutationResult> {
     const current = report;
     if (!current) {
       return 'skipped';
     }
     switch (action) {
       case 'install':
-        return store.install(
-          gameId(),
-          selectedModules,
-          confirmed && current.eligibility.manual_override,
-        );
+        return store.install(gameId(), selectedModules);
       case 'update':
         return store.update(gameId());
       case 'repair':
@@ -55,31 +41,11 @@ export function createOptiScalerCardController(gameId: () => string, store: Opti
     }
   }
 
-  function requestAction(action: OptiScalerConfirmAction): void {
-    const current = report;
-    if (!current) {
-      return;
-    }
-    const needsConfirmation = action === 'install' && current.eligibility.manual_override;
-    if (needsConfirmation) {
-      confirmAction = action;
-      confirmOpen = true;
+  function requestAction(action: OptiScalerAction): void {
+    if (!report) {
       return;
     }
     void execute(action);
-  }
-
-  async function confirmPendingAction(): Promise<void> {
-    const action = confirmAction;
-    const modules = pendingModules;
-    confirmOpen = false;
-    pendingModules = null;
-    const result = await execute(action, true);
-    if (isMutationSuccess(result)) {
-      if (action === 'modules' && modules) {
-        selectedModules = modules;
-      }
-    }
   }
 
   async function saveModules(next: string[]): Promise<boolean> {
@@ -107,29 +73,7 @@ export function createOptiScalerCardController(gameId: () => string, store: Opti
     set settingsOpen(value: boolean) {
       settingsOpen = value;
     },
-    get confirmOpen() {
-      return confirmOpen;
-    },
-    set confirmOpen(value: boolean) {
-      confirmOpen = value;
-      if (!value) {
-        pendingModules = null;
-      }
-    },
-    get confirmTitle() {
-      return confirmTitle;
-    },
-    get confirmDescription() {
-      return confirmDescription;
-    },
-    get confirmWarning() {
-      return confirmWarning;
-    },
-    get confirmLabel() {
-      return confirmLabel;
-    },
     requestAction,
-    confirmPendingAction,
     saveModules,
   };
 }

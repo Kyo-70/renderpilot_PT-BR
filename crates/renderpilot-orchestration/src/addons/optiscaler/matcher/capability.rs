@@ -10,39 +10,30 @@
 use renderpilot_domain::{Architecture, GraphicsApi, LibraryComponent};
 
 use super::super::compatibility_catalog::{self, OptiScalerCompatibilityCatalog};
-use super::compatibility::is_input_technology;
 use crate::addons::matching::MatchFacts;
 
 /// Returns whether OptiScaler should be visible for a game profile.
 ///
-/// Visibility requires all hard platform gates and then either an exact local
-/// compatibility rule or one of the supported graphics-input technologies
-/// detected for this game. Explicit unsupported rules are evaluated first and
-/// therefore cannot be bypassed by positive evidence.
+/// Visibility requires the hard platform gates. The compatibility catalogue
+/// can refine the card's install state, but an absent catalogue entry must not
+/// hide a supported game. An explicit unsupported rule is the one catalogue
+/// decision that suppresses a fresh capability, even when component scanning
+/// found a plausible input technology.
 pub(crate) fn capability_available(
     catalog: &OptiScalerCompatibilityCatalog,
     facts: &MatchFacts,
-    components: &[LibraryComponent],
+    _components: &[LibraryComponent],
 ) -> bool {
     if !base_requirements_met(facts) {
         return false;
     }
     match compatibility_catalog::resolve(catalog, facts) {
-        compatibility_catalog::ResolvedCompatibility::Match { entry, .. }
-            if !matches!(
-                entry.status,
-                compatibility_catalog::CompatibilityStatus::Unsupported
-            ) =>
-        {
-            true
-        }
-        compatibility_catalog::ResolvedCompatibility::Match { .. }
-        | compatibility_catalog::ResolvedCompatibility::Conflict => components
-            .iter()
-            .any(|component| is_input_technology(component.technology())),
-        compatibility_catalog::ResolvedCompatibility::NoMatch => components
-            .iter()
-            .any(|component| is_input_technology(component.technology())),
+        compatibility_catalog::ResolvedCompatibility::Match { entry, .. } => !matches!(
+            entry.status,
+            compatibility_catalog::CompatibilityStatus::Unsupported
+        ),
+        compatibility_catalog::ResolvedCompatibility::Conflict
+        | compatibility_catalog::ResolvedCompatibility::NoMatch => true,
     }
 }
 

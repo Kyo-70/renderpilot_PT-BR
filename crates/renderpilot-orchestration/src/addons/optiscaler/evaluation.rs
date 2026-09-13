@@ -80,7 +80,6 @@ pub(crate) struct EvaluatedAvailability {
     pub(crate) launcher: Launcher,
     pub(crate) blocked_reason: Option<String>,
     pub(crate) compatibility_block_code: Option<OptiScalerCompatibilityBlockCode>,
-    pub(crate) manual_override_available: bool,
     pub(crate) detected_apis: Vec<GraphicsApi>,
     pub(crate) accepted_prerequisite_binding: OptiScalerPrerequisiteBinding,
     pub(crate) compatibility: OptiScalerCompatibility,
@@ -119,7 +118,6 @@ impl EvaluatedAvailability {
             available: self.blocked_reason.is_none(),
             blocked_reason: self.blocked_reason,
             compatibility_block_code: self.compatibility_block_code,
-            manual_override_available: self.manual_override_available,
             detected_apis: self.detected_apis,
             compatibility: self.compatibility,
             prerequisite: self.prerequisite,
@@ -162,7 +160,6 @@ mod tests {
             launcher: Launcher::Manual,
             blocked_reason: None,
             compatibility_block_code: None,
-            manual_override_available: false,
             detected_apis: Vec::new(),
             accepted_prerequisite_binding: OptiScalerPrerequisiteBinding::None,
             compatibility: OptiScalerCompatibility {

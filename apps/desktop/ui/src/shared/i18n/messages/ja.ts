@@ -1009,13 +1009,11 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.optiscaler.compatibilityLabel': '互換性',
   'gameDetails.optiscaler.compatibilityVerified': '確認済み',
   'gameDetails.optiscaler.compatibilityConditional': '条件付き',
-  'gameDetails.optiscaler.compatibilityUnconfirmed': '未確認',
+  'gameDetails.optiscaler.compatibilityUnknown': '不明',
   'gameDetails.optiscaler.compatibilityUnavailable': '利用不可',
   'gameDetails.optiscaler.compatibilityUnsupported': '非対応',
   'gameDetails.optiscaler.versionLabel': 'バージョン',
   'gameDetails.optiscaler.integrationThrough': '統合方式',
-  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
-    'RenderPilot はこのゲームとの互換性を確認できませんでした。通常どおりインストールできますが、この構成での動作は検証されていません。',
   'gameDetails.optiscaler.configure': '設定',
   'gameDetails.optiscaler.configureBeforeInstall': 'コンポーネントを設定',
   'gameDetails.optiscaler.settingsTitle': 'インストールするコンポーネント',
@@ -1023,12 +1021,6 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.optiscaler.moduleRequired': '必須',
   'gameDetails.optiscaler.settingsSave': '完了',
   'gameDetails.optiscaler.settingsApply': '適用',
-  'gameDetails.optiscaler.confirmCompatibilityTitle': '互換性が未確認のままインストールしますか？',
-  'gameDetails.optiscaler.confirmCompatibilityBody':
-    '通常どおりインストールされますが、このゲーム構成は検証されていません。',
-  'gameDetails.optiscaler.confirmCompatibilityWarning':
-    'ゲームが起動しない、または表示に乱れが生じる可能性があります。その場合は OptiScaler を削除できます。',
-  'gameDetails.optiscaler.confirmInstallAnyway': 'インストール',
   'gameDetails.optiscaler.checkUpdates': 'アップデートを確認',
   'gameDetails.optiscaler.prerequisite.removeRenoDx':
     'この OptiScaler 構成で Luma Framework をインストールする前に、RenoDX を削除してください。',
@@ -1089,7 +1081,6 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   'gameDetails.optiscaler.confidenceLabel': 'Wiki互換性の確度',
   'gameDetails.optiscaler.confidenceVerified': '確認済み',
   'gameDetails.optiscaler.confidenceDetectedUnverified': '検出済み・未確認',
-  'gameDetails.optiscaler.confidenceManualOverride': 'エキスパート上書き',
   'gameDetails.optiscaler.confidenceUnsupported': '未対応',
   'gameDetails.optiscaler.drifted': '管理対象ファイルが変更されています。修復を推奨します',
   'gameDetails.optiscaler.proxyChain': 'プロキシチェーン',
@@ -1101,7 +1092,6 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
     'ゲーム内の既存ファイルを使用します。実行ファイルの隣に複製はインストールされません。',
   'gameDetails.optiscaler.moduleCatalogDownload':
     'ゲーム内に存在しないため、分離された OptiScaler ランタイムディレクトリへインストールします。',
-  'gameDetails.optiscaler.expertOverride': '未検証の静的検出をエキスパート設定で上書き',
   'gameDetails.optiscaler.applyModules': 'モジュールを適用',
   'gameDetails.optiscaler.update': '更新',
   'gameDetails.optiscaler.repair': '修復',

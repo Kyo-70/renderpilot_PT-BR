@@ -10,21 +10,14 @@ import type {
 const id = (gameId: string) => requireNonBlankString(gameId, 'gameId');
 
 export const optiscalerApi = {
-  availability: (gameId: string, manualOverride = false) =>
+  availability: (gameId: string) =>
     invokeDesktop<OptiScalerAvailability>('get_optiscaler_availability', {
       gameId: id(gameId),
-      manualOverride,
     }),
-  install: (
-    gameId: string,
-    modules: string[],
-    manualOverride: boolean,
-    gameContextToken?: string,
-  ) =>
+  install: (gameId: string, modules: string[], gameContextToken?: string) =>
     invokeDesktop<OptiScalerOperationResult>('install_optiscaler', {
       gameId: id(gameId),
       modules,
-      manualOverride,
       ...(gameContextToken === undefined ? {} : { gameContextToken }),
     }),
   checkUpdate: (gameId: string) =>

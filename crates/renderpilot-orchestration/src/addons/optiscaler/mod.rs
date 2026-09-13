@@ -47,10 +47,8 @@ pub(crate) async fn availability_with_manifest(
     context: &crate::Context,
     manifest: &types::OptiScalerManifest,
     game_id: &renderpilot_domain::GameId,
-    manual_override: bool,
 ) -> Result<types::OptiScalerAvailability, crate::ServiceError> {
-    let availability =
-        matcher::evaluation_off_runtime(context, manifest, game_id, manual_override).await?;
+    let availability = matcher::evaluation_off_runtime(context, manifest, game_id).await?;
     // Like RenoDX/Luma, reconcile a recoverable local installation while
     // loading availability. This is a database-only adoption: no game file
     // is rewritten. A known ReShade downstream host is recorded
@@ -62,12 +60,11 @@ pub(crate) async fn availability_with_manifest(
             manifest,
             game_id,
             lifecycle::AdoptionPolicy::Reconcile,
-            manual_override,
             &availability,
         )
         .await?;
         if adopted.is_some() || stored_status(context, game_id)?.is_some() {
-            return matcher::evaluation_off_runtime(context, manifest, game_id, manual_override)
+            return matcher::evaluation_off_runtime(context, manifest, game_id)
                 .await
                 .map(evaluation::EvaluatedAvailability::into_wire);
         }

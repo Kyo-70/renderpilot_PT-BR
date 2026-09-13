@@ -1053,13 +1053,11 @@ export const de = defineLocalizedCatalog<'de', EnglishCatalog>()({
   'gameDetails.optiscaler.compatibilityLabel': 'Kompatibilität',
   'gameDetails.optiscaler.compatibilityVerified': 'Bestätigt',
   'gameDetails.optiscaler.compatibilityConditional': 'Bedingt',
-  'gameDetails.optiscaler.compatibilityUnconfirmed': 'Nicht bestätigt',
+  'gameDetails.optiscaler.compatibilityUnknown': 'Unbekannt',
   'gameDetails.optiscaler.compatibilityUnavailable': 'Nicht verfügbar',
   'gameDetails.optiscaler.compatibilityUnsupported': 'Nicht unterstützt',
   'gameDetails.optiscaler.versionLabel': 'Version',
   'gameDetails.optiscaler.integrationThrough': 'Integration über',
-  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
-    'RenderPilot konnte die Kompatibilität mit diesem Spiel nicht bestätigen. Die Installation funktioniert wie gewohnt, das Ergebnis wurde für diese Konfiguration jedoch nicht überprüft.',
   'gameDetails.optiscaler.configure': 'Konfigurieren',
   'gameDetails.optiscaler.configureBeforeInstall': 'Komponenten konfigurieren',
   'gameDetails.optiscaler.settingsTitle': 'Installationskomponenten',
@@ -1068,13 +1066,6 @@ export const de = defineLocalizedCatalog<'de', EnglishCatalog>()({
   'gameDetails.optiscaler.moduleRequired': 'Erforderlich',
   'gameDetails.optiscaler.settingsSave': 'Fertig',
   'gameDetails.optiscaler.settingsApply': 'Anwenden',
-  'gameDetails.optiscaler.confirmCompatibilityTitle':
-    'Ohne bestätigte Kompatibilität installieren?',
-  'gameDetails.optiscaler.confirmCompatibilityBody':
-    'Die Installation läuft wie gewohnt ab, diese Spielkonfiguration wurde jedoch nicht überprüft.',
-  'gameDetails.optiscaler.confirmCompatibilityWarning':
-    'Das Spiel startet möglicherweise nicht oder zeigt Bildfehler. In diesem Fall kannst du OptiScaler wieder entfernen.',
-  'gameDetails.optiscaler.confirmInstallAnyway': 'Installieren',
   'gameDetails.optiscaler.checkUpdates': 'Nach Updates suchen',
   'gameDetails.optiscaler.prerequisite.removeRenoDx':
     'Entferne RenoDX, bevor du Luma Framework für diese OptiScaler-Konfiguration installierst.',
@@ -1135,7 +1126,6 @@ export const de = defineLocalizedCatalog<'de', EnglishCatalog>()({
   'gameDetails.optiscaler.confidenceLabel': 'Wiki-Kompatibilitätsvertrauen',
   'gameDetails.optiscaler.confidenceVerified': 'Verifiziert',
   'gameDetails.optiscaler.confidenceDetectedUnverified': 'Erkannt, nicht verifiziert',
-  'gameDetails.optiscaler.confidenceManualOverride': 'Expertenfreigabe',
   'gameDetails.optiscaler.confidenceUnsupported': 'Nicht unterstützt',
   'gameDetails.optiscaler.drifted': 'Verwaltete Dateien wurden geändert; Reparatur empfohlen',
   'gameDetails.optiscaler.proxyChain': 'Proxy-Kette',
@@ -1147,8 +1137,6 @@ export const de = defineLocalizedCatalog<'de', EnglishCatalog>()({
     'Verwendet die vorhandene Spieldatei; neben der Anwendung wird kein Duplikat installiert.',
   'gameDetails.optiscaler.moduleCatalogDownload':
     'Im Spiel nicht vorhanden; wird in das isolierte OptiScaler-Laufzeitverzeichnis installiert.',
-  'gameDetails.optiscaler.expertOverride':
-    'Expertenfreigabe für eine ungeprüfte statische Erkennung',
   'gameDetails.optiscaler.applyModules': 'Module anwenden',
   'gameDetails.optiscaler.update': 'Aktualisieren',
   'gameDetails.optiscaler.repair': 'Reparieren',

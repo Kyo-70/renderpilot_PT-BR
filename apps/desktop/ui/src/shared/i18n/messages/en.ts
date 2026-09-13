@@ -1050,13 +1050,11 @@ export const en = defineSourceCatalog({
   'gameDetails.optiscaler.compatibilityLabel': 'Compatibility',
   'gameDetails.optiscaler.compatibilityVerified': 'Confirmed',
   'gameDetails.optiscaler.compatibilityConditional': 'Conditional',
-  'gameDetails.optiscaler.compatibilityUnconfirmed': 'Not confirmed',
+  'gameDetails.optiscaler.compatibilityUnknown': 'Unknown',
   'gameDetails.optiscaler.compatibilityUnavailable': 'Unavailable',
   'gameDetails.optiscaler.compatibilityUnsupported': 'Unsupported',
   'gameDetails.optiscaler.versionLabel': 'Version',
   'gameDetails.optiscaler.integrationThrough': 'Integrates through',
-  'gameDetails.optiscaler.compatibilityUnconfirmedBody':
-    "RenderPilot couldn't confirm compatibility with this game. Installation works the same way, but the result hasn't been verified for this configuration.",
   'gameDetails.optiscaler.configure': 'Configure',
   'gameDetails.optiscaler.configureBeforeInstall': 'Configure components',
   'gameDetails.optiscaler.settingsTitle': 'Installation components',
@@ -1065,12 +1063,6 @@ export const en = defineSourceCatalog({
   'gameDetails.optiscaler.moduleRequired': 'Required',
   'gameDetails.optiscaler.settingsSave': 'Done',
   'gameDetails.optiscaler.settingsApply': 'Apply',
-  'gameDetails.optiscaler.confirmCompatibilityTitle': 'Install without confirmed compatibility?',
-  'gameDetails.optiscaler.confirmCompatibilityBody':
-    'Installation is the same as usual, but this game configuration has not been verified.',
-  'gameDetails.optiscaler.confirmCompatibilityWarning':
-    'The game may fail to start or show visual artifacts. You can remove OptiScaler if that happens.',
-  'gameDetails.optiscaler.confirmInstallAnyway': 'Install',
   'gameDetails.optiscaler.checkUpdates': 'Check for updates',
   'gameDetails.optiscaler.prerequisite.removeRenoDx':
     'Remove RenoDX before installing Luma Framework for this OptiScaler configuration.',
@@ -1131,7 +1123,6 @@ export const en = defineSourceCatalog({
   'gameDetails.optiscaler.confidenceLabel': 'Wiki compatibility confidence',
   'gameDetails.optiscaler.confidenceVerified': 'Verified',
   'gameDetails.optiscaler.confidenceDetectedUnverified': 'Detected, not verified',
-  'gameDetails.optiscaler.confidenceManualOverride': 'Expert override',
   'gameDetails.optiscaler.confidenceUnsupported': 'Unsupported',
   'gameDetails.optiscaler.drifted': 'Managed files changed; repair is recommended',
   'gameDetails.optiscaler.proxyChain': 'Proxy chain',
@@ -1143,7 +1134,6 @@ export const en = defineSourceCatalog({
     'Uses the existing game file; no duplicate is installed beside the executable.',
   'gameDetails.optiscaler.moduleCatalogDownload':
     'Not present in the game; installs into the isolated OptiScaler runtime directory.',
-  'gameDetails.optiscaler.expertOverride': 'Expert override for unverified static input',
   'gameDetails.optiscaler.applyModules': 'Apply modules',
   'gameDetails.optiscaler.update': 'Update',
   'gameDetails.optiscaler.repair': 'Repair',
