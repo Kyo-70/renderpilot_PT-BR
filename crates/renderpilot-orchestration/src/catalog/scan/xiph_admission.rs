@@ -1,13 +1,13 @@
-//! Fail-closed admission for newly detected cross-directory Xiph closures.
+//! Fail-closed admission for detected Xiph closures.
 //!
-//! A multi-directory closure gets a new durable component identity. Before a
-//! scan can replace catalog rows under that identity, prove it cannot orphan a
-//! legacy rollback claim or adopt a partial set of classic sidecars.
+//! This module owns legacy rollback ownership and classic sidecar checks before
+//! a scan can replace the catalog projection. Managed successor identity
+//! reconciliation lives in [`super::xiph_lineage`].
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
-use renderpilot_application::InstalledAddonRepository;
+use renderpilot_application::{ComponentRepository, InstalledAddonRepository};
 use renderpilot_domain::{
     ComponentFile, GameInstallation, LibraryComponent, LibraryTechnology, normalized_path_key, xiph,
 };
@@ -15,23 +15,43 @@ use renderpilot_storage_sqlite::SqliteStorage;
 
 use crate::ServiceError;
 
-use super::reconcile::CatalogInstallIndex;
 use super::recovery::recover_bak_file_for_technology;
 
-pub(super) fn admit_cross_directory_xiph_components(
+fn is_cross_xiph(component: &LibraryComponent) -> bool {
+    component.technology() == LibraryTechnology::XiphVorbis
+        && component.spans_multiple_parent_directories()
+}
+
+/// Checks all Xiph candidates against current durable rollback ownership before
+/// the aggregate scan write. This applies to same-directory and split layouts.
+pub(super) fn admit_xiph_components(
     storage: &SqliteStorage,
-    catalog_index: &CatalogInstallIndex,
     game: &GameInstallation,
     components: &[LibraryComponent],
 ) -> Result<(), ServiceError> {
     let baselines = storage.component_backups_for_game(game.id())?;
     let installed_addon = storage.get_installed_addon(game.id())?;
     let managed_files = crate::coordinated_files::managed_files_of(installed_addon.as_ref());
-    let previous_components = catalog_index.components(game.id());
+    let previous_components = storage.list_components_for_game(game.id())?;
+    let mut previous_by_id = HashMap::new();
+    for component in &previous_components {
+        previous_by_id
+            .entry(component.id().as_str())
+            .or_insert(component);
+    }
+    let mut protected_paths_by_id = Vec::with_capacity(baselines.len());
+    for (old_id, baseline) in &baselines {
+        let mut protected = normalized_paths(baseline.files());
+        protected.extend(normalized_paths(baseline.expected_active_files()));
+        if let Some(component) = previous_by_id.get(old_id.as_str()) {
+            protected.extend(normalized_paths(component.files()));
+        }
+        protected_paths_by_id.push((old_id, protected));
+    }
 
     for candidate in components
         .iter()
-        .filter(|component| is_cross_xiph(component))
+        .filter(|component| component.technology() == LibraryTechnology::XiphVorbis)
     {
         let has_established_same_id_baseline = if let Some(same_id) = baselines.get(candidate.id())
         {
@@ -43,7 +63,7 @@ pub(super) fn admit_cross_directory_xiph_components(
             )
             .map_err(|error| {
                 ServiceError::command_failed(format!(
-                    "cannot admit cross-directory Xiph component {}: existing rollback baseline is unsafe: {error}",
+                    "cannot admit Xiph component {}: existing rollback baseline is unsafe: {error}",
                     candidate.id()
                 ))
             })?;
@@ -53,20 +73,13 @@ pub(super) fn admit_cross_directory_xiph_components(
         };
 
         let candidate_paths = normalized_paths(candidate.files());
-        for (old_id, baseline) in &baselines {
-            if old_id == candidate.id() {
+        for (old_id, protected) in &protected_paths_by_id {
+            if *old_id == candidate.id() {
                 continue;
-            }
-            let mut protected = normalized_paths(baseline.files());
-            protected.extend(normalized_paths(baseline.expected_active_files()));
-            if let Some(component) =
-                previous_components.and_then(|components| components.get(old_id))
-            {
-                protected.extend(normalized_paths(component.files()));
             }
             if candidate_paths.iter().any(|path| protected.contains(path)) {
                 return Err(ServiceError::command_failed(format!(
-                    "cannot admit cross-directory Xiph component {} because it overlaps legacy rollback state for {}; restore or roll back {} before scanning",
+                    "cannot admit Xiph component {} because it overlaps legacy rollback state for {}; restore or roll back {} before scanning",
                     candidate.id(),
                     old_id,
                     old_id
@@ -78,23 +91,11 @@ pub(super) fn admit_cross_directory_xiph_components(
         // originals, including vendor-named reserved paths. Looking only for
         // sidecars beside the new canonical active paths would misclassify
         // that valid state as an orphaned partial set.
-        if !has_established_same_id_baseline {
+        if !has_established_same_id_baseline && is_cross_xiph(candidate) {
             admit_classic_sidecars(candidate)?;
         }
     }
     Ok(())
-}
-
-fn is_cross_xiph(component: &LibraryComponent) -> bool {
-    component.technology() == LibraryTechnology::XiphVorbis
-        && component
-            .files()
-            .iter()
-            .filter_map(|file| file.path().parent())
-            .map(normalized_path_key)
-            .collect::<BTreeSet<_>>()
-            .len()
-            > 1
 }
 
 fn normalized_paths(files: &[ComponentFile]) -> BTreeSet<String> {
@@ -196,12 +197,14 @@ fn xiph_members(files: &[ComponentFile]) -> Result<BTreeSet<xiph::XiphMember>, S
 mod tests {
     use renderpilot_application::{ComponentRepository, GameRepository};
     use renderpilot_domain::{
-        Architecture, ComponentId, ComponentKind, ComponentRollbackBaseline, GameId, GameIdentity,
-        GameRuntime, Launcher, PathRef, PeCompatibilityProfile, PeExportSet, PeImportProfile,
-        PeImportSet, Platform, Sha256Hash, Swappability,
+        ComponentId, ComponentKind, ComponentRollbackBaseline, GameId, GameIdentity, GameRuntime,
+        Launcher, PathRef, Platform, Swappability,
     };
 
     use super::*;
+    use crate::catalog::scan::xiph_test_support::{
+        complete_split_component, file, split_component, split_component_at, vendor_xiph_files,
+    };
 
     #[test]
     fn legacy_baseline_overlap_blocks_admission_before_catalog_mutation() {
@@ -238,16 +241,10 @@ mod tests {
                 &ComponentRollbackBaseline::new(vec![old_file]),
             )
             .expect("baseline");
-        let index = CatalogInstallIndex::load(&storage).expect("catalog index");
         let candidate = split_component(&game);
 
-        let error = admit_cross_directory_xiph_components(
-            &storage,
-            &index,
-            &game,
-            std::slice::from_ref(&candidate),
-        )
-        .expect_err("legacy overlap must block");
+        let error = admit_xiph_components(&storage, &game, std::slice::from_ref(&candidate))
+            .expect_err("legacy overlap must block");
         assert!(error.to_string().contains(old_id.as_str()));
         assert_eq!(
             storage
@@ -325,108 +322,7 @@ mod tests {
                 &ComponentRollbackBaseline::new(vendor_xiph_files(game.install_path().as_str())),
             )
             .expect("baseline");
-        let index = CatalogInstallIndex::load(&storage).expect("catalog index");
-
-        admit_cross_directory_xiph_components(
-            &storage,
-            &index,
-            &game,
-            std::slice::from_ref(&candidate),
-        )
-        .expect("same-id vendor baseline is established state");
-    }
-
-    fn split_component(game: &GameInstallation) -> LibraryComponent {
-        split_component_at(game.id().as_str(), game.install_path().as_str())
-    }
-
-    fn complete_split_component(game: &GameInstallation) -> LibraryComponent {
-        let root = game.install_path().as_str();
-        [
-            xiph_file(
-                &format!("{root}/Plugin/vorbisfile.dll"),
-                &["vorbis.dll", "ogg.dll"],
-                'a',
-            ),
-            xiph_file(&format!("{root}/Codec/vorbis.dll"), &["ogg.dll"], 'b'),
-            xiph_file(&format!("{root}/Container/ogg.dll"), &[], 'c'),
-        ]
-        .into_iter()
-        .fold(
-            LibraryComponent::new(
-                ComponentId::new(format!("component:{}:split", game.id())).expect("component"),
-                game.id().clone(),
-                ComponentKind::NativeLibrary,
-                LibraryTechnology::XiphVorbis,
-                Swappability::BundleOnly,
-            ),
-            LibraryComponent::with_file,
-        )
-    }
-
-    fn vendor_xiph_files(root: &str) -> Vec<ComponentFile> {
-        vec![
-            xiph_file(
-                &format!("{root}/Plugin/vorbisfile_vs2010_x64_rwdi.dll"),
-                &["vorbis_vs2010_x64_rwdi.dll", "ogg_vs2010_x64_rwdi.dll"],
-                'a',
-            ),
-            xiph_file(
-                &format!("{root}/Codec/vorbis_vs2010_x64_rwdi.dll"),
-                &["ogg_vs2010_x64_rwdi.dll"],
-                'b',
-            ),
-            xiph_file(
-                &format!("{root}/Container/ogg_vs2010_x64_rwdi.dll"),
-                &[],
-                'c',
-            ),
-        ]
-    }
-
-    fn split_component_at(game_id: &str, root: &str) -> LibraryComponent {
-        [
-            format!("{root}/Plugin/vorbisfile.dll"),
-            format!("{root}/Codec/vorbis.dll"),
-            format!("{root}/Container/ogg.dll"),
-        ]
-        .into_iter()
-        .enumerate()
-        .fold(
-            LibraryComponent::new(
-                ComponentId::new(format!("component:{game_id}:split")).expect("component id"),
-                GameId::new(game_id).expect("game id"),
-                ComponentKind::NativeLibrary,
-                LibraryTechnology::XiphVorbis,
-                Swappability::BundleOnly,
-            ),
-            |component, (index, path)| {
-                component.with_file(file(
-                    &path,
-                    char::from(b'a' + u8::try_from(index).unwrap_or(0)),
-                ))
-            },
-        )
-    }
-
-    fn file(path: &str, hash: char) -> ComponentFile {
-        ComponentFile::new(PathRef::new(path).expect("path"))
-            .with_sha256(Sha256Hash::new(hash.to_string().repeat(64)).expect("hash"))
-    }
-
-    fn xiph_file(path: &str, imports: &[&str], hash: char) -> ComponentFile {
-        file(path, hash).with_pe_compatibility(
-            PeCompatibilityProfile::new(
-                Architecture::X64,
-                PeExportSet::from_observed_names(vec!["xiph_export".to_owned()]).expect("exports"),
-            )
-            .with_imports(PeImportProfile {
-                regular: PeImportSet::from_observed_names(
-                    imports.iter().map(|name| (*name).to_owned()).collect(),
-                )
-                .expect("imports"),
-                delay: PeImportSet::default(),
-            }),
-        )
+        admit_xiph_components(&storage, &game, std::slice::from_ref(&candidate))
+            .expect("same-id vendor baseline is established state");
     }
 }

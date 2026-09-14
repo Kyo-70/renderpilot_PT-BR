@@ -28,6 +28,8 @@ use super::fs_ops::{perform_apply_fs, revert_to_baseline_fs};
 use super::planning::{fsr_members_to_remove, planned_target_files};
 use super::types::{PlannedFile, PreparedApplySwap, PreparedD3d12Execution};
 
+mod xiph_lifecycle;
+
 const HEX64: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 fn comp_file(path: &Path) -> ComponentFile {
@@ -257,8 +259,12 @@ fn xiph_pair_failure_after_first_dll_or_before_database_commit_rolls_back_both_m
         fs::create_dir_all(&game_dir).expect("game dir");
         fs::create_dir_all(&source_dir).expect("source dir");
 
-        let vorbis = game_dir.join("vorbis.dll");
-        let ogg = game_dir.join("ogg.dll");
+        let vorbis_dir = game_dir.join("Engine/Binaries/ThirdParty/Vorbis/Win64");
+        let ogg_dir = game_dir.join("Engine/Binaries/ThirdParty/Ogg/Win64");
+        fs::create_dir_all(&vorbis_dir).expect("Vorbis dir");
+        fs::create_dir_all(&ogg_dir).expect("Ogg dir");
+        let vorbis = vorbis_dir.join("vorbis.dll");
+        let ogg = ogg_dir.join("ogg.dll");
         let source_vorbis = source_dir.join("vorbis.dll");
         let source_ogg = source_dir.join("ogg.dll");
         write(&vorbis, b"original-vorbis");

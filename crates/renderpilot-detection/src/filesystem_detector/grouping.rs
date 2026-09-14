@@ -234,9 +234,12 @@ fn group_kind(ordered: &[&DetectedLibraryFile]) -> ComponentKind {
     }
 }
 
-/// A multi-file bundle must be swapped as a unit ([`Swappability::BundleOnly`]);
-/// a single file keeps its own detected policy. (A single restrictive sibling no
-/// longer blocks an otherwise-swappable bundle.)
+/// An authenticated cross-directory Xiph closure is one bundle. Its
+/// cross-directory topology is retained in the component identity and handled
+/// by the transition planner; it does not by itself make the component
+/// read-only. Same-directory Xiph behavior and all non-Xiph bundle policies
+/// remain as before: a multi-file bundle is swapped as a unit, while a single
+/// file keeps its own detected policy.
 fn group_swappability(
     technology: LibraryTechnology,
     discriminator: Option<&str>,

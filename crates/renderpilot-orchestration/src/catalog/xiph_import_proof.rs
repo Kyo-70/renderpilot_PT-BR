@@ -513,6 +513,26 @@ mod tests {
     }
 
     #[test]
+    fn complete_strict_walk_with_zero_external_bindings_is_a_proven_empty_set() {
+        let root = tempfile::tempdir().expect("root");
+        let component = vendor_component(root.path());
+
+        let proof = prove_external_aliases_with_source(
+            root.path(),
+            &component,
+            component.files(),
+            &StrongSource::new(),
+        )
+        .expect("strict proof")
+        .expect("vendor deployment always produces a proof result");
+
+        assert_eq!(
+            proof.requirements(),
+            renderpilot_application::ExternalAliasRequirements::Proven(BTreeSet::new())
+        );
+    }
+
+    #[test]
     fn definite_non_pe_is_ignored_but_malformed_pe_blocks_the_proof() {
         let aliases = BTreeSet::from(["vorbisfile_vs2010_x64_rwdi.dll".to_owned()]);
         let importer = PathBuf::from("C:/Game/engine.exe");

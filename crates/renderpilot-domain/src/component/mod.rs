@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     ArtifactId, ComponentId, ComponentKind, GameId, LibraryTechnology, PackageVersionParseError,
-    PathRef, Swappability, Version,
+    PathRef, Swappability, Version, normalized_path_key,
     text::{RequiredTextError, normalize_required_text},
 };
 
@@ -92,6 +92,22 @@ impl LibraryComponent {
         &self.files
     }
 
+    /// Returns whether component files span more than one normalized parent
+    /// directory. Missing/root parents conservatively use the empty key.
+    #[must_use]
+    pub fn spans_multiple_parent_directories(&self) -> bool {
+        let mut parents = self.files.iter().map(|file| {
+            file.path()
+                .parent()
+                .map(normalized_path_key)
+                .unwrap_or_default()
+        });
+        let Some(first_parent) = parents.next() else {
+            return false;
+        };
+        parents.any(|parent| parent != first_parent)
+    }
+
     /// Adds a component file and returns the updated component.
     #[must_use]
     pub fn with_file(mut self, file: ComponentFile) -> Self {
@@ -115,6 +131,20 @@ impl LibraryComponent {
             technology: self.technology,
             swappability: self.swappability,
             files,
+        }
+    }
+
+    /// Returns a new component with the supplied stable identity and every
+    /// other detected field preserved exactly.
+    #[must_use]
+    pub fn rebuild_with_id(&self, id: ComponentId) -> Self {
+        Self {
+            id,
+            game_id: self.game_id.clone(),
+            kind: self.kind,
+            technology: self.technology,
+            swappability: self.swappability,
+            files: self.files.clone(),
         }
     }
 }

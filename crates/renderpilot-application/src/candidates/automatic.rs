@@ -91,6 +91,9 @@ fn select_component_automatic(
     component: &LibraryComponent,
     candidates: &[ReplacementCandidate],
 ) -> Option<ArtifactId> {
+    if requires_manual_xiph_selection(component) {
+        return None;
+    }
     let axes = required_xiph_axes(component)?;
     let eligible = candidates
         .iter()
@@ -110,6 +113,15 @@ fn select_component_automatic(
         return None;
     };
     Some(maximum.artifact_id().clone())
+}
+
+/// Cross-directory Xiph bundles remain manually selectable, because the
+/// authenticated grouping identifies one deployment but does not establish
+/// how an arbitrary loader resolves every member.  Same-directory Xiph and
+/// every other technology keep the existing automatic-selection policy.
+fn requires_manual_xiph_selection(component: &LibraryComponent) -> bool {
+    component.technology() == LibraryTechnology::XiphVorbis
+        && component.spans_multiple_parent_directories()
 }
 
 fn coordinated_streamline_automatic(
@@ -490,5 +502,36 @@ mod tests {
             axes.iter().collect::<Vec<_>>(),
             vec![XiphReleaseAxis::Ogg, XiphReleaseAxis::Vorbis]
         );
+    }
+
+    #[test]
+    fn only_cross_directory_xiph_is_manual_selection() {
+        let component = |paths: &[&str], technology| {
+            paths.iter().fold(
+                LibraryComponent::new(
+                    ComponentId::new("component:manual-selection").expect("component id"),
+                    GameId::new("game:manual-selection").expect("game id"),
+                    ComponentKind::NativeLibrary,
+                    technology,
+                    Swappability::BundleOnly,
+                ),
+                |component, path| {
+                    component.with_file(ComponentFile::new(PathRef::new(*path).expect("path")))
+                },
+            )
+        };
+
+        assert!(requires_manual_xiph_selection(&component(
+            &["C:/Game/Vorbis/vorbis.dll", "C:/Game/Ogg/ogg.dll"],
+            LibraryTechnology::XiphVorbis,
+        )));
+        assert!(!requires_manual_xiph_selection(&component(
+            &["C:/Game/Vorbis/vorbis.dll", "C:/Game/Vorbis/ogg.dll"],
+            LibraryTechnology::XiphVorbis,
+        )));
+        assert!(!requires_manual_xiph_selection(&component(
+            &["C:/Game/Vorbis/nvngx_dlss.dll", "C:/Game/Ogg/other.dll"],
+            LibraryTechnology::DlssSuperResolution,
+        )));
     }
 }

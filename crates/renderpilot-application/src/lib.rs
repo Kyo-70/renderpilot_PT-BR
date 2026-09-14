@@ -15,6 +15,7 @@ mod info;
 mod operation_plan;
 mod persistence;
 mod ports;
+mod replacement_policy;
 mod transition;
 
 pub use candidates::{

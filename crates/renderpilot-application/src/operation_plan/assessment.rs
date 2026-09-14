@@ -2,6 +2,7 @@ use renderpilot_domain::{
     ArtifactId, ComponentFile, LibraryArtifact, LibraryComponent, Swappability,
 };
 
+use crate::replacement_policy::{ReplacementBlockReason, replacement_block_reason};
 use crate::{AppError, AppResult};
 
 use super::{OperationPlanBlocker, OperationPlanRiskLevel, OperationPlanWarning};
@@ -98,13 +99,13 @@ pub(crate) fn primary_component_file(component: &LibraryComponent) -> AppResult<
 }
 
 fn swappability_blocker(swappability: Swappability) -> Option<OperationPlanBlocker> {
-    match swappability {
-        Swappability::ReadOnly => Some(OperationPlanBlocker::ComponentReadOnly),
-        Swappability::IntegratedIntoEngine => {
+    match replacement_block_reason(swappability) {
+        Some(ReplacementBlockReason::ReadOnly) => Some(OperationPlanBlocker::ComponentReadOnly),
+        Some(ReplacementBlockReason::IntegratedIntoEngine) => {
             Some(OperationPlanBlocker::ComponentIntegratedIntoEngine)
         }
-        Swappability::Unsafe => Some(OperationPlanBlocker::ComponentUnsafe),
-        Swappability::Swappable | Swappability::BundleOnly | Swappability::Unknown => None,
+        Some(ReplacementBlockReason::Unsafe) => Some(OperationPlanBlocker::ComponentUnsafe),
+        None => None,
     }
 }
 

@@ -560,7 +560,7 @@ mod tests {
     }
 
     #[test]
-    fn authenticated_split_closure_groups_exact_paths_into_one_bundle() {
+    fn authenticated_split_closure_groups_exact_paths_into_one_bundle_component() {
         let libraries = split_canonical("C:/game");
 
         let facts = grouping_facts(&libraries);
@@ -573,6 +573,39 @@ mod tests {
         assert_eq!(components[0].files().len(), 3);
         assert_eq!(components[0].swappability(), Swappability::BundleOnly);
         assert!(components[0].id().as_str().contains(":layout-v2:"));
+    }
+
+    #[test]
+    fn gothic_unreal_split_vendor_closure_is_one_bundle_component() {
+        let libraries = gothic_unreal_split_vendor();
+
+        let parsed = xiph::parse_runtime_file_name("libvorbisfile_64.dll")
+            .expect("Gothic runtime name grammar")
+            .expect("Gothic name is Xiph");
+        assert_eq!(parsed.vendor_suffix(), Some("_64"));
+        assert!(parsed.is_vendor());
+
+        let components =
+            super::super::group_into_components(&game(), &libraries).expect("Gothic grouping");
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].files().len(), 3);
+        assert_eq!(components[0].swappability(), Swappability::BundleOnly);
+        assert!(components[0].id().as_str().contains(":layout-v2:"));
+        let has_path = |target: &str| {
+            components[0]
+                .files()
+                .iter()
+                .any(|file| file.path().as_str() == target)
+        };
+        assert!(has_path(
+            "C:/game/Engine/Binaries/ThirdParty/Vorbis/Win64/libvorbisfile_64.dll"
+        ));
+        assert!(has_path(
+            "C:/game/Engine/Binaries/ThirdParty/Vorbis/Win64/libvorbis_64.dll"
+        ));
+        assert!(has_path(
+            "C:/game/Engine/Binaries/ThirdParty/Ogg/Win64/libogg_64.dll"
+        ));
     }
 
     #[test]
@@ -696,6 +729,29 @@ mod tests {
             library_at(
                 &format!("{root}/Container"),
                 "ogg.dll",
+                Architecture::X64,
+                &[],
+            ),
+        ]
+    }
+
+    fn gothic_unreal_split_vendor() -> Vec<DetectedLibraryFile> {
+        vec![
+            library_at(
+                "C:/game/Engine/Binaries/ThirdParty/Vorbis/Win64",
+                "libvorbisfile_64.dll",
+                Architecture::X64,
+                &["libvorbis_64.dll".to_owned(), "libogg_64.dll".to_owned()],
+            ),
+            library_at(
+                "C:/game/Engine/Binaries/ThirdParty/Vorbis/Win64",
+                "libvorbis_64.dll",
+                Architecture::X64,
+                &["libogg_64.dll".to_owned()],
+            ),
+            library_at(
+                "C:/game/Engine/Binaries/ThirdParty/Ogg/Win64",
+                "libogg_64.dll",
                 Architecture::X64,
                 &[],
             ),

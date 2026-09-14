@@ -21,6 +21,9 @@ mod prune;
 mod reconcile;
 mod recovery;
 mod xiph_admission;
+mod xiph_lineage;
+#[cfg(test)]
+mod xiph_test_support;
 
 #[cfg(windows)]
 mod auto;
@@ -51,7 +54,7 @@ use self::detect::detect_libraries;
 use self::persist::persist_scan_result;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum ExplicitRootChange {
+pub(crate) enum ExplicitRootChange {
     Unchanged,
     Expanded,
     Narrowed,
@@ -59,7 +62,7 @@ pub(super) enum ExplicitRootChange {
 
 /// Scans one installation whose identity and root authority were resolved by
 /// the add-game use case.
-pub(super) fn scan_explicit_install(
+pub(crate) fn scan_explicit_install(
     context: &crate::Context,
     path: PathBuf,
     game_id: GameId,
@@ -186,6 +189,8 @@ fn scan_source_impl_locked(
     let authority = AuthorityCas::new(initial_readiness.authority_epoch());
     let libraries = detect_libraries(storage, detector, &selected_game)?;
     let components = reconcile::build_library_components(&selected_game, &libraries)?;
+    let components =
+        xiph_lineage::reconcile_managed_xiph_successor_ids(storage, &selected_game, components)?;
     if root_change != ExplicitRootChange::Unchanged {
         ensure_root_change_preserves_state(inputs.context, &selected_game, &components)?;
     }

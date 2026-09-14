@@ -87,6 +87,76 @@ fn library_component_collects_component_files() {
 }
 
 #[test]
+fn library_component_parent_directory_span_uses_normalized_keys() {
+    let component = component_with_paths(&[r"C:\Games\Game\Vorbis.dll", "c:/games/game/Ogg.dll"]);
+
+    assert!(
+        !component.spans_multiple_parent_directories(),
+        "case and separator spelling should identify one parent directory"
+    );
+}
+
+#[test]
+fn library_component_parent_directory_span_detects_distinct_directories() {
+    let component = component_with_paths(&[
+        "C:/Games/Game/Vorbis/vorbis.dll",
+        "C:/Games/Game/Ogg/ogg.dll",
+    ]);
+
+    assert!(component.spans_multiple_parent_directories());
+}
+
+#[test]
+fn library_component_parent_directory_span_treats_missing_parents_conservatively() {
+    let component = component_with_paths(&["/", "C:/"]);
+    let root_and_real_parent = component_with_paths(&["/", "C:/Games/Game/file.dll"]);
+
+    assert!(!component.spans_multiple_parent_directories());
+    assert!(root_and_real_parent.spans_multiple_parent_directories());
+}
+
+fn component_with_paths(paths: &[&str]) -> LibraryComponent {
+    paths.iter().fold(
+        LibraryComponent::new(
+            ComponentId::new("component:directory-span").expect("component id"),
+            GameId::new("manual:directory-span").expect("game id"),
+            ComponentKind::NativeLibrary,
+            LibraryTechnology::XiphVorbis,
+            Swappability::BundleOnly,
+        ),
+        |component, path| {
+            component.with_file(ComponentFile::new(
+                PathRef::new(*path).expect("component file path"),
+            ))
+        },
+    )
+}
+
+#[test]
+fn library_component_rebuild_with_id_preserves_detected_fields() {
+    let component = LibraryComponent::new(
+        ComponentId::new("component:old").expect("valid component id"),
+        GameId::new("steam:10").expect("valid game id"),
+        ComponentKind::NativeLibrary,
+        LibraryTechnology::XiphVorbis,
+        Swappability::BundleOnly,
+    )
+    .with_file(ComponentFile::new(
+        PathRef::new("C:/Games/Game/Vorbis/vorbis.dll").expect("valid path"),
+    ));
+    let new_id = ComponentId::new("component:new").expect("valid component id");
+
+    let rebuilt = component.rebuild_with_id(new_id.clone());
+
+    assert_eq!(rebuilt.id(), &new_id);
+    assert_eq!(rebuilt.game_id(), component.game_id());
+    assert_eq!(rebuilt.kind(), component.kind());
+    assert_eq!(rebuilt.technology(), component.technology());
+    assert_eq!(rebuilt.swappability(), component.swappability());
+    assert_eq!(rebuilt.files(), component.files());
+}
+
+#[test]
 fn library_artifact_normalizes_source() {
     let artifact = LibraryArtifact::new(
         ArtifactId::new("artifact:dlss:3.7.20").expect("valid artifact id"),

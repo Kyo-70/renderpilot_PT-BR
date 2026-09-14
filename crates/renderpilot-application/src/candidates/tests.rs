@@ -23,6 +23,8 @@ use super::matcher::{
     CandidateContext, find_replacement_candidate_selection, find_replacement_candidates,
 };
 
+mod xiph_visibility;
+
 #[test]
 fn selects_only_same_technology_candidates() {
     let component = sample_component(
@@ -248,6 +250,46 @@ fn vendor_xiph_candidates_are_listed_and_catalog_release_is_retained() {
             ..
         }
     ));
+}
+
+#[test]
+fn blocked_swappabilities_do_not_emit_replacement_groups() {
+    let artifact = sample_artifact(
+        "artifact:dlss-3.7",
+        LibraryTechnology::DlssSuperResolution,
+        Some("3.7.0"),
+        &"b".repeat(64),
+        "C:/Library/nvngx_dlss.dll",
+        None,
+    );
+
+    for (swappability, should_emit) in [
+        (Swappability::ReadOnly, false),
+        (Swappability::IntegratedIntoEngine, false),
+        (Swappability::Unsafe, false),
+        (Swappability::BundleOnly, true),
+        (Swappability::Unknown, true),
+    ] {
+        let component = sample_component(
+            &format!("component:game-a:dlss-{:?}", swappability),
+            "game:a",
+            LibraryTechnology::DlssSuperResolution,
+            swappability,
+            Some("3.5.0"),
+            &"a".repeat(64),
+            "C:/Games/GameA/nvngx_dlss.dll",
+        );
+        let groups = find_replacement_candidates(
+            std::slice::from_ref(&component),
+            std::slice::from_ref(&artifact),
+            &CandidateContext::empty(),
+        );
+        assert_eq!(
+            !groups.is_empty(),
+            should_emit,
+            "unexpected replacement visibility for {swappability:?}"
+        );
+    }
 }
 
 #[test]

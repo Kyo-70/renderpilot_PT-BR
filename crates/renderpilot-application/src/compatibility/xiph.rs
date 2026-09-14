@@ -59,8 +59,11 @@ pub(super) fn ensure_transition_compatible(
 }
 
 /// Validates a concrete Xiph deployment when the orchestration layer has
-/// either proved the exact external loader aliases or explicitly established
-/// that no alias is required.
+/// either completed its strict whole-root observation of exact external
+/// loader aliases or explicitly established that no alias is required. A
+/// proven empty alias set is meaningful: the complete observation found zero
+/// regular/delay bindings. It does not prove that the runtime cannot load the
+/// DLLs dynamically.
 ///
 /// This is deliberately `pub(crate)`: external-import proof belongs to the
 /// orchestration layer, while the pure application resolver owns the resulting
@@ -269,10 +272,6 @@ fn validate_vendor_alias_requirements(
     let ExternalAliasRequirements::Proven(aliases) = aliases else {
         return Err(SwapCompatibilityError::ExternalAliasProofRequired);
     };
-    if aliases.is_empty() {
-        return Err(SwapCompatibilityError::ExternalAliasProofRequired);
-    }
-
     for alias in aliases {
         if !alias.is_ascii() || alias.bytes().any(|byte| byte.is_ascii_uppercase()) {
             return Err(SwapCompatibilityError::InvalidExternalAliasRequirement);
@@ -326,6 +325,8 @@ pub fn is_allowed_xiph_system_import(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use renderpilot_domain::{
         Architecture, ArtifactId, ArtifactMetadata, ArtifactTrustLevel, ComponentId, ComponentKind,
         GameId, LibraryTechnology, PathRef, PeExportSet, PeImportProfile, PeImportSet,
@@ -560,7 +561,7 @@ mod tests {
     }
 
     #[test]
-    fn vendor_candidate_listing_is_semantic_only_and_transition_requires_proof() {
+    fn vendor_candidate_listing_is_semantic_only_and_transition_requires_completed_proof() {
         let installed = component_from_files(vec![
             member_with_exports(
                 "vorbisfile_vs2010_x64_rwdi.dll",
@@ -614,6 +615,23 @@ mod tests {
             ensure_candidate_compatible_without_alias_proof(&installed, &candidate),
             Ok(()),
             "candidate display may report semantic compatibility but cannot construct a transition"
+        );
+        assert_eq!(
+            ensure_transition_compatible_with_external_aliases(
+                &installed,
+                &candidate,
+                &ExternalAliasRequirements::Proven(BTreeSet::new()),
+            ),
+            Ok(()),
+            "a complete strict scan with zero external bindings is a valid proof state"
+        );
+        assert_eq!(
+            ensure_transition_compatible_with_external_aliases(
+                &installed,
+                &candidate,
+                &ExternalAliasRequirements::Unproven,
+            ),
+            Err(SwapCompatibilityError::ExternalAliasProofRequired),
         );
     }
 

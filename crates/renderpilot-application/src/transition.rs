@@ -65,6 +65,9 @@ pub enum ExternalAliasRequirements {
     /// The runtime has no vendor-suffixed alias to preserve.
     NotRequired,
     /// Every required exact installed alias, normalized to lowercase ASCII.
+    /// An empty set means the completed strict observation found no external
+    /// regular/delay bindings; it does not prove that dynamic loading is
+    /// impossible.
     Proven(BTreeSet<String>),
     /// The importer walk was absent, incomplete, or unstable.
     Unproven,
@@ -643,11 +646,6 @@ fn xiph_transition_writes(
     };
 
     let vendor_layout = installed.values().any(|(parsed, _)| parsed.is_vendor());
-    if vendor_layout && proven_aliases.is_empty() {
-        return Err(AppError::invalid_input(
-            "vendor-suffixed Xiph deployment requires at least one external vendor alias",
-        ));
-    }
 
     let mut writes = BTreeMap::new();
     let mut targets_by_member = BTreeMap::new();
@@ -1204,20 +1202,24 @@ mod tests {
     }
 
     fn dide_component() -> LibraryComponent {
+        dide_component_with_roots(["C:/Game", "C:/Game", "C:/Game"])
+    }
+
+    fn dide_component_with_roots(roots: [&str; 3]) -> LibraryComponent {
         [
             dide_member(
                 "vorbisfile_vs2010_x64_rwdi.dll",
                 &["vorbis_vs2010_x64_rwdi.dll", "ogg_vs2010_x64_rwdi.dll"],
                 '1',
-                "C:/Game",
+                roots[0],
             ),
             dide_member(
                 "vorbis_vs2010_x64_rwdi.dll",
                 &["ogg_vs2010_x64_rwdi.dll"],
                 '2',
-                "C:/Game",
+                roots[1],
             ),
-            dide_member("ogg_vs2010_x64_rwdi.dll", &[], '3', "C:/Game"),
+            dide_member("ogg_vs2010_x64_rwdi.dll", &[], '3', roots[2]),
         ]
         .into_iter()
         .fold(
@@ -1569,19 +1571,81 @@ mod tests {
     }
 
     #[test]
-    fn vendor_xiph_requires_nonempty_exact_external_alias_proof() {
-        let component = dide_component();
+    fn vendor_xiph_requires_completed_exact_external_alias_proof() {
+        let component = dide_component_with_roots([
+            "C:/Game/Engine/Binaries/ThirdParty/Vorbis/Win64",
+            "C:/Game/Engine/Binaries/ThirdParty/Vorbis/Win64",
+            "C:/Game/Engine/Binaries/ThirdParty/Ogg/Win64",
+        ]);
         let baseline = component.files().to_vec();
-        for aliases in [
-            ExternalAliasRequirements::Unproven,
-            ExternalAliasRequirements::Proven(BTreeSet::new()),
-            ExternalAliasRequirements::Proven(BTreeSet::from(["not-xiph.dll".to_owned()])),
-        ] {
-            assert!(
-                resolve_transition(&component, &canonical_dide_artifact(), &baseline, &aliases)
-                    .is_err()
-            );
-        }
+        assert!(
+            resolve_transition(
+                &component,
+                &canonical_dide_artifact(),
+                &baseline,
+                &ExternalAliasRequirements::NotRequired,
+            )
+            .is_err(),
+            "vendor transitions must not treat NotRequired as an empty completed proof"
+        );
+        assert!(
+            resolve_transition(
+                &component,
+                &canonical_dide_artifact(),
+                &baseline,
+                &ExternalAliasRequirements::Unproven,
+            )
+            .is_err()
+        );
+        assert!(
+            resolve_transition(
+                &component,
+                &canonical_dide_artifact(),
+                &baseline,
+                &ExternalAliasRequirements::Proven(BTreeSet::from(["not-xiph.dll".to_owned()])),
+            )
+            .is_err()
+        );
+
+        let resolved = resolve_transition(
+            &component,
+            &canonical_dide_artifact(),
+            &baseline,
+            &ExternalAliasRequirements::Proven(BTreeSet::new()),
+        )
+        .expect("a completed zero-binding proof permits the manual transition");
+        assert_eq!(
+            resolved
+                .paths()
+                .iter()
+                .filter_map(|path| match path {
+                    ResolvedPathDisposition::Write(write) => Some(write.target().as_str()),
+                    _ => None,
+                })
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "C:/Game/Engine/Binaries/ThirdParty/Ogg/Win64/ogg.dll",
+                "C:/Game/Engine/Binaries/ThirdParty/Vorbis/Win64/vorbis.dll",
+                "C:/Game/Engine/Binaries/ThirdParty/Vorbis/Win64/vorbisfile.dll",
+            ])
+        );
+        assert_eq!(
+            resolved
+                .paths()
+                .iter()
+                .filter_map(|path| match path {
+                    ResolvedPathDisposition::ArchiveAndRemove(archive) => {
+                        archive.target().file_name()
+                    }
+                    _ => None,
+                })
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "ogg_vs2010_x64_rwdi.dll",
+                "vorbis_vs2010_x64_rwdi.dll",
+                "vorbisfile_vs2010_x64_rwdi.dll",
+            ])
+        );
     }
 
     #[test]

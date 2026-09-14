@@ -21,6 +21,7 @@ use super::dto::{
 use super::identity::{IntrinsicPackageIdentity, ResolvedTransitionIdentity};
 use super::ordering::sort_and_deduplicate;
 use super::xiph_matching;
+use crate::replacement_policy::replacement_block_reason;
 use crate::{
     SwapCompatibilityError, SwapTargetProfile, ensure_replacement_compatible,
     replacement_executable_action,
@@ -188,6 +189,12 @@ fn find_replacement_candidate_selection_with_lookup(
 
     for component in components {
         if component.files().is_empty() {
+            continue;
+        }
+        if replacement_block_reason(component.swappability()).is_some() {
+            // Keep the installed component visible to callers, but do not
+            // advertise a replacement that preview/apply must reject for its
+            // static safety policy.
             continue;
         }
 
