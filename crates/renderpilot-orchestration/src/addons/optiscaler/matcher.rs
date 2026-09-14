@@ -191,7 +191,6 @@ fn availability_with_target(
     let resolved = super::compatibility_catalog::resolve(catalog, &analysis.facts);
     let release = manifest.current_release();
     let compatibility = evaluate_compatibility(
-        &analysis,
         &components,
         resolved,
         release.is_some(),

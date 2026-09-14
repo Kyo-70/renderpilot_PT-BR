@@ -2,9 +2,7 @@
 
 use std::path::Path;
 
-use renderpilot_domain::{Architecture, GraphicsApi, OptiScalerPrerequisiteBinding};
-
-use crate::addons::game_analysis::GameAnalysis;
+use renderpilot_domain::OptiScalerPrerequisiteBinding;
 
 use super::super::compatibility_catalog::{
     CatalogGuidance, CompatibilityPrerequisite, CompatibilityStatus, DeclaredInput,
@@ -36,20 +34,12 @@ pub(super) struct CompatibilityEvaluation<'a> {
 }
 
 pub(super) fn evaluate<'a>(
-    analysis: &GameAnalysis,
     components: &[GraphicsComponent],
     resolved: ResolvedCompatibility<'a>,
     release_available: bool,
     mode: EvaluationMode,
 ) -> CompatibilityEvaluation<'a> {
     let evidence = evidence_from_components(components);
-    let architecture_ok = analysis.facts.graphics.architecture() == Some(Architecture::X64);
-    let api_ok = analysis.facts.graphics.apis().iter().any(|api| {
-        matches!(
-            api,
-            GraphicsApi::D3D11 | GraphicsApi::D3D12 | GraphicsApi::Vulkan
-        )
-    });
     let (
         status,
         guidance,
@@ -100,17 +90,7 @@ pub(super) fn evaluate<'a>(
         ),
     };
     let candidate_has_evidence = !evidence.is_empty();
-    let (block_code, blocked_reason) = if !architecture_ok {
-        (
-            Some(OptiScalerCompatibilityBlockCode::RequiresX64),
-            Some("OptiScaler requires a detected x64 executable".to_owned()),
-        )
-    } else if !api_ok {
-        (
-            Some(OptiScalerCompatibilityBlockCode::UnsupportedGraphicsApi),
-            Some("the detected graphics API is not supported by OptiScaler".to_owned()),
-        )
-    } else if !release_available {
+    let (block_code, blocked_reason) = if !release_available {
         (
             Some(OptiScalerCompatibilityBlockCode::ReleaseUnavailable),
             Some("the stable release catalogue has no current release".to_owned()),
@@ -235,7 +215,6 @@ pub(super) fn proxy_conflict_message(path: &Path, slot_name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::addons::game_analysis::GameAnalysis;
     use crate::addons::matching::MatchFacts;
     use crate::addons::optiscaler::compatibility_catalog::OptiScalerCompatibilityCatalog;
     use crate::addons::optiscaler::types::OptiScalerCompatibilityStatus;
@@ -396,12 +375,7 @@ mod tests {
     fn selected_launch_policy_exposes_arguments_and_requirement_without_guidance_mixing() {
         let catalog = bundled_catalog();
         let facts = bundled_facts("1139900");
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
         let evaluation = evaluate(
-            &analysis,
             &[],
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts),
             true,
@@ -421,12 +395,7 @@ mod tests {
     fn declared_inputs_are_exact_ordered_catalog_data_and_never_leak_from_no_match_or_conflict() {
         let catalog = bundled_catalog();
         let facts = bundled_facts("1091500");
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
         let matched = evaluate(
-            &analysis,
             &[],
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts),
             true,
@@ -445,7 +414,7 @@ mod tests {
             ResolvedCompatibility::NoMatch,
             ResolvedCompatibility::Conflict,
         ] {
-            let evaluation = evaluate(&analysis, &[], resolution, true, EvaluationMode::Candidate);
+            let evaluation = evaluate(&[], resolution, true, EvaluationMode::Candidate);
             assert!(evaluation.declared_inputs.is_empty());
             assert_eq!(
                 evaluation.accepted_prerequisite_binding,
@@ -464,12 +433,7 @@ mod tests {
             engine: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
         };
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
         let evaluation = evaluate(
-            &analysis,
             &[],
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts),
             true,
@@ -485,12 +449,7 @@ mod tests {
     fn bundled_launch_policy_preserves_recommendation_and_condition_only_guidance() {
         let catalog = bundled_catalog();
         let facts = bundled_facts("1164940");
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
         let evaluation = evaluate(
-            &analysis,
             &[],
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts),
             true,
@@ -546,13 +505,9 @@ mod tests {
     }
 
     #[test]
-    fn unsupported_exact_rule_stays_hidden_even_with_real_input() {
+    fn unsupported_exact_rule_stays_visible_but_blocks_install() {
         let catalog = unsupported_catalog();
         let facts = facts();
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
 
         for (technology, suffix) in [
             (LibraryTechnology::DlssSuperResolution, "dlss"),
@@ -560,18 +515,15 @@ mod tests {
             (LibraryTechnology::IntelXeSs, "xess"),
         ] {
             let component = input(technology, suffix);
-            assert!(!crate::addons::optiscaler::matcher::capability_available(
+            assert!(crate::addons::optiscaler::matcher::capability_available(
                 &catalog,
                 &facts,
                 std::slice::from_ref(&component)
             ));
 
-            let resolved = crate::addons::optiscaler::compatibility_catalog::resolve(
-                &catalog,
-                &analysis.facts,
-            );
+            let resolved =
+                crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts);
             let evaluation = evaluate(
-                &analysis,
                 std::slice::from_ref(&component),
                 resolved,
                 true,
@@ -588,7 +540,7 @@ mod tests {
             assert!(evaluation.blocked_reason.is_some());
         }
 
-        assert!(!crate::addons::optiscaler::matcher::capability_available(
+        assert!(crate::addons::optiscaler::matcher::capability_available(
             &catalog,
             &facts,
             &[]
@@ -599,10 +551,6 @@ mod tests {
     fn conflicting_catalog_is_visible_but_hard_blocks_candidate_install() {
         let catalog = conflicting_catalog();
         let facts = facts();
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
         let resolved = crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts);
 
         assert!(matches!(resolved, ResolvedCompatibility::Conflict));
@@ -612,7 +560,7 @@ mod tests {
             &[]
         ));
 
-        let evaluation = evaluate(&analysis, &[], resolved, true, EvaluationMode::Candidate);
+        let evaluation = evaluate(&[], resolved, true, EvaluationMode::Candidate);
         assert_eq!(
             evaluation.block_code,
             Some(OptiScalerCompatibilityBlockCode::CatalogIdentityConflict)
@@ -625,13 +573,8 @@ mod tests {
         let catalog = bundled_catalog();
         let mut facts = facts();
         facts.external_id = Some("unknown-game".to_owned());
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
         let component = input(LibraryTechnology::AmdFsr, "fsr");
         let evaluation = evaluate(
-            &analysis,
             std::slice::from_ref(&component),
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts),
             true,
@@ -648,12 +591,8 @@ mod tests {
         let catalog = bundled_catalog();
         let mut facts = facts();
         facts.external_id = Some("unknown-game".to_owned());
-        let analysis = GameAnalysis {
-            facts: facts.clone(),
-            primary_executable: None,
-        };
+        facts.graphics = ExeGraphicsInfo::new(vec![], None);
         let evaluation = evaluate(
-            &analysis,
             &[],
             crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &facts),
             true,
@@ -661,6 +600,11 @@ mod tests {
         );
 
         assert_eq!(evaluation.status, OptiScalerCompatibilityStatus::Unknown);
+        assert!(!crate::addons::optiscaler::matcher::capability_available(
+            &catalog,
+            &facts,
+            &[]
+        ));
         assert_eq!(
             evaluation.block_code,
             Some(OptiScalerCompatibilityBlockCode::InputNotDetected)
@@ -669,30 +613,33 @@ mod tests {
     }
 
     #[test]
-    fn unknown_games_are_visible_when_hard_platform_gates_pass() {
+    fn visibility_uses_catalog_or_input_and_ignores_pe_facts() {
         let catalog = bundled_catalog();
         let mut unknown = facts();
         unknown.external_id = Some("unknown-game".to_owned());
+        unknown.exe_file_name = Some("Cyberpunk2077.exe".to_owned());
+        unknown.graphics = ExeGraphicsInfo::new(vec![], Some(Architecture::X64));
+        let component = input(LibraryTechnology::AmdFsr, "fsr");
         assert!(crate::addons::optiscaler::matcher::capability_available(
             &catalog,
             &unknown,
-            &[]
+            std::slice::from_ref(&component)
         ));
+        let evaluation = evaluate(
+            std::slice::from_ref(&component),
+            crate::addons::optiscaler::compatibility_catalog::resolve(&catalog, &unknown),
+            true,
+            EvaluationMode::Candidate,
+        );
+        assert_eq!(evaluation.status, OptiScalerCompatibilityStatus::Unknown);
+        assert_eq!(evaluation.block_code, None);
+        assert_eq!(evaluation.blocked_reason, None);
 
-        let mut non_x64 = unknown.clone();
-        non_x64.graphics = ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X86));
-        assert!(!crate::addons::optiscaler::matcher::capability_available(
+        let mut catalog_only = bundled_facts("1091500");
+        catalog_only.graphics = ExeGraphicsInfo::new(vec![], None);
+        assert!(crate::addons::optiscaler::matcher::capability_available(
             &catalog,
-            &non_x64,
-            &[]
-        ));
-
-        let mut unsupported_api = unknown;
-        unsupported_api.graphics =
-            ExeGraphicsInfo::new(vec![GraphicsApi::D3D9], Some(Architecture::X64));
-        assert!(!crate::addons::optiscaler::matcher::capability_available(
-            &catalog,
-            &unsupported_api,
+            &catalog_only,
             &[]
         ));
     }
