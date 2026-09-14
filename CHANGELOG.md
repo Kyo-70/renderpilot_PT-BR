@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.2] - 2026-09-14
+
+### Fixed
+
+- **OptiScaler availability**: Fixed OptiScaler being hidden for games with a detected DLSS, FSR, or XeSS input or a compatibility-catalog entry. Catalog-listed games now show their recorded compatibility status even when no supported input is detected; uncataloged games with a supported input are shown with unknown compatibility.
+
 ## [1.12.1] - 2026-09-14
 
 ### Fixed
