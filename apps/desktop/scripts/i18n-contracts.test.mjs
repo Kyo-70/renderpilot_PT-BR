@@ -24,7 +24,7 @@ import { validateEditorialPolicy } from './i18n-contracts/validator.mjs';
 import { PLACEHOLDER_CONTRACT_CASES } from '../ui/src/shared/i18n/messages/placeholder-contract-cases.ts';
 
 const EXPECTED_CONTRACT_VERSION =
-  'i18n-v2:826e2ed39fc98cbc9360ef2a80a6640c498fc818a0a18841f340b3ffd8ed573c';
+  'i18n-v2:79d6ff0eb36bf054e9e73ac4610a351df78a205e12c192b976bb9ac17aca04cc';
 
 function isAccessibilityDeliveryNamedKey(key) {
   return (

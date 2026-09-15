@@ -7,7 +7,16 @@ import {
   validateLumaContract,
 } from './i18n-contracts.mjs';
 
-export const LUMA_LOCALES = Object.freeze(['de', 'es', 'fr', 'ja', 'ru', 'zh-Hans', 'zh-Hant']);
+export const LUMA_LOCALES = Object.freeze([
+  'de',
+  'es',
+  'fr',
+  'ja',
+  'pt-BR',
+  'ru',
+  'zh-Hans',
+  'zh-Hant',
+]);
 
 const APP_ROOT = path.resolve(import.meta.dirname, '..');
 const OVERRIDES_ROOT = path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma');

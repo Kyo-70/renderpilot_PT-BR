@@ -11,6 +11,7 @@ import { lumaOverrides as lumaDe } from './overrides/luma/de';
 import { lumaOverrides as lumaEs } from './overrides/luma/es';
 import { lumaOverrides as lumaFr } from './overrides/luma/fr';
 import { lumaOverrides as lumaJa } from './overrides/luma/ja';
+import { lumaOverrides as lumaPtBr } from './overrides/luma/pt-BR';
 import { lumaOverrides as lumaRu } from './overrides/luma/ru';
 import { lumaOverrides as lumaZhHans } from './overrides/luma/zh-Hans';
 import { lumaOverrides as lumaZhHant } from './overrides/luma/zh-Hant';
@@ -19,6 +20,7 @@ import { nvapiOverrides as nvapiDe } from './overrides/nvapi/de';
 import { nvapiOverrides as nvapiEs } from './overrides/nvapi/es';
 import { nvapiOverrides as nvapiFr } from './overrides/nvapi/fr';
 import { nvapiOverrides as nvapiJa } from './overrides/nvapi/ja';
+import { nvapiOverrides as nvapiPtBr } from './overrides/nvapi/pt-BR';
 import { nvapiOverrides as nvapiRu } from './overrides/nvapi/ru';
 import { nvapiOverrides as nvapiZhHans } from './overrides/nvapi/zh-Hans';
 import { nvapiOverrides as nvapiZhHant } from './overrides/nvapi/zh-Hant';
@@ -27,10 +29,12 @@ import { optiscalerOverrides as optiscalerDe } from './overrides/optiscaler/de';
 import { optiscalerOverrides as optiscalerEs } from './overrides/optiscaler/es';
 import { optiscalerOverrides as optiscalerFr } from './overrides/optiscaler/fr';
 import { optiscalerOverrides as optiscalerJa } from './overrides/optiscaler/ja';
+import { optiscalerOverrides as optiscalerPtBr } from './overrides/optiscaler/pt-BR';
 import { optiscalerOverrides as optiscalerRu } from './overrides/optiscaler/ru';
 import { optiscalerOverrides as optiscalerZhHans } from './overrides/optiscaler/zh-Hans';
 import { optiscalerOverrides as optiscalerZhHant } from './overrides/optiscaler/zh-Hant';
 import { OPTISCALER_SOURCE_CATALOG } from './overrides/optiscaler/contract.generated';
+import { ptBr } from './pt-BR';
 import { ru } from './ru';
 import { zhHans } from './zh-Hans';
 import { zhHant } from './zh-Hant';
@@ -69,6 +73,7 @@ const staticCatalogs: Readonly<Record<LazyLocale, MessageDictionary>> = {
   ru,
   de,
   es,
+  'pt-BR': ptBr,
   fr,
   ja,
   'zh-Hans': zhHans,
@@ -84,6 +89,7 @@ const lumaCatalogs: ExternalLocaleCatalogs = {
   es: lumaEs,
   fr: lumaFr,
   ja: lumaJa,
+  'pt-BR': lumaPtBr,
   'zh-Hans': lumaZhHans,
   'zh-Hant': lumaZhHant,
 };
@@ -91,6 +97,7 @@ const nvapiCatalogs: ExternalLocaleCatalogs = {
   ru: nvapiRu,
   de: nvapiDe,
   es: nvapiEs,
+  'pt-BR': nvapiPtBr,
   fr: nvapiFr,
   ja: nvapiJa,
   'zh-Hans': nvapiZhHans,
@@ -102,6 +109,7 @@ const optiscalerCatalogs: ExternalLocaleCatalogs = {
   es: optiscalerEs,
   fr: optiscalerFr,
   ja: optiscalerJa,
+  'pt-BR': optiscalerPtBr,
   'zh-Hans': optiscalerZhHans,
   'zh-Hant': optiscalerZhHant,
 };
