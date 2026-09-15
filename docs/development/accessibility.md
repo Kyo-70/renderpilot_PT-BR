@@ -11,7 +11,7 @@ pnpm exec playwright install chromium
 pnpm run test:a11y
 ```
 
-The retained suite runs axe WCAG 2.2 A/AA checks and focused behavioral assertions against the Chromium browser preview. It covers the English shell, overlays, menus, executable selection, mobile navigation and filters, real launcher keyboard and pointer reorder (including two-Escape behavior), Libraries caption/sort/action feedback, one focused Russian DnD localization flow, representative light/dark layering, reduced motion, forced colors, and 320 CSS px bounds. A compact locale pass checks language, nonempty landmarks, one Games axe scan, and document bounds for `en`, `ru`, `es`, `fr`, `de`, `ja`, `zh-Hans`, and `zh-Hant`. CI installs Chromium and runs this browser coverage as part of the reusable quality workflow. It does not validate the native Tauri WebView2 host or Windows screen-reader integration.
+The retained suite runs axe WCAG 2.2 A/AA checks and focused behavioral assertions against the Chromium browser preview. It covers the English shell, overlays, menus, executable selection, mobile navigation and filters, real launcher keyboard and pointer reorder (including two-Escape behavior), Libraries caption/sort/action feedback, one focused Russian DnD localization flow, representative light/dark layering, reduced motion, forced colors, and 320 CSS px bounds. A compact locale pass checks language, nonempty landmarks, one Games axe scan, and document bounds for `en`, `ru`, `es`, `pt-BR`, `fr`, `de`, `ja`, `zh-Hans`, and `zh-Hant`. CI installs Chromium and runs this browser coverage as part of the reusable quality workflow. It does not validate the native Tauri WebView2 host or Windows screen-reader integration.
 
 ESLint rejects nonblank hardcoded values in user-facing `aria-label`, `aria-description`, `aria-placeholder`, `aria-roledescription`, `aria-valuetext`, `placeholder`, `title`, and `alt` attributes. This includes literal text, static template/concatenation fragments, and hardcoded branches of conditional or logical expressions; arbitrary calls and translated/dynamic values remain unresolved and are allowed. Empty `alt` remains valid for decorative images.
 
@@ -39,7 +39,7 @@ Repeat the flow in light and dark themes. For each locale, also verify Windows H
 ## Acceptance and defect policy
 
 - All automated accessibility checks must pass without blanket axe exclusions.
-- Every NVDA and Narrator matrix cell must pass in all eight locales.
+- Every NVDA and Narrator matrix cell must pass in all nine locales.
 - Focus indicators must have at least a 2 CSS px equivalent area and 3:1 contrast in light, dark, and forced-colors modes.
 - Interactive targets must be at least 24×24 CSS px.
 - Meaning must never depend on color, animation, pointer input, or visual iconography alone.

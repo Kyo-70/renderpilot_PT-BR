@@ -73,6 +73,7 @@ export const lumaOverrides = defineLocalizedCatalog<'zh-Hans', LumaSourceCatalog
     '在游戏设置中选择：AA “High”。为了获得更清晰的动态画面，建议在 Engine.ini 中设置 r.motionblur.amount=0。',
   'luma.narutotoborutoshinobistriker.compatibility': '被 Easy Anti-Cheat 拦截。',
   'luma.no-more-heroes-3.engine_ini': '请在 Engine.ini 中手动应用以下设置。',
+  'luma.octopath-traveler.engine_ini': '请在 Engine.ini 中手动应用以下设置。',
   'luma.orcs-must-die-3.game_setting': '在游戏设置中将 AA 质量设为 “High”。',
   'luma.persona-3reload.compatibility': '无法在 DirectX 11 模式下启动。',
   'luma.predecessor.compatibility': '被 Easy Anti-Cheat 拦截。',

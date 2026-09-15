@@ -15,7 +15,7 @@ import {
 } from '../external-contract-core.mjs';
 import { validateOptiscalerContract } from '../i18n-contracts/validator.mjs';
 
-export const REVIEW_LOCALES = ['ru', 'de', 'es', 'fr', 'ja', 'zh-Hans', 'zh-Hant'];
+export const REVIEW_LOCALES = ['ru', 'de', 'es', 'pt-BR', 'fr', 'ja', 'zh-Hans', 'zh-Hant'];
 export const REVIEW_FORMATS = ['tsv', 'json'];
 
 const APP_ROOT = path.resolve(import.meta.dirname, '../..');

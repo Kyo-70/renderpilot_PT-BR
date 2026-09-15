@@ -344,6 +344,12 @@
       "context": "guidance.engine_ini"
     },
     {
+      "id": "luma.octopath-traveler.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
       "id": "luma.orcs-must-die-3.game_setting",
       "sourceText": "In the game settings, use: AA quality \"High\".",
       "kind": "game_setting",
