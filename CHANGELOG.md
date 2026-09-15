@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.3] - 2026-09-15
+
+### Added
+
+- **Brazilian Portuguese localization**: Added full Brazilian Portuguese (`pt-BR`) language support across the desktop interface, settings, OptiScaler controls, and add-on guidance.
+
+### Fixed
+
+- **Split Ogg/Vorbis library swaps**: Fixed swaps for games whose Ogg/Vorbis DLLs are stored in different directories. Compatible replacements are now available for manual selection and can be safely applied and rolled back when RenderPilot can fully verify the library relationship; ambiguous layouts remain unchanged.
+
 ## [1.12.2] - 2026-09-14
 
 ### Fixed
