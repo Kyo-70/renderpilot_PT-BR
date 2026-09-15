@@ -5,7 +5,7 @@ import type { LumaSourceCatalog } from './contract.generated';
 
 export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>()({
   'luma.ace-combat-7.engine_ini': 'Aplique manualmente as seguintes configurações no Engine.ini.',
-  'luma.ace-combat-7.game_setting': 'Primeiro, selecione o AA “FXAA High” no jogo.',
+  'luma.ace-combat-7.game_setting': 'Nas configurações do jogo, selecione o AA “FXAA High”.',
   'luma.ancestors-legacy.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
   'luma.batman-arkham-knight.warning':
@@ -74,11 +74,11 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
   'luma.kao-the-kangaroo.game_setting': 'Nas configurações do jogo, selecione o AA “High”.',
   'luma.kingdom-hearts-3.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
-  'luma.kingdom-hearts-3.game_setting': 'Primeiro, selecione “TXAA” no jogo.',
+  'luma.kingdom-hearts-3.game_setting': 'Nas configurações do jogo, selecione “TXAA”.',
   'luma.lara-croft-temple-of-osiris.compatibility': 'Não é compatível com a versão da Xbox Store.',
   'luma.littlenightmaresiii.compatibility': 'Não inicia no modo DirectX 11.',
   'luma.mass-effect-andromeda.compatibility':
-    'Somente os modos DLAA/FSR 3 Native AA estão disponíveis; eles não são Super-resolução DLSS nem FSR.',
+    'Somente os modos DLAA / FSR 3 Native AA estão disponíveis; isso não é super-resolução DLSS nem FSR.',
   'luma.masterdetectivearchivesraincodeplus.game_setting':
     'Nas configurações do jogo, use a qualidade de AA “High” e coloque a escala de resolução no máximo.',
   'luma.metro-2033-redux.warning':
@@ -92,6 +92,8 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
   'luma.narutotoborutoshinobistriker.compatibility': 'Bloqueado pelo Easy Anti-Cheat.',
   'luma.no-more-heroes-3.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
+  'luma.octopath-traveler.engine_ini':
+    'Aplique manualmente as seguintes configurações no Engine.ini.',
   'luma.orcs-must-die-3.game_setting':
     'Nas configurações do jogo, selecione a qualidade de AA “High”.',
   'luma.persona-3reload.compatibility': 'Não inicia no modo DirectX 11.',
@@ -100,7 +102,7 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
     'Mantenha os arquivos de dados adicionais do Luma para Prey junto ao complemento.',
   'luma.project-wingman.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
-  'luma.project-wingman.game_setting': 'Primeiro, selecione o AA “FXAA” no jogo.',
+  'luma.project-wingman.game_setting': 'Nas configurações do jogo, selecione o AA “FXAA”.',
   'luma.rad.game_setting': 'Nas configurações do jogo, selecione o AA “Ultra”.',
   'luma.remnant-from-the-ashes.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
@@ -127,7 +129,7 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
   'luma.tetris-effect-connected.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
   'luma.tetris-effect-connected.game_setting':
-    'Primeiro, selecione o AA “FXAA:6” e a escala de renderização em 100% no jogo.',
+    'Nas configurações do jogo, selecione o AA “FXAA:6” e a escala de renderização em 100%.',
   'luma.the-sinking-city.warning':
     'Compatível com a versão original; a compatibilidade com a edição Remastered não foi confirmada.',
   'luma.theouterworldsspacerschoiceedition.compatibility': 'Não inicia no modo DirectX 11.',

@@ -84,6 +84,7 @@ export const lumaOverrides = defineLocalizedCatalog<'ja', LumaSourceCatalog>()({
     'ゲーム設定: AA「High」。動きの鮮明さを向上させるには、Engine.ini で r.motionblur.amount=0 を設定することを推奨します。',
   'luma.narutotoborutoshinobistriker.compatibility': 'Easy Anti-Cheat によりブロックされます。',
   'luma.no-more-heroes-3.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.octopath-traveler.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
   'luma.orcs-must-die-3.game_setting': 'ゲーム設定で AA 品質を「High」にしてください。',
   'luma.persona-3reload.compatibility': 'DirectX 11 モードでは起動しません。',
   'luma.predecessor.compatibility': 'Easy Anti-Cheat によりブロックされます。',

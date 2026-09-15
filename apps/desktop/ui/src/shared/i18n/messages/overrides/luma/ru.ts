@@ -82,6 +82,7 @@ export const lumaOverrides = defineLocalizedCatalog<'ru', LumaSourceCatalog>()({
     'В настройках игры выберите AA «High». Для лучшей чёткости в движении задайте r.motionblur.amount=0 в Engine.ini.',
   'luma.narutotoborutoshinobistriker.compatibility': 'Заблокировано системой Easy Anti-Cheat.',
   'luma.no-more-heroes-3.engine_ini': 'Вручную добавьте в Engine.ini следующие настройки.',
+  'luma.octopath-traveler.engine_ini': 'Вручную добавьте в Engine.ini следующие настройки.',
   'luma.orcs-must-die-3.game_setting': 'В настройках игры выберите качество AA «High».',
   'luma.persona-3reload.compatibility': 'Не запускается в режиме DirectX 11.',
   'luma.predecessor.compatibility': 'Заблокировано системой Easy Anti-Cheat.',

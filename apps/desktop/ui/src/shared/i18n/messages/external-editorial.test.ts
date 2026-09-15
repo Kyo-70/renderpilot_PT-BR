@@ -73,17 +73,16 @@ const staticCatalogs: Readonly<Record<LazyLocale, MessageDictionary>> = {
   ru,
   de,
   es,
-  'pt-BR': ptBr,
   fr,
   ja,
+  'pt-BR': ptBr,
   'zh-Hans': zhHans,
   'zh-Hant': zhHant,
 };
-type ExternalLocaleCatalogs = Readonly<
-  Record<LazyLocale, Readonly<Partial<Record<string, string>>>>
->;
 
-const lumaCatalogs: ExternalLocaleCatalogs = {
+const lumaCatalogs: Readonly<
+  Partial<Record<LazyLocale, Readonly<Partial<Record<string, string>>>>>
+> = {
   ru: lumaRu,
   de: lumaDe,
   es: lumaEs,
@@ -93,17 +92,19 @@ const lumaCatalogs: ExternalLocaleCatalogs = {
   'zh-Hans': lumaZhHans,
   'zh-Hant': lumaZhHant,
 };
-const nvapiCatalogs: ExternalLocaleCatalogs = {
+const nvapiCatalogs: Readonly<Record<LazyLocale, Readonly<Partial<Record<string, string>>>>> = {
   ru: nvapiRu,
   de: nvapiDe,
   es: nvapiEs,
-  'pt-BR': nvapiPtBr,
   fr: nvapiFr,
   ja: nvapiJa,
+  'pt-BR': nvapiPtBr,
   'zh-Hans': nvapiZhHans,
   'zh-Hant': nvapiZhHant,
 };
-const optiscalerCatalogs: ExternalLocaleCatalogs = {
+const optiscalerCatalogs: Readonly<
+  Partial<Record<LazyLocale, Readonly<Partial<Record<string, string>>>>>
+> = {
   ru: optiscalerRu,
   de: optiscalerDe,
   es: optiscalerEs,
@@ -113,20 +114,25 @@ const optiscalerCatalogs: ExternalLocaleCatalogs = {
   'zh-Hans': optiscalerZhHans,
   'zh-Hant': optiscalerZhHant,
 };
-const externalSourceCatalog = {
-  ...LUMA_SOURCE_CATALOG,
-  ...NVAPI_SOURCE_CATALOG,
-  ...OPTISCALER_SOURCE_CATALOG,
-};
-const proseHeuristicSourceCatalog = {
-  ...LUMA_SOURCE_CATALOG,
-  ...NVAPI_SOURCE_CATALOG,
-  ...OPTISCALER_SOURCE_CATALOG,
-};
+const externalSourceCatalogsByLocale: Record<
+  LazyLocale,
+  Readonly<Record<string, string>>
+> = Object.fromEntries(
+  LAZY_LOCALES.map((locale) => [
+    locale,
+    {
+      ...NVAPI_SOURCE_CATALOG,
+      ...(lumaCatalogs[locale] ? LUMA_SOURCE_CATALOG : {}),
+      ...(optiscalerCatalogs[locale] ? OPTISCALER_SOURCE_CATALOG : {}),
+    },
+  ]),
+) as unknown as Record<LazyLocale, Readonly<Record<string, string>>>;
 
 function externalTranslation(locale: LazyLocale, key: string): string {
   const translation =
-    lumaCatalogs[locale][key] ?? nvapiCatalogs[locale][key] ?? optiscalerCatalogs[locale][key];
+    lumaCatalogs[locale]?.[key] ??
+    nvapiCatalogs[locale]?.[key] ??
+    optiscalerCatalogs[locale]?.[key];
   expect(translation, `${locale}: ${key}`).toBeDefined();
   return translation ?? '';
 }
@@ -208,17 +214,21 @@ function authoredTemplates(locale: LazyLocale): readonly (readonly [string, stri
   const staticEntries = Object.entries(staticCatalogs[locale]).flatMap(([key, value]) =>
     templates(value).map((template, index) => [`static.${key}.${index}`, template] as const),
   );
+  const lumaCatalog = lumaCatalogs[locale];
+  const optiscalerCatalog = optiscalerCatalogs[locale];
   return [
     ...staticEntries,
-    ...localizedEntries(lumaCatalogs[locale]).map(
-      ([key, value]) => [`luma.${key}`, value] as const,
-    ),
+    ...(lumaCatalog
+      ? localizedEntries(lumaCatalog).map(([key, value]) => [`luma.${key}`, value] as const)
+      : []),
     ...localizedEntries(nvapiCatalogs[locale]).map(
       ([key, value]) => [`nvapi.${key}`, value] as const,
     ),
-    ...localizedEntries(optiscalerCatalogs[locale]).map(
-      ([key, value]) => [`optiscaler.${key}`, value] as const,
-    ),
+    ...(optiscalerCatalog
+      ? localizedEntries(optiscalerCatalog).map(
+          ([key, value]) => [`optiscaler.${key}`, value] as const,
+        )
+      : []),
   ];
 }
 
@@ -248,7 +258,7 @@ function containsRequiredScript(
 describe('external message editorial policy', () => {
   it('preserves protected technical tokens and numeric semantics', () => {
     for (const locale of LAZY_LOCALES) {
-      for (const [key, source] of Object.entries(externalSourceCatalog)) {
+      for (const [key, source] of Object.entries(externalSourceCatalogsByLocale[locale])) {
         const translation = externalTranslation(locale, key);
         expect(numericTokens(translation), `${locale}: ${key}`).toEqual(numericTokens(source));
         for (const token of policy.protectedTokens) {
@@ -271,10 +281,11 @@ describe('external message editorial policy', () => {
 
   it('preserves copied external flags, file names, sections, and assignments verbatim', () => {
     for (const locale of LAZY_LOCALES) {
-      for (const [key, source] of Object.entries({
-        ...LUMA_SOURCE_CATALOG,
-        ...OPTISCALER_SOURCE_CATALOG,
-      })) {
+      const sourceCatalog = {
+        ...(lumaCatalogs[locale] ? LUMA_SOURCE_CATALOG : {}),
+        ...(optiscalerCatalogs[locale] ? OPTISCALER_SOURCE_CATALOG : {}),
+      };
+      for (const [key, source] of Object.entries(sourceCatalog)) {
         expect(copiedCodeTokens(externalTranslation(locale, key)), `${locale}: ${key}`).toEqual(
           copiedCodeTokens(source),
         );
@@ -337,21 +348,23 @@ describe('external message editorial policy', () => {
     for (const locale of LAZY_LOCALES) {
       const typography = policy.localeTypography[locale];
       const { open, close, innerSpacing } = typography.quotationMarks;
+      const forbiddenTokens = [
+        ...typography.forbiddenQuoteMarks,
+        ...typography.forbiddenPunctuation,
+      ];
+      const invalidSpacingRegex = innerSpacing
+        ? new RegExp(`${open}\\S|\\S${close}`, 'u')
+        : new RegExp(`${open}\\s|\\s${close}`, 'u');
+
       for (const [key, translation] of authoredTemplates(locale)) {
-        for (const forbidden of [
-          ...typography.forbiddenQuoteMarks,
-          ...typography.forbiddenPunctuation,
-        ]) {
+        for (const forbidden of forbiddenTokens) {
           expect(translation, `${locale}: ${key}: ${forbidden}`).not.toContain(forbidden);
         }
         expect(occurrences(translation, open), `${locale}: ${key}: opening quotes`).toBe(
           occurrences(translation, close),
         );
         if (translation.includes(open)) {
-          const invalidSpacing = innerSpacing
-            ? new RegExp(`${open}\\S|\\S${close}`, 'u')
-            : new RegExp(`${open}\\s|\\s${close}`, 'u');
-          expect(translation, `${locale}: ${key}: quote spacing`).not.toMatch(invalidSpacing);
+          expect(translation, `${locale}: ${key}: quote spacing`).not.toMatch(invalidSpacingRegex);
         }
       }
     }
@@ -361,7 +374,7 @@ describe('external message editorial policy', () => {
     const verbatim = new Set(policy.nvapiVerbatimValues);
     for (const locale of LAZY_LOCALES) {
       const requiredScript = policy.localeTypography[locale].requiredScript;
-      for (const [key, source] of Object.entries(proseHeuristicSourceCatalog)) {
+      for (const [key, source] of Object.entries(externalSourceCatalogsByLocale[locale])) {
         const translation = externalTranslation(locale, key);
         if (verbatim.has(source)) {
           continue;

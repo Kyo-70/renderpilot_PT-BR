@@ -86,6 +86,7 @@
     "UpscalerBasePlugin",
     "UUU",
     "Arise-SDK",
+    "BDZKFix",
     "Easy Anti-Cheat",
     "Gold Filter Restoration",
     "Frame Smoothing",
@@ -120,9 +121,9 @@
     "City Glow Effect": {
       "de": "Stadtbeleuchtungseffekt",
       "es": "City Glow Effect",
+      "pt-BR": "City Glow Effect",
       "fr": "City Glow Effect",
       "ja": "City Glow Effect",
-      "pt-BR": "City Glow Effect",
       "ru": "Эффект свечения города",
       "zh-Hans": "City Glow Effect",
       "zh-Hant": "City Glow Effect"

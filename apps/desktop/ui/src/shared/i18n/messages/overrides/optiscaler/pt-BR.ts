@@ -33,7 +33,7 @@ export const optiscalerOverrides = defineLocalizedCatalog<'pt-BR', OptiScalerSou
   'optiscaler-ready-or-not-resolution-scale':
     'Use o controle de escala de resolução do jogo para ajustar a resolução de entrada do OptiScaler.',
   'optiscaler-redout-2-xess-artifacts':
-    'A entrada XeSS pode apresentar blocos pretos em cenas e em algumas fases.',
+    'A entrada XeSS pode apresentar artefatos em blocos pretos nas cinemáticas e em algumas fases.',
   'optiscaler-sons-of-the-forest-inventory':
     'Abrir ou fechar o inventário pode causar problemas durante o uso do OptiScaler.',
   'optiscaler-steelrising-fsr4-color-space':
@@ -68,7 +68,7 @@ export const optiscalerOverrides = defineLocalizedCatalog<'pt-BR', OptiScalerSou
   'optiscaler-alone-in-the-dark-2024-dx12-dlss':
     'Nas configurações do jogo, altere o modo DLSS e aplique a mudança.',
   'optiscaler-blue-protocol-star-resonance-shaders':
-    'Conclua a compilação dos shaders antes de selecionar o FSR 4 para evitar uma falha.',
+    'Conclua a compilação dos shaders antes de selecionar o FSR 4 para evitar que o jogo trave.',
   'optiscaler-bright-memory-dx12-ray-tracing':
     'Para usar uma entrada DLSS, ative o ray tracing e a simulação de uma GPU NVIDIA.',
   'optiscaler-brothers-remake-fsr4-color-space':
@@ -197,11 +197,11 @@ export const optiscalerOverrides = defineLocalizedCatalog<'pt-BR', OptiScalerSou
   'optiscaler-planet-coaster-2-dlss-input':
     'Use DLSS, pois as entradas FSR 3 não estão disponíveis.',
   'optiscaler-polaris-demo-inputs':
-    'As entradas DLSS e DLSS Frame Generation não estão disponíveis. O FSR 3.1 Frame Generation pode fazer o jogo travar com o OptiScaler 0.9.1.',
+    'As entradas DLSS e de geração de quadros do DLSS não estão disponíveis. A geração de quadros do FSR 3.1 pode fazer o jogo travar com o OptiScaler 0.9.1.',
   'optiscaler-project-songbird-teaser-faceless-dynamic-resolution':
     'Ative a resolução dinâmica nas configurações do jogo para usar DLSS. As entradas FSR não estão disponíveis.',
   'optiscaler-project-station-demo-dx12':
-    'A entrada FSR 3 e a saída XeSS Frame Generation não estão disponíveis. Não ative Allow Async com FSR Frame Generation; isso pode fazer o jogo travar.',
+    'A entrada FSR 3 e a saída de geração de quadros do XeSS não estão disponíveis. Não ative Allow Async com a geração de quadros do FSR; isso pode fazer o jogo travar.',
   'optiscaler-psalm-2-dlss-input':
     'Use DLSS, pois as entradas FSR não estão disponíveis. Não force o DirectX 12.',
   'optiscaler-psycho-fear-fsr4-input-color-space':
@@ -246,7 +246,7 @@ export const optiscalerOverrides = defineLocalizedCatalog<'pt-BR', OptiScalerSou
   'optiscaler-system-shock-remake-dx11':
     'Mantenha o modo DirectX 11 padrão. Forçar o DirectX 12 com -dx12 pode causar travamentos aleatórios em áreas específicas.',
   'optiscaler-tchia-xess-corruption':
-    'Use entradas DLSS; o XeSS pode causar corrupção visual intensa.',
+    'Use entradas DLSS; o XeSS pode causar graves artefatos visuais.',
   'optiscaler-tempest-rising-fsr4-non-linear-srgb-input':
     'Para o FSR 4, selecione Non-Linear sRGB Input se a tela piscar.',
   'optiscaler-terratech-legion-fsr4-non-linear-color-space':
@@ -256,7 +256,7 @@ export const optiscalerOverrides = defineLocalizedCatalog<'pt-BR', OptiScalerSou
   'optiscaler-the-chant-fsr2-shimmer': 'Use a entrada DLSS; o FSR 2 pode apresentar cintilação.',
   'optiscaler-the-hollow-complex-demo-fsr3-input': 'As entradas FSR 3 não estão disponíveis.',
   'optiscaler-scp-secret-files-dx12':
-    'Não selecione uma entrada FSR 2; ela pode causar uma falha. O DirectX 11 apresenta desempenho inferior e cintilação intensa.',
+    'Não selecione uma entrada FSR 2; ela pode fazer o jogo travar. O DirectX 11 apresenta desempenho inferior e cintilação intensa.',
   'optiscaler-trine-5-dlss-mode':
     "Antes da instalação, edite %APPDATA%\\Trine5\\options.txt. Para ativar o DLSS, use setOption(rendererModule, 'DlssMode', x), com x entre 0 e 4.",
   'optiscaler-car-mechanic-simulator-2026-single-player-demo-fsr3-mode':
@@ -264,17 +264,17 @@ export const optiscalerOverrides = defineLocalizedCatalog<'pt-BR', OptiScalerSou
   'optiscaler-online-404-reselect-upscaler':
     'Após cada inicialização, selecione TSR e depois selecione DLSS novamente nas configurações gráficas do jogo.',
   'optiscaler-star-wars-zero-company-vendor-options':
-    'As opções Frame Generation e Low Latency dependem do fabricante da GPU.',
+    'As opções de geração de quadros e baixa latência dependem do fabricante da GPU.',
   'optiscaler-onimusha-way-of-the-sword-reframework':
     'O REFramework é necessário para que este jogo funcione.',
   'optiscaler-resident-evil-2-remake-reframework-upscalerbase-plugin':
-    'O REFramework (ramificação pd-upscaler) e o UpscalerBasePlugin 1.1.2 de PureDark são necessários para que este jogo funcione.',
+    'O REFramework (branch pd-upscaler) e o UpscalerBasePlugin versão 1.1.2 de PureDark são necessários para que este jogo funcione.',
   'optiscaler-resident-evil-3-remake-reframework-upscalerbase-plugin':
-    'O REFramework (ramificação pd-upscaler) e o UpscalerBasePlugin 1.1.2 de PureDark são necessários para que este jogo funcione.',
+    'O REFramework (branch pd-upscaler) e o UpscalerBasePlugin versão 1.1.2 de PureDark são necessários para que este jogo funcione.',
   'optiscaler-resident-evil-4-remake-reframework-upscalerbase-plugin':
-    'O REFramework (ramificação pd-upscaler) e o UpscalerBasePlugin 1.1.2 de PureDark são necessários para que este jogo funcione.',
+    'O REFramework (branch pd-upscaler) e o UpscalerBasePlugin versão 1.1.2 de PureDark são necessários para que este jogo funcione.',
   'optiscaler-resident-evil-7-reframework-upscalerbase-plugin':
-    'O REFramework (ramificação pd-upscaler) e o UpscalerBasePlugin 1.1.2 de PureDark são necessários para que este jogo funcione.',
+    'O REFramework (branch pd-upscaler) e o UpscalerBasePlugin versão 1.1.2 de PureDark são necessários para que este jogo funcione.',
   'optiscaler-resident-evil-requiem-reframework':
     'O REFramework é necessário para que este jogo funcione.',
 });

@@ -39,7 +39,7 @@ Repeat the flow in light and dark themes. For each locale, also verify Windows H
 ## Acceptance and defect policy
 
 - All automated accessibility checks must pass without blanket axe exclusions.
-- Every NVDA and Narrator matrix cell must pass in all eight locales.
+- Every NVDA and Narrator matrix cell must pass in all nine locales.
 - Focus indicators must have at least a 2 CSS px equivalent area and 3:1 contrast in light, dark, and forced-colors modes.
 - Interactive targets must be at least 24×24 CSS px.
 - Meaning must never depend on color, animation, pointer input, or visual iconography alone.

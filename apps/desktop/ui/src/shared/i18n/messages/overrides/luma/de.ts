@@ -87,6 +87,8 @@ export const lumaOverrides = defineLocalizedCatalog<'de', LumaSourceCatalog>()({
     'Wähle in den Spieleinstellungen: AA „High“. Für klarere Bewegung setze r.motionblur.amount=0 in der Engine.ini.',
   'luma.narutotoborutoshinobistriker.compatibility': 'Durch Easy Anti-Cheat blockiert.',
   'luma.no-more-heroes-3.engine_ini': 'Übernimm die folgenden Einstellungen manuell in Engine.ini.',
+  'luma.octopath-traveler.engine_ini':
+    'Übernimm die folgenden Einstellungen manuell in Engine.ini.',
   'luma.orcs-must-die-3.game_setting':
     'Wähle in den Spieleinstellungen die AA-Qualität „High“ aus.',
   'luma.persona-3reload.compatibility': 'Startet nicht im DirectX-11-Modus.',

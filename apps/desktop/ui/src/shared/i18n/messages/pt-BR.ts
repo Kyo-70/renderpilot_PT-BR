@@ -669,9 +669,9 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
   'user_message.safety_context_scope_mismatch':
     'A avaliação de segurança pertence a outro recurso. Atualize-a e tente novamente.',
   'user_message.peer_topology_conflict':
-    'O RenderPilot não pode coordenar esta alteração com segurança usando a cadeia de proxy atual. Verifique novamente ou repare o complemento afetado e tente de novo.',
+    'O RenderPilot não pode coordenar esta alteração com segurança na cadeia de proxies atual. Verifique novamente ou repare o complemento afetado e tente novamente.',
   'user_message.luma_required_by_optiscaler':
-    'O OptiScaler exige o Luma neste jogo. Desinstale primeiro o OptiScaler.',
+    'O OptiScaler requer o Luma para este jogo. Desinstale o OptiScaler primeiro.',
   'suggested_action.refresh_games': 'Atualize a lista de jogos e tente novamente.',
   'suggested_action.reload_game_details': 'Atualize os detalhes do jogo e tente novamente.',
   'suggested_action.refresh_candidates': 'Atualize a lista e tente novamente.',
@@ -686,7 +686,7 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
   'suggested_action.reload_file_safety':
     'Atualize a avaliação de segurança dos arquivos e tente novamente.',
   'suggested_action.rescan_or_repair_addon':
-    'Verifique novamente ou repare o complemento afetado e tente de novo.',
+    'Verifique novamente ou repare o complemento afetado e tente novamente.',
   'gameDetails.renodx.title': 'RenoDX HDR',
   'gameDetails.renodx.description':
     'Adicione HDR e mapeamento de tons a este jogo com o complemento ReShade do RenoDX.',
@@ -697,7 +697,7 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
   'gameDetails.renodx.unsupported': 'Não há um perfil RenoDX para este jogo.',
   'gameDetails.renodx.incompatible': 'Não é possível instalar o RenoDX: {reason}.',
   'gameDetails.renodx.installTornWarning':
-    'Uma operação anterior do RenoDX não foi concluída corretamente. Tente instalar novamente para reconciliar os arquivos.',
+    'Uma operação anterior do RenoDX não foi concluída corretamente. Tente instalar novamente para reconciliar seus arquivos.',
   'gameDetails.renodx.installTornWarningInstalled':
     'A última operação do RenoDX não foi concluída corretamente. Use Reparar ou Atualizar para reconciliar a instalação.',
   'gameDetails.renodx.status.label': 'Status',
@@ -867,16 +867,16 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
     'Anti-cheat detectado: {engines}. Modificar arquivos do jogo pode causar restrições ou o bloqueio da conta.',
   'gameDetails.fileSafety.loadError':
     'Não foi possível verificar os riscos da alteração de arquivos',
-  'gameDetails.fileSafety.installConfirmTitle': 'Instalar o complemento neste jogo?',
+  'gameDetails.fileSafety.installConfirmTitle': 'Instalar complemento neste jogo?',
   'gameDetails.fileSafety.installConfirmBody':
-    'Um sistema antitrapaça foi detectado. A instalação de um complemento altera arquivos no diretório do jogo.',
+    'Um sistema anti-cheat foi detectado. Instalar um complemento modifica arquivos no diretório do jogo.',
   'gameDetails.fileSafety.installConfirmAction': 'Instalar',
   'addon.availability.loadFailed': 'Não foi possível verificar',
   'addon.availability.retry': 'Tentar novamente',
   'addon.availability.checking': 'Verificando…',
   'gameDetails.luma.title': 'Luma Framework',
   'gameDetails.luma.uninstallBlockedByOptiscaler':
-    'O OptiScaler exige o Luma neste jogo. Desinstale primeiro o OptiScaler.',
+    'O OptiScaler requer o Luma para este jogo. Desinstale o OptiScaler primeiro.',
   'gameDetails.luma.description':
     'Os recursos do Luma disponíveis para este jogo são exibidos abaixo.',
   'gameDetails.luma.loading': 'Verificando disponibilidade…',
@@ -982,12 +982,12 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
   'gameDetails.addon.launchArguments.instructions.ubisoft':
     'Se você iniciar o jogo pelo Ubisoft Connect, adicione-os lá: selecione o jogo → Propriedades → Adicionar argumentos de inicialização.',
   'gameDetails.addon.launchArguments.instructions.other':
-    'Use o método que realmente inicia o jogo. Adicione os argumentos ao inicializador, ao destino do atalho, ao arquivo em lotes ou a outro carregador.',
-  'gameDetails.addon.launchArguments.requiredTitle': 'Argumentos de inicialização obrigatórios',
+    'Use o método que realmente inicia o jogo. Adicione os argumentos ao inicializador, ao destino do atalho, ao arquivo em lote ou a outro carregador.',
+  'gameDetails.addon.launchArguments.requiredTitle': 'Argumentos de inicialização necessários',
   'gameDetails.addon.launchArguments.recommendedTitle': 'Argumentos de inicialização recomendados',
-  'gameDetails.addon.launchArguments.dx11Title': 'Este complemento exige DirectX 11',
+  'gameDetails.addon.launchArguments.dx11Title': 'Este complemento requer DirectX 11',
   'gameDetails.addon.launchArguments.copyRequiredStep':
-    'Copie os argumentos de inicialização obrigatórios:',
+    'Copie os argumentos de inicialização necessários:',
   'gameDetails.addon.launchArguments.copyRecommendedStep':
     'Copie os argumentos de inicialização recomendados:',
   'gameDetails.addon.launchArguments.copy': 'Copiar argumentos',
@@ -998,7 +998,7 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
   'gameDetails.luma.attributionLink': 'Ver projeto',
   'gameDetails.optiscaler.title': 'OptiScaler',
   'gameDetails.optiscaler.description':
-    'Adiciona tecnologias alternativas de escalonamento e geração de quadros.',
+    'Adiciona tecnologias alternativas de upscaling e geração de quadros.',
   'gameDetails.optiscaler.loading': 'Verificando compatibilidade…',
   'gameDetails.optiscaler.statusLabel': 'Status',
   'gameDetails.optiscaler.statusInstalled': 'Instalado',
@@ -1008,94 +1008,93 @@ export const ptBr = defineLocalizedCatalog<'pt-BR', EnglishCatalog>()({
   'gameDetails.optiscaler.compatibilityConditional': 'Condicional',
   'gameDetails.optiscaler.compatibilityUnknown': 'Desconhecida',
   'gameDetails.optiscaler.compatibilityUnavailable': 'Indisponível',
-  'gameDetails.optiscaler.compatibilityUnsupported': 'Não compatível',
+  'gameDetails.optiscaler.compatibilityUnsupported': 'Não suportada',
   'gameDetails.optiscaler.versionLabel': 'Versão',
-  'gameDetails.optiscaler.integrationThrough': 'Integração por',
+  'gameDetails.optiscaler.integrationThrough': 'Integração via',
   'gameDetails.optiscaler.configure': 'Configurar',
   'gameDetails.optiscaler.configureBeforeInstall': 'Configurar componentes',
-  'gameDetails.optiscaler.settingsTitle': 'Componentes da instalação',
+  'gameDetails.optiscaler.settingsTitle': 'Componentes de instalação',
   'gameDetails.optiscaler.settingsDescription':
-    'Escolha quais tecnologias o OptiScaler poderá disponibilizar no jogo.',
+    'Escolha quais tecnologias o OptiScaler pode disponibilizar no jogo.',
   'gameDetails.optiscaler.moduleRequired': 'Obrigatório',
-  'gameDetails.optiscaler.settingsSave': 'Concluir',
+  'gameDetails.optiscaler.settingsSave': 'Concluído',
   'gameDetails.optiscaler.settingsApply': 'Aplicar',
   'gameDetails.optiscaler.checkUpdates': 'Verificar atualizações',
   'gameDetails.optiscaler.prerequisite.removeRenoDx':
-    'Remova o RenoDX antes de instalar o Luma Framework nesta configuração do OptiScaler.',
+    'Remova o RenoDX antes de instalar o Luma Framework para esta configuração do OptiScaler.',
   'gameDetails.optiscaler.prerequisite.lumaTorn':
     'Uma instalação anterior do Luma Framework não foi concluída. Reinstale ou repare o Luma Framework antes de instalar o OptiScaler.',
   'gameDetails.optiscaler.prerequisite.lumaBroken':
-    'A instalação exigida do Luma Framework está incompleta. Repare o Luma Framework antes de instalar o OptiScaler.',
+    'A instalação necessária do Luma Framework está incompleta. Repare o Luma Framework antes de instalar o OptiScaler.',
   'gameDetails.optiscaler.prerequisite.installLuma':
-    'Instale o Luma Framework antes de instalar o OptiScaler nesta configuração.',
+    'Instale o Luma Framework antes de instalar o OptiScaler para esta configuração.',
   'gameDetails.optiscaler.prerequisite.lumaUnavailable':
-    'Esta configuração do OptiScaler exige o Luma Framework, que não está disponível para este jogo.',
-  'gameDetails.optiscaler.uninstallConfirmTitle': 'Remover o OptiScaler?',
+    'Esta configuração do OptiScaler requer o Luma Framework, que não está disponível para este jogo.',
+  'gameDetails.optiscaler.uninstallConfirmTitle': 'Remover OptiScaler?',
   'gameDetails.optiscaler.uninstallConfirmBody':
-    'O RenderPilot removerá os arquivos gerenciados do OptiScaler e restaurará a organização anterior dos proxies.',
+    'O RenderPilot removerá os arquivos gerenciados do OptiScaler e restaurará o layout de proxy anterior.',
   'gameDetails.optiscaler.uninstallConfirmAction': 'Remover',
   'gameDetails.optiscaler.block.requiresX64':
-    'O OptiScaler exige que um executável de jogo de 64 bits seja detectado.',
+    'O OptiScaler requer que seja detectado um executável de jogo de 64 bits.',
   'gameDetails.optiscaler.block.unsupportedApi':
-    'A API gráfica usada por este jogo não é compatível com o OptiScaler.',
+    'A API gráfica usada por este jogo não é suportada pelo OptiScaler.',
   'gameDetails.optiscaler.block.catalogUnsupported':
     'Este jogo está marcado como incompatível com o OptiScaler.',
   'gameDetails.optiscaler.block.releaseUnavailable':
     'Nenhuma versão do OptiScaler está disponível para instalação no momento.',
   'gameDetails.optiscaler.block.modulesUnavailable':
-    'Um ou mais componentes selecionados não estão disponíveis. Revise a seleção de componentes.',
+    'Um ou mais componentes selecionados estão indisponíveis. Revise a seleção de componentes.',
   'gameDetails.optiscaler.block.proxyConflict':
-    'Outra modificação gráfica ocupa o espaço de arquivo necessário. Resolva o conflito antes de instalar o OptiScaler.',
+    'Outra modificação gráfica ocupa o local de arquivo necessário. Resolva o conflito antes de instalar o OptiScaler.',
   'gameDetails.optiscaler.block.generic':
-    'O OptiScaler não pode ser instalado nesta configuração do jogo.',
+    'O OptiScaler não pode ser instalado para esta configuração de jogo.',
   'gameDetails.optiscaler.module.core.name': 'Núcleo do OptiScaler',
   'gameDetails.optiscaler.module.core.description':
-    'Ambiente de execução e configurações exigidos por todas as instalações.',
+    'Ambiente de execução e configurações necessários para todas as instalações.',
   'gameDetails.optiscaler.module.ffxDx12.name': 'AMD FSR para DirectX 12',
   'gameDetails.optiscaler.module.ffxDx12.description':
-    'Adiciona suporte a escalonamento e geração de quadros da AMD aos jogos em DirectX 12.',
+    'Adiciona suporte a upscaling e geração de quadros da AMD para jogos DirectX 12.',
   'gameDetails.optiscaler.module.ffxVulkan.name': 'AMD FSR para Vulkan',
   'gameDetails.optiscaler.module.ffxVulkan.description':
-    'Adiciona suporte ao escalonamento da AMD nos jogos que usam Vulkan.',
-  'gameDetails.optiscaler.module.agility.name': 'Arquivos de suporte do DirectX 12',
+    'Adiciona suporte a upscaling da AMD para jogos que usam Vulkan.',
+  'gameDetails.optiscaler.module.agility.name': 'Arquivos de suporte ao DirectX 12',
   'gameDetails.optiscaler.module.agility.description':
-    'Ambiente de execução de compatibilidade exigido por alguns jogos em DirectX 12.',
+    'Ambiente de compatibilidade necessário para alguns jogos DirectX 12.',
   'gameDetails.optiscaler.module.fakeNvapi.name': 'Camada de compatibilidade NVIDIA',
   'gameDetails.optiscaler.module.fakeNvapi.description':
     'Fornece a interface NVIDIA esperada por alguns jogos e recursos gráficos.',
-  'gameDetails.optiscaler.module.fsr3Bridge.name': 'Ponte do FSR 3 Frame Generation',
+  'gameDetails.optiscaler.module.fsr3Bridge.name': 'Ponte de Geração de Quadros FSR 3',
   'gameDetails.optiscaler.module.fsr3Bridge.description':
-    'Conecta integrações compatíveis dos jogos ao AMD FSR 3 Frame Generation.',
+    'Conecta integrações de jogos suportadas ao AMD FSR 3 Frame Generation.',
   'gameDetails.optiscaler.module.xess.name': 'Intel XeSS',
   'gameDetails.optiscaler.module.xess.description':
-    'Disponibiliza o Intel XeSS como opção de escalonamento.',
-  'gameDetails.optiscaler.module.optipatcher.name': 'Correções de compatibilidade para jogos',
+    'Disponibiliza o Intel XeSS como opção de upscaling.',
+  'gameDetails.optiscaler.module.optipatcher.name': 'Correções de compatibilidade de jogos',
   'gameDetails.optiscaler.module.optipatcher.description':
-    'Aplica correções específicas de compatibilidade exigidas por alguns jogos.',
-  'gameDetails.optiscaler.module.nvidiaSr.name': 'Arquivos NVIDIA DLSS',
+    'Aplica correções direcionadas de compatibilidade necessárias para alguns jogos.',
+  'gameDetails.optiscaler.module.nvidiaSr.name': 'Arquivos do NVIDIA DLSS',
   'gameDetails.optiscaler.module.nvidiaSr.description':
     'Usa arquivos compatíveis de Super Resolution já fornecidos pelo jogo.',
   'gameDetails.optiscaler.inputs': 'Entradas detectadas',
-  'gameDetails.optiscaler.confidenceLabel': 'Confiança da compatibilidade na Wiki',
-  'gameDetails.optiscaler.confidenceVerified': 'Verificada',
-  'gameDetails.optiscaler.confidenceDetectedUnverified': 'Detectada, não verificada',
-  'gameDetails.optiscaler.confidenceUnsupported': 'Não compatível',
-  'gameDetails.optiscaler.drifted':
-    'Os arquivos gerenciados foram alterados; recomenda-se repará-los',
-  'gameDetails.optiscaler.proxyChain': 'Cadeia de proxy',
-  'gameDetails.optiscaler.relocationAvailable': 'Um executável diferente do jogo está selecionado',
+  'gameDetails.optiscaler.confidenceLabel': 'Nível de confiança da compatibilidade na Wiki',
+  'gameDetails.optiscaler.confidenceVerified': 'Verificado',
+  'gameDetails.optiscaler.confidenceDetectedUnverified': 'Detectado, não verificado',
+  'gameDetails.optiscaler.confidenceUnsupported': 'Não suportado',
+  'gameDetails.optiscaler.drifted': 'Arquivos gerenciados foram alterados; reparo é recomendado',
+  'gameDetails.optiscaler.proxyChain': 'Cadeia de proxies',
+  'gameDetails.optiscaler.relocationAvailable': 'Um executável de jogo diferente foi selecionado',
   'gameDetails.optiscaler.unmanaged':
-    'Esta instalação do OptiScaler não corresponde a uma versão conhecida e não foi alterada.',
+    'Esta instalação do OptiScaler não corresponde a uma versão conhecida e foi mantida inalterada.',
   'gameDetails.optiscaler.modules': 'Módulos',
   'gameDetails.optiscaler.moduleExistingGame':
-    'Usa o arquivo existente do jogo; nenhuma cópia será instalada ao lado do executável.',
+    'Usa o arquivo de jogo existente; nenhuma cópia duplicada é instalada ao lado do executável.',
   'gameDetails.optiscaler.moduleCatalogDownload':
-    'Não está presente no jogo; será instalado no diretório isolado de execução do OptiScaler.',
+    'Não está presente no jogo; é instalado no diretório isolado de execução do OptiScaler.',
   'gameDetails.optiscaler.applyModules': 'Aplicar módulos',
   'gameDetails.optiscaler.update': 'Atualizar',
   'gameDetails.optiscaler.repair': 'Reparar',
   'gameDetails.optiscaler.relocate': 'Realocar',
-  'gameDetails.optiscaler.uninstall': 'Remover o OptiScaler',
+  'gameDetails.optiscaler.uninstall': 'Remover OptiScaler',
   'gameDetails.optiscaler.install': 'Instalar',
   'gameDetails.optiscaler.installing': 'Instalando…',
   'gameDetails.optiscaler.installError': 'Falha ao instalar o OptiScaler',

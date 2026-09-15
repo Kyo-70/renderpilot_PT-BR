@@ -96,6 +96,8 @@ export const lumaOverrides = defineLocalizedCatalog<'fr', LumaSourceCatalog>()({
   'luma.narutotoborutoshinobistriker.compatibility': 'Bloqué par Easy Anti-Cheat.',
   'luma.no-more-heroes-3.engine_ini':
     'Appliquez manuellement les paramètres suivants dans Engine.ini.',
+  'luma.octopath-traveler.engine_ini':
+    'Appliquez manuellement les paramètres suivants dans Engine.ini.',
   'luma.orcs-must-die-3.game_setting':
     'Dans les paramètres du jeu, sélectionnez la qualité d’AA « High ».',
   'luma.persona-3reload.compatibility': 'Ne se lance pas en mode DirectX 11.',
