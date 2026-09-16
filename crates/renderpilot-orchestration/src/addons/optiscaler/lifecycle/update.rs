@@ -24,6 +24,7 @@ pub async fn set_modules(
         UpdateOptiScalerRequest {
             context: request.context,
             manifest: request.manifest,
+            catalog: request.catalog,
             safety: request.safety,
             progress: request.progress,
         },
@@ -46,7 +47,7 @@ async fn update_with_intent(
         let snapshot = capture_lifecycle_snapshot(request.context, &game_id)?;
         ensure_managed_install_snapshot(&snapshot)?;
         let availability =
-            matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
+            matcher::evaluate(request.context, request.manifest, request.catalog, &game_id)?;
         (snapshot, availability)
     };
     let old_state = initial_snapshot
@@ -115,7 +116,7 @@ async fn update_with_intent(
             .await?;
     ensure_lifecycle_snapshot_unchanged(request.context, &game_id, &initial_snapshot)?;
     let availability =
-        matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
+        matcher::evaluate(request.context, request.manifest, request.catalog, &game_id)?;
     ensure_apply_allowed(&availability)?;
     ensure_selected_modules_available(&availability, &modules)?;
     apply_release_off_runtime(&ApplyPlan {

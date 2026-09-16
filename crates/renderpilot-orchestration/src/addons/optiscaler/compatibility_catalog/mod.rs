@@ -19,4 +19,4 @@ pub(crate) use model::{
 pub(crate) use resolution::resolve;
 pub(crate) use store::get_or_fetch_catalog;
 #[cfg(test)]
-pub(crate) use store::parse_catalog;
+pub(crate) use store::{bundled_catalog, parse_catalog};

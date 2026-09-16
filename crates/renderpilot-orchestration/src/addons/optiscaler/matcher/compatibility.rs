@@ -223,28 +223,20 @@ mod tests {
         LibraryComponent, LibraryTechnology, Swappability,
     };
 
+    fn valid_test_guidance() -> Vec<serde_json::Value> {
+        vec![serde_json::json!({
+            "kind": "warning",
+            "message": {
+                "id": "optiscaler-test-warning",
+                "fallback_text": "Test warning fallback text"
+            }
+        })]
+    }
+
     fn unsupported_catalog() -> OptiScalerCompatibilityCatalog {
-        let messages: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../../../../assets/optiscaler-compatibility-messages.json"
-        ))
-        .expect("bundled message contract");
-        let guidance = messages["messages"]
-            .as_array()
-            .expect("message entries")
-            .iter()
-            .map(|message| {
-                serde_json::json!({
-                    "kind": message["guidance_kind"].clone(),
-                    "message": {
-                        "id": message["id"].clone(),
-                        "fallback_text": message["fallback_text"].clone()
-                    }
-                })
-            })
-            .collect::<Vec<_>>();
         let value = serde_json::json!({
             "schema_version": 1,
-            "revision": messages["revision"].clone(),
+            "revision": "2026-01-01.1",
             "upstream": {
                 "source": "test-fixture",
                 "snapshot_revision": "2026-01-01",
@@ -255,7 +247,7 @@ mod tests {
                 "status": "unsupported",
                 "identities": [{ "kind": "steam_appid", "value": "999999991" }],
                 "declared_inputs": [],
-                "guidance": guidance,
+                "guidance": valid_test_guidance(),
                 "variants": [{
                     "proxy": { "kind": "automatic" },
                     "ini_overrides": [],
@@ -271,30 +263,12 @@ mod tests {
     }
 
     fn conflicting_catalog() -> OptiScalerCompatibilityCatalog {
-        let messages: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../../../../assets/optiscaler-compatibility-messages.json"
-        ))
-        .expect("bundled message contract");
-        let guidance = messages["messages"]
-            .as_array()
-            .expect("message entries")
-            .iter()
-            .map(|message| {
-                serde_json::json!({
-                    "kind": message["guidance_kind"].clone(),
-                    "message": {
-                        "id": message["id"].clone(),
-                        "fallback_text": message["fallback_text"].clone()
-                    }
-                })
-            })
-            .collect::<Vec<_>>();
         let entry = serde_json::json!({
             "id": "conflict-entry-a",
             "status": "working",
             "identities": [{ "kind": "steam_appid", "value": "999999991" }],
             "declared_inputs": [],
-            "guidance": guidance,
+            "guidance": valid_test_guidance(),
             "variants": [{
                 "proxy": { "kind": "automatic" },
                 "ini_overrides": [],
@@ -305,7 +279,7 @@ mod tests {
         });
         let value = serde_json::json!({
             "schema_version": 1,
-            "revision": messages["revision"].clone(),
+            "revision": "2026-01-01.1",
             "upstream": {
                 "source": "test-fixture",
                 "snapshot_revision": "2026-01-01",

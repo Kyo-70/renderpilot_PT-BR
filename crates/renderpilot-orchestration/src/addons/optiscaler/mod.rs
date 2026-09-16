@@ -41,14 +41,15 @@ pub(crate) fn preflight_managed_cleanup_uninstall_locked(
 ) -> Result<OptiScalerManagedCleanupFootprint, crate::ServiceError> {
     lifecycle::preflight_managed_cleanup_uninstall_locked(context, game_id, guard)
 }
-/// Evaluates install eligibility without running filesystem/PE inspection on
-/// an async runtime worker.
-pub(crate) async fn availability_with_manifest(
+/// Reconciles a recoverable local installation while evaluating availability,
+/// then returns the current availability snapshot.
+pub(crate) async fn load_availability(
     context: &crate::Context,
     manifest: &types::OptiScalerManifest,
+    catalog: &compatibility_catalog::OptiScalerCompatibilityCatalog,
     game_id: &renderpilot_domain::GameId,
 ) -> Result<types::OptiScalerAvailability, crate::ServiceError> {
-    let availability = matcher::evaluation_off_runtime(context, manifest, game_id).await?;
+    let availability = matcher::evaluate(context, manifest, catalog, game_id)?;
     // Like RenoDX/Luma, reconcile a recoverable local installation while
     // loading availability. This is a database-only adoption: no game file
     // is rewritten. A known ReShade downstream host is recorded
@@ -58,14 +59,14 @@ pub(crate) async fn availability_with_manifest(
         let adopted = lifecycle::adopt_exact(
             context,
             manifest,
+            catalog,
             game_id,
             lifecycle::AdoptionPolicy::Reconcile,
             &availability,
         )
         .await?;
         if adopted.is_some() || stored_status(context, game_id)?.is_some() {
-            return matcher::evaluation_off_runtime(context, manifest, game_id)
-                .await
+            return matcher::evaluate(context, manifest, catalog, game_id)
                 .map(evaluation::EvaluatedAvailability::into_wire);
         }
     }
@@ -92,6 +93,7 @@ pub(crate) async fn check_updates_with_manifest(
     manifest: &types::OptiScalerManifest,
 ) -> Result<Vec<(renderpilot_domain::GameId, types::OptiScalerUpdateCheck)>, crate::ServiceError> {
     use renderpilot_application::OptiScalerStateRepository;
+    let catalog = compatibility_catalog::get_or_fetch_catalog().await?;
     let games = context.storage().list_games()?;
     let mut reports = Vec::new();
     for game in games {
@@ -105,7 +107,7 @@ pub(crate) async fn check_updates_with_manifest(
         }
         reports.push((
             game_id.clone(),
-            lifecycle::check_update(context, manifest, &game_id).await?,
+            lifecycle::check_update(context, manifest, &catalog, &game_id).await?,
         ));
     }
     Ok(reports)

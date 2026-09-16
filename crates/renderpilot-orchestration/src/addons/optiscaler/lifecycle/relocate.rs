@@ -46,13 +46,13 @@ pub async fn relocate(
         .find(|release| release.id == state.release_id)
         .ok_or_else(|| failed("installed OptiScaler release is absent from the manifest"))?;
     let modules = validate_module_selection(request.manifest, &release.id, &state.modules)?;
-    let availability = matcher::relocation_evaluation_off_runtime(
+    let availability = matcher::evaluate_relocation(
         request.context,
         request.manifest,
+        request.catalog,
         &game_id,
         relocation_target,
-    )
-    .await?;
+    )?;
     ensure_apply_allowed(&availability)?;
     // Same-directory changes may coordinate the exact topology-owned host.
     // Cross-directory moves with any active downstream are rejected by the
@@ -80,13 +80,13 @@ pub async fn relocate(
         crate::mutation_boundary::enter_game_mutation_boundary_async(request.context, &game_id)
             .await?;
     ensure_lifecycle_snapshot_unchanged(request.context, &game_id, &initial_snapshot)?;
-    let revalidated = matcher::relocation_evaluation_off_runtime(
+    let revalidated = matcher::evaluate_relocation(
         request.context,
         request.manifest,
+        request.catalog,
         &game_id,
         relocation_target,
-    )
-    .await?;
+    )?;
     ensure_apply_allowed(&revalidated)?;
     ensure_target_unchanged(&target, &revalidated)?;
     ensure_selected_modules_available(&revalidated, &modules)?;

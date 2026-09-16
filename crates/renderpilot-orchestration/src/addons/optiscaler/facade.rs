@@ -95,8 +95,11 @@ pub async fn availability(
     context: &Context,
     game_id: &GameId,
 ) -> Result<OptiScalerAvailability, ServiceError> {
-    let manifest = super::manifest_store::get_or_fetch_manifest().await?;
-    let result = super::availability_with_manifest(context, &manifest, game_id).await?;
+    let (manifest, catalog) = tokio::try_join!(
+        super::manifest_store::get_or_fetch_manifest(),
+        super::compatibility_catalog::get_or_fetch_catalog(),
+    )?;
+    let result = super::load_availability(context, &manifest, &catalog, game_id).await?;
     Ok(result)
 }
 
@@ -106,10 +109,14 @@ pub async fn install(
 ) -> Result<OptiScalerOperationResult, ServiceError> {
     let context = request.context;
     let game_id = request.game_id().clone();
-    let manifest = super::manifest_store::get_or_fetch_manifest().await?;
+    let (manifest, catalog) = tokio::try_join!(
+        super::manifest_store::get_or_fetch_manifest(),
+        super::compatibility_catalog::get_or_fetch_catalog(),
+    )?;
     let result = lifecycle::install(lifecycle::InstallOptiScalerRequest {
         context,
         manifest: &manifest,
+        catalog: &catalog,
         safety: request.safety,
         modules: request.modules,
         progress: request.progress,
@@ -143,10 +150,14 @@ async fn mutate(
 ) -> Result<OptiScalerOperationResult, ServiceError> {
     let context = request.context;
     let game_id = request.game_id().clone();
-    let manifest = super::manifest_store::get_or_fetch_manifest().await?;
+    let (manifest, catalog) = tokio::try_join!(
+        super::manifest_store::get_or_fetch_manifest(),
+        super::compatibility_catalog::get_or_fetch_catalog(),
+    )?;
     let request_inner = lifecycle::UpdateOptiScalerRequest {
         context,
         manifest: &manifest,
+        catalog: &catalog,
         safety: request.safety,
         progress: request.progress,
     };
@@ -169,10 +180,14 @@ pub async fn set_modules(
 ) -> Result<OptiScalerOperationResult, ServiceError> {
     let context = request.context;
     let game_id = request.game_id().clone();
-    let manifest = super::manifest_store::get_or_fetch_manifest().await?;
+    let (manifest, catalog) = tokio::try_join!(
+        super::manifest_store::get_or_fetch_manifest(),
+        super::compatibility_catalog::get_or_fetch_catalog(),
+    )?;
     let result = lifecycle::set_modules(lifecycle::SetOptiScalerModulesRequest {
         context,
         manifest: &manifest,
+        catalog: &catalog,
         safety: request.safety,
         modules: request.modules,
         progress: request.progress,
@@ -192,10 +207,14 @@ pub async fn relocate(
 ) -> Result<OptiScalerOperationResult, ServiceError> {
     let context = request.context;
     let game_id = request.game_id().clone();
-    let manifest = super::manifest_store::get_or_fetch_manifest().await?;
+    let (manifest, catalog) = tokio::try_join!(
+        super::manifest_store::get_or_fetch_manifest(),
+        super::compatibility_catalog::get_or_fetch_catalog(),
+    )?;
     let result = lifecycle::relocate(lifecycle::RelocateOptiScalerRequest {
         context,
         manifest: &manifest,
+        catalog: &catalog,
         safety: request.safety,
         target_exe: request.target_exe,
         progress: request.progress,
@@ -214,8 +233,11 @@ pub async fn check_update(
     context: &Context,
     game_id: &GameId,
 ) -> Result<OptiScalerUpdateCheck, ServiceError> {
-    let manifest = super::manifest_store::get_or_fetch_manifest().await?;
-    lifecycle::check_update(context, &manifest, game_id).await
+    let (manifest, catalog) = tokio::try_join!(
+        super::manifest_store::get_or_fetch_manifest(),
+        super::compatibility_catalog::get_or_fetch_catalog(),
+    )?;
+    lifecycle::check_update(context, &manifest, &catalog, game_id).await
 }
 
 /// Checks every managed OptiScaler installation using one manifest snapshot.

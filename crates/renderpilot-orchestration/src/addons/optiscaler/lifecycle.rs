@@ -22,6 +22,7 @@ use renderpilot_domain::{
 };
 
 use super::archive::{PreparedArchive, read_verified_member, selected_members, validate_and_stage};
+use super::compatibility_catalog::OptiScalerCompatibilityCatalog;
 use super::config::{ConfigMergeResult, remove_managed_values, three_way_merge};
 use super::evaluation::{EvaluatedAvailability, EvaluatedProxyPlan};
 use super::matcher::{

@@ -10,13 +10,14 @@ use super::super::*;
 pub(crate) async fn adopt_exact(
     context: &Context,
     manifest: &OptiScalerManifest,
+    catalog: &OptiScalerCompatibilityCatalog,
     game_id: &GameId,
     policy: AdoptionPolicy,
     availability: &EvaluatedAvailability,
 ) -> Result<Option<OptiScalerOperationResult>, ServiceError> {
     let guard =
         crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id).await?;
-    let current = matcher::evaluation_off_runtime(context, manifest, game_id).await?;
+    let current = matcher::evaluate(context, manifest, catalog, game_id)?;
     if current.install_state.is_some() {
         return Ok(None);
     }

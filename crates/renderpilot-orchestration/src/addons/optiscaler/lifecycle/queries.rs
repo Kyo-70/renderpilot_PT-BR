@@ -6,6 +6,7 @@ use super::*;
 pub async fn check_update(
     context: &Context,
     manifest: &OptiScalerManifest,
+    catalog: &OptiScalerCompatibilityCatalog,
     game_id: &GameId,
 ) -> Result<OptiScalerUpdateCheck, ServiceError> {
     let state = context.storage().get_optiscaler_install_state(game_id)?;
@@ -20,14 +21,14 @@ pub async fn check_update(
         });
     };
     let release = current_release(manifest)?;
-    let availability = matcher::evaluation_off_runtime(context, manifest, game_id).await?;
+    let availability = matcher::evaluate(context, manifest, catalog, game_id)?;
     Ok(OptiScalerUpdateCheck {
         overall: if availability.update_available {
             crate::addons::update::UpdateStatus::Available
         } else {
             crate::addons::update::UpdateStatus::Current
         },
-        installed_release: Some(state.release_id.clone()),
+        installed_release: Some(state.release_id),
         available_release: Some(release.id.clone()),
         // Catalogue revisions may change compatibility wording without changing
         // immutable release bytes, so release identity alone drives this flag.

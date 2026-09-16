@@ -16,7 +16,7 @@ pub async fn install(
                 .await?;
         let snapshot = capture_lifecycle_snapshot(request.context, &game_id)?;
         let availability =
-            matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
+            matcher::evaluate(request.context, request.manifest, request.catalog, &game_id)?;
         (availability, snapshot)
     };
     ensure_fresh_install_snapshot(&initial_snapshot)?;
@@ -25,6 +25,7 @@ pub async fn install(
         if let Some(result) = adopt_exact(
             request.context,
             request.manifest,
+            request.catalog,
             &game_id,
             AdoptionPolicy::UserRequested,
             &availability,
@@ -75,7 +76,7 @@ pub async fn install(
             .await?;
     ensure_lifecycle_snapshot_unchanged(request.context, &game_id, &initial_snapshot)?;
     let revalidated =
-        matcher::evaluation_off_runtime(request.context, request.manifest, &game_id).await?;
+        matcher::evaluate(request.context, request.manifest, request.catalog, &game_id)?;
     ensure_apply_allowed(&revalidated)?;
     ensure_target_unchanged(&target, &revalidated)?;
     ensure_selected_modules_available(&revalidated, &modules)?;

@@ -6,6 +6,8 @@ pub(crate) struct InstallOptiScalerRequest<'a> {
     pub context: &'a Context,
     /// Validated immutable release catalogue.
     pub manifest: &'a OptiScalerManifest,
+    /// Validated compatibility catalogue snapshot.
+    pub catalog: &'a OptiScalerCompatibilityCatalog,
     pub safety: crate::GameSafetyPermit,
     /// Optional explicit module selection; defaults are used when absent.
     pub modules: Option<&'a [String]>,
@@ -19,6 +21,8 @@ pub(crate) struct UpdateOptiScalerRequest<'a> {
     pub context: &'a Context,
     /// Validated immutable release catalogue.
     pub manifest: &'a OptiScalerManifest,
+    /// Validated compatibility catalogue snapshot.
+    pub catalog: &'a OptiScalerCompatibilityCatalog,
     pub safety: crate::GameSafetyPermit,
     /// Optional download progress observer.
     pub progress: Option<&'a ProgressObserver<'a>>,
@@ -30,6 +34,8 @@ pub(crate) struct SetOptiScalerModulesRequest<'a> {
     pub context: &'a Context,
     /// Validated immutable release catalogue.
     pub manifest: &'a OptiScalerManifest,
+    /// Validated compatibility catalogue snapshot.
+    pub catalog: &'a OptiScalerCompatibilityCatalog,
     pub safety: crate::GameSafetyPermit,
     /// Requested stable manifest module identifiers.
     pub modules: &'a [String],
@@ -43,6 +49,8 @@ pub(crate) struct RelocateOptiScalerRequest<'a> {
     pub context: &'a Context,
     /// Validated immutable release catalogue.
     pub manifest: &'a OptiScalerManifest,
+    /// Validated compatibility catalogue snapshot.
+    pub catalog: &'a OptiScalerCompatibilityCatalog,
     pub safety: crate::GameSafetyPermit,
     /// New effective executable selected by the user.
     pub target_exe: &'a Path,

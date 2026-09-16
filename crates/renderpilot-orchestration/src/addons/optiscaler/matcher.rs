@@ -78,32 +78,7 @@ pub(crate) fn evaluate(
     Ok(evaluation)
 }
 
-/// Availability analysis boundary for OptiScaler lifecycle orchestrators.
-///
-/// Desktop commands run on background async tasks via the boundary runner,
-/// while borrowed evaluation remains clean, synchronous, and memory-safe
-/// without static allocation overhead.
-pub(crate) async fn evaluation_off_runtime(
-    context: &Context,
-    manifest: &OptiScalerManifest,
-    game_id: &GameId,
-) -> Result<EvaluatedAvailability, ServiceError> {
-    let catalog = super::compatibility_catalog::get_or_fetch_catalog().await?;
-    evaluate(context, manifest, &catalog, game_id)
-}
-
-/// Relocation availability analysis boundary for OptiScaler lifecycle orchestrators.
-pub(crate) async fn relocation_evaluation_off_runtime(
-    context: &Context,
-    manifest: &OptiScalerManifest,
-    game_id: &GameId,
-    target_exe: &Path,
-) -> Result<EvaluatedAvailability, ServiceError> {
-    let catalog = super::compatibility_catalog::get_or_fetch_catalog().await?;
-    relocation_evaluation(context, manifest, &catalog, game_id, target_exe)
-}
-
-fn relocation_evaluation(
+pub(crate) fn evaluate_relocation(
     context: &Context,
     manifest: &OptiScalerManifest,
     catalog: &super::compatibility_catalog::OptiScalerCompatibilityCatalog,
@@ -645,8 +620,10 @@ mod tests {
             .to_owned();
         let manifest =
             super::super::types::OptiScalerManifest::try_from(wire).expect("valid proxy fixture");
+        let catalog =
+            super::super::compatibility_catalog::bundled_catalog().expect("bundled catalog");
 
-        let availability = super::super::availability_with_manifest(&context, &manifest, &game_id)
+        let availability = super::super::load_availability(&context, &manifest, &catalog, &game_id)
             .await
             .expect("availability reconciliation");
 
