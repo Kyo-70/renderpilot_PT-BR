@@ -1166,10 +1166,15 @@ fn d3d12_artifact_at(source: &Path, sdk_line: u32) -> LibraryArtifact {
 }
 
 #[cfg(windows)]
-fn copy_current_executable_to(destinations: &[&Path]) {
-    let process_image = std::env::current_exe().expect("current test executable");
+fn synthetic_x64_pe() -> Vec<u8> {
+    synthetic_xiph_pe("RenderPilotTestFixture", &[])
+}
+
+#[cfg(windows)]
+fn write_x64_pe_fixture_to(destinations: &[&Path]) {
+    let fixture = synthetic_x64_pe();
     for destination in destinations {
-        fs::copy(&process_image, destination).expect("copy PE fixture");
+        fs::write(destination, &fixture).expect("write x64 PE fixture");
     }
 }
 
@@ -1231,7 +1236,7 @@ fn standalone_dxc_apply_and_rollback_preserve_the_games_file_set() {
     let live_compiler = game_dir.join("dxcompiler.dll");
     let source_compiler = library_dir.join("dxcompiler.dll");
     let source_validator = library_dir.join("dxil.dll");
-    copy_current_executable_to(&[
+    write_x64_pe_fixture_to(&[
         &game_executable,
         &live_compiler,
         &source_compiler,
