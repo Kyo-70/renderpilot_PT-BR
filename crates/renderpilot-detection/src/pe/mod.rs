@@ -5,15 +5,26 @@
 //! architecture from the COFF header and import table ([`analyze_executable`]).
 
 mod binary;
+pub mod codeview;
 mod exports;
 mod graphics;
 mod header;
 mod image;
 mod imports;
+pub mod iostore;
+pub mod section_locator;
 mod source;
+pub mod streaming_scanner;
 #[cfg(test)]
 mod tests;
+pub mod ue3;
 mod version_info;
+
+pub use self::codeview::*;
+pub use self::iostore::*;
+pub use self::section_locator::*;
+pub use self::streaming_scanner::*;
+pub use self::ue3::*;
 
 use std::{fs, path::Path};
 

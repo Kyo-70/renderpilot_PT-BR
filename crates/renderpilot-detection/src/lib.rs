@@ -12,7 +12,7 @@ mod filesystem_detector;
 mod glob;
 mod normalize;
 mod pattern;
-mod pe;
+pub mod pe;
 
 pub use anticheat::{
     AntiCheatEngine, AntiCheatEvidence, AntiCheatEvidenceKind, AntiCheatScanCompleteness,
