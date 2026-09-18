@@ -114,7 +114,7 @@ impl EngineLayoutDetector for UnrealLayoutDetector {
     fn analyze(&self, request: &EngineLayoutRequest<'_>) -> Option<EngineLayoutEvidence> {
         let candidate = request.candidate;
 
-        if let Some(project_root) = unreal_project_root(candidate) {
+        if let Some(project_root) = unreal_project_root(candidate, request.accepted_executables) {
             let distribution_root = unreal_distribution_parent(&project_root);
             let role = if candidate == project_root {
                 EngineLayoutRole::ProjectSubtree
@@ -149,6 +149,32 @@ impl EngineLayoutDetector for UnrealLayoutDetector {
             ));
         }
 
+        // Packaged distributions such as Satisfactory place the selected
+        // renderer under the shared `<Distribution>/Engine/Binaries` tree,
+        // while the project itself is an immediate sibling (`FactoryGame`).
+        // Bind that project only when the shared-engine executable proof and
+        // exactly one structural project child are both present.  This keeps
+        // the detector bounded and fail-closed for ambiguous distributions.
+        let engine_binaries = candidate.join("Engine/Binaries");
+        if is_plain_directory(&engine_binaries)
+            && request
+                .accepted_executables
+                .iter()
+                .any(|executable| executable.starts_with(&engine_binaries))
+        {
+            let mut project_roots = plain_child_directories(candidate)
+                .into_iter()
+                .filter(|path| is_unreal_project_root(path));
+            if let (Some(project_root), None) = (project_roots.next(), project_roots.next()) {
+                return Some(EngineLayoutEvidence::unreal(
+                    EngineLayoutRole::DistributionRoot,
+                    candidate,
+                    Some(candidate.to_path_buf()),
+                    Some(project_root),
+                ));
+            }
+        }
+
         None
     }
 }
@@ -168,15 +194,26 @@ fn unreal_project_children<'a>(
         })
 }
 
-fn unreal_project_root(candidate: &Path) -> Option<PathBuf> {
+fn unreal_project_root(candidate: &Path, accepted_executables: &[PathBuf]) -> Option<PathBuf> {
     candidate
         .ancestors()
-        .find(|ancestor| is_unreal_project_root(ancestor))
+        .find(|ancestor| {
+            if !is_unreal_project_root(ancestor) {
+                return false;
+            }
+            let binaries = ancestor.join("Binaries");
+            accepted_executables
+                .iter()
+                .any(|executable| executable.starts_with(&binaries))
+        })
         .map(Path::to_path_buf)
 }
 
 fn is_unreal_project_root(candidate: &Path) -> bool {
-    is_plain_directory(&candidate.join("Binaries"))
+    candidate
+        .file_name()
+        .is_some_and(|name| !name.as_encoded_bytes().eq_ignore_ascii_case(b"Engine"))
+        && is_plain_directory(&candidate.join("Binaries"))
         && is_plain_directory(&candidate.join("Content"))
 }
 
@@ -315,5 +352,74 @@ mod tests {
         assert_eq!(evidence.len(), 1);
         assert_eq!(evidence[0].role(), EngineLayoutRole::SharedEngineSubtree);
         assert_eq!(evidence[0].distribution_root(), Some(root.as_path()));
+    }
+
+    #[test]
+    fn project_identity_requires_the_accepted_executable_inside_binaries() {
+        let temp = tempdir().expect("temp");
+        let project = temp.path().join("Project");
+        fs::create_dir_all(project.join("Binaries/Win64")).expect("binaries");
+        fs::create_dir_all(project.join("Content")).expect("content");
+        let outside = project.join("Game.exe");
+        fs::write(&outside, b"PE").expect("outside");
+
+        let evidence = analyze_engine_layout(&EngineLayoutRequest {
+            candidate: &project,
+            accepted_executables: &[outside],
+        });
+
+        assert!(evidence.is_empty());
+    }
+
+    #[test]
+    fn packaged_shared_engine_executable_binds_the_unique_project_sibling() {
+        let temp = tempdir().expect("temp");
+        let root = temp.path().join("Satisfactory");
+        let project = root.join("FactoryGame");
+        let binary = root.join("Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe");
+        fs::create_dir_all(binary.parent().expect("binary parent")).expect("engine binaries");
+        fs::create_dir_all(project.join("Binaries/Win64")).expect("project binaries");
+        fs::create_dir_all(project.join("Content")).expect("project content");
+        fs::write(&binary, b"PE").expect("binary");
+
+        let evidence = analyze_engine_layout(&EngineLayoutRequest {
+            candidate: &root,
+            accepted_executables: std::slice::from_ref(&binary),
+        });
+
+        assert_eq!(evidence.len(), 1);
+        assert_eq!(evidence[0].role(), EngineLayoutRole::DistributionRoot);
+        assert_eq!(evidence[0].distribution_root(), Some(root.as_path()));
+        assert_eq!(evidence[0].project_root(), Some(project.as_path()));
+    }
+
+    #[test]
+    fn packaged_shared_engine_proof_rejects_ambiguous_or_outside_executables() {
+        let temp = tempdir().expect("temp");
+        let root = temp.path().join("PackagedGame");
+        let project = root.join("Project");
+        let second_project = root.join("SecondProject");
+        let shared_binary = root.join("Engine/Binaries/Win64/Game.exe");
+        let outside = root.join("Game.exe");
+        fs::create_dir_all(shared_binary.parent().expect("engine binaries"))
+            .expect("engine binaries");
+        for candidate in [&project, &second_project] {
+            fs::create_dir_all(candidate.join("Binaries")).expect("project binaries");
+            fs::create_dir_all(candidate.join("Content")).expect("project content");
+        }
+        fs::write(&shared_binary, b"PE").expect("shared binary");
+        fs::write(&outside, b"PE").expect("outside binary");
+
+        let ambiguous = analyze_engine_layout(&EngineLayoutRequest {
+            candidate: &root,
+            accepted_executables: std::slice::from_ref(&shared_binary),
+        });
+        assert!(ambiguous.is_empty());
+
+        let outside_proof = analyze_engine_layout(&EngineLayoutRequest {
+            candidate: &root,
+            accepted_executables: std::slice::from_ref(&outside),
+        });
+        assert!(outside_proof.is_empty());
     }
 }

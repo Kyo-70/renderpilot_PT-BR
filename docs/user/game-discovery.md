@@ -22,6 +22,6 @@ Detection recognizes supported NVIDIA, AMD, and Intel components, plus DirectSto
 
 ## Sources of truth
 
-- [Launcher and executable detection](../../crates/renderpilot-platform-windows/src/executable_detection.rs)
+- [Launcher and executable detection](../../crates/renderpilot-platform-windows/src/executable_detection/mod.rs)
 - [Filesystem detector](../../crates/renderpilot-detection/src/filesystem_detector/mod.rs)
 - [Add-game warning contract](../../data/contracts/add-game-warnings.json)

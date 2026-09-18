@@ -58,6 +58,12 @@ pub struct ResolvedExecutable {
 /// A binary that imports any known graphics API is a renderer, not a
 /// launcher/installer/helper. Dominates every other term.
 const RENDERS_GRAPHICS: i64 = 1_000_000;
+/// A binary with a shipping configuration suffix bound to the authoritative
+/// launcher executable (e.g. `FactoryGameSteam-Win64-Shipping.exe` for
+/// launcher `FactoryGameSteam.exe`), representing a modular or production engine
+/// renderer rather than a launcher/bootstrap stub. Outranks launcher stubs and
+/// filesystem proximity when graphics imports are modular or dynamic.
+const BOUND_SHIPPING_RENDERER: i64 = 500_000;
 /// A candidate whose name equals the launcher's recorded launch executable. The
 /// launcher's own truth outranks the DirectX preference heuristic.
 const AUTHORITATIVE_MATCH: i64 = 100_000;
@@ -72,13 +78,16 @@ const ARCHITECTURE_KNOWN: i64 = 100;
 /// folder-name match, size — see `executable_detection`), used only as the final
 /// tiebreak. `authoritative_match` is set when the candidate's name equals the
 /// launcher's recorded launch exe. Set `prefer_directx` for RenoDX, clear it for
-/// NVAPI (a Vulkan game is still the game).
+/// NVAPI (a Vulkan game is still the game). `is_bound_shipping` indicates a production
+/// shipping configuration binary whose base stem matches the authoritative launcher
+/// executable (e.g. `FactoryGameSteam-Win64-Shipping.exe` for launcher `FactoryGameSteam.exe`).
 #[must_use]
 pub fn primary_score(
     fs_rank: i32,
     graphics: &ExeGraphicsInfo,
     prefer_directx: bool,
     authoritative_match: bool,
+    is_bound_shipping: bool,
 ) -> i64 {
     let renders = !graphics.apis().is_empty();
     let is_directx = graphics.apis().iter().any(|api| {
@@ -90,6 +99,7 @@ pub fn primary_score(
     let arch_known = graphics.architecture().is_some();
 
     i64::from(renders) * RENDERS_GRAPHICS
+        + i64::from(is_bound_shipping) * BOUND_SHIPPING_RENDERER
         + i64::from(authoritative_match) * AUTHORITATIVE_MATCH
         + if prefer_directx && is_directx {
             PREFERS_DIRECTX
@@ -115,7 +125,7 @@ pub fn resolve_primary_executable(
     prefer_directx: bool,
 ) -> Option<ResolvedExecutable> {
     use renderpilot_detection::analyze_executable;
-    use renderpilot_platform_windows::detect_executable_candidates;
+    use renderpilot_platform_windows::{detect_executable_candidates, is_bound_shipping_target};
 
     if let Some(over) = override_path.filter(|path| path.exists())
         && let Ok(path) = PathRef::new(to_forward_slashes(over))
@@ -132,20 +142,43 @@ pub fn resolve_primary_executable(
     let launch_exe = renderpilot_platform_windows::launcher_launch_executable(install_dir);
     #[cfg(not(windows))]
     let launch_exe: Option<String> = None;
-    detect_executable_candidates(install_dir)
+
+    let candidates: Vec<_> = detect_executable_candidates(install_dir)
         .into_iter()
         .filter(|candidate| candidate.rejection.is_none())
+        .collect();
+
+    let root_bootstrap_names: Vec<String> = candidates
+        .iter()
+        .filter(|c| {
+            c.depth == 0
+                && renderpilot_platform_windows::strip_shipping_suffix(&c.file_name).is_none()
+        })
+        .map(|c| c.file_name.clone())
+        .collect();
+
+    candidates
+        .into_iter()
         .filter_map(|candidate| {
             let path = PathRef::new(to_forward_slashes(&candidate.absolute_path)).ok()?;
             let graphics = analyze_executable(&candidate.absolute_path);
             let authoritative = launch_exe
                 .as_deref()
                 .is_some_and(|name| name.eq_ignore_ascii_case(&candidate.file_name));
+            let is_bound_to_launcher = launch_exe
+                .as_deref()
+                .is_some_and(|launcher| is_bound_shipping_target(&candidate.file_name, launcher));
+            let is_bound_to_root = is_expected_renderer_topology(&candidate.relative_path)
+                && root_bootstrap_names
+                    .iter()
+                    .any(|root_name| is_bound_shipping_target(&candidate.file_name, root_name));
+            let is_bound_shipping = is_bound_to_launcher || is_bound_to_root;
             let score = primary_score(
                 candidate.rank_score,
                 &graphics,
                 prefer_directx,
                 authoritative,
+                is_bound_shipping,
             );
             Some((
                 score,
@@ -159,6 +192,35 @@ pub fn resolve_primary_executable(
         })
         .max_by_key(|(score, _)| *score)
         .map(|(_, resolved)| resolved)
+}
+
+/// Returns whether `relative_path` matches the expected renderer topology for nested shipping binaries.
+///
+/// Specifically, the binary must reside in a `Binaries/Win64` or `Binaries/Win32` directory
+/// (case-insensitive), e.g. `Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe` or
+/// `Binaries/Win64/Game-Win64-Shipping.exe`.
+///
+/// Unrelated directories such as `Tools/Game-Shipping.exe` return `false` to prevent arbitrary
+/// tool executables from hijacking the primary executable when launcher metadata is absent.
+fn is_expected_renderer_topology(relative_path: &str) -> bool {
+    let path = Path::new(relative_path);
+    let Some(parent) = path.parent() else {
+        return false;
+    };
+    let Some(arch_dir) = parent.file_name().and_then(|n| n.to_str()) else {
+        return false;
+    };
+    if !arch_dir.eq_ignore_ascii_case("Win64") && !arch_dir.eq_ignore_ascii_case("Win32") {
+        return false;
+    }
+    let Some(binaries_dir) = parent
+        .parent()
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+    else {
+        return false;
+    };
+    binaries_dir.eq_ignore_ascii_case("Binaries")
 }
 
 fn to_forward_slashes(path: &Path) -> String {
@@ -188,8 +250,9 @@ mod tests {
             &info(&[GraphicsApi::D3D12], Some(Architecture::X64)),
             true,
             false,
+            false,
         );
-        let launcher = primary_score(60, &info(&[], None), true, false);
+        let launcher = primary_score(60, &info(&[], None), true, false, false);
         assert!(renderer > launcher);
     }
 
@@ -201,11 +264,13 @@ mod tests {
             &info(&[GraphicsApi::D3D12], Some(Architecture::X64)),
             true,
             true,
+            false,
         );
         let other = primary_score(
             20,
             &info(&[GraphicsApi::D3D12], Some(Architecture::X64)),
             true,
+            false,
             false,
         );
         assert!(authoritative > other);
@@ -215,11 +280,12 @@ mod tests {
     fn an_importing_renderer_beats_an_authoritative_launcher_stub() {
         // Launcher-wrapped game: the launch exe is a stub that imports nothing; the
         // real renderer (imports graphics) must still win.
-        let stub = primary_score(20, &info(&[], None), true, true);
+        let stub = primary_score(20, &info(&[], None), true, true, false);
         let renderer = primary_score(
             0,
             &info(&[GraphicsApi::D3D11], Some(Architecture::X64)),
             true,
+            false,
             false,
         );
         assert!(renderer > stub);
@@ -229,9 +295,61 @@ mod tests {
     fn authoritative_exe_wins_when_nothing_imports_graphics() {
         // Fully-dynamic-D3D game: no candidate imports graphics, so the launcher's
         // recorded launch exe is the best signal.
-        let launch = primary_score(0, &info(&[], Some(Architecture::X64)), true, true);
-        let other = primary_score(20, &info(&[], Some(Architecture::X64)), true, false);
+        let launch = primary_score(0, &info(&[], Some(Architecture::X64)), true, true, false);
+        let other = primary_score(20, &info(&[], Some(Architecture::X64)), true, false, false);
         assert!(launch > other);
+    }
+
+    #[test]
+    fn bound_shipping_renderer_beats_authoritative_launcher_stub_when_graphics_are_modular() {
+        // When a shipping binary is bound to the authoritative launcher
+        // (e.g. FactoryGameSteam-Win64-Shipping for FactoryGameSteam),
+        // it represents the actual modular engine renderer and outranks the launcher stub.
+        let authoritative_stub =
+            primary_score(20, &info(&[], Some(Architecture::X64)), true, true, false);
+        let bound_shipping_binary =
+            primary_score(25, &info(&[], Some(Architecture::X64)), true, false, true);
+        assert!(bound_shipping_binary > authoritative_stub);
+    }
+
+    #[test]
+    fn authoritative_launcher_beats_unrelated_shipping_binary() {
+        // Game.exe authoritative + Unrelated-Shipping.exe => Game.exe
+        let authoritative_launcher =
+            primary_score(20, &info(&[], Some(Architecture::X64)), true, true, false);
+        let unrelated_shipping =
+            primary_score(25, &info(&[], Some(Architecture::X64)), true, false, false);
+        assert!(
+            authoritative_launcher > unrelated_shipping,
+            "Authoritative launcher must beat unrelated shipping binary"
+        );
+    }
+
+    #[test]
+    fn bound_shipping_renderer_beats_authoritative_launcher_and_unrelated_shipping_helper() {
+        // FactoryGameSteam.exe authoritative
+        // + CrashReportClient-Win64-Shipping.exe
+        // + FactoryGameSteam-Win64-Shipping.exe
+        // => FactoryGameSteam-Win64-Shipping.exe
+        let authoritative_launcher =
+            primary_score(20, &info(&[], Some(Architecture::X64)), true, true, false);
+        let crash_report_helper =
+            primary_score(25, &info(&[], Some(Architecture::X64)), true, false, false);
+        let bound_shipping_target =
+            primary_score(25, &info(&[], Some(Architecture::X64)), true, false, true);
+
+        assert!(
+            bound_shipping_target > authoritative_launcher,
+            "Bound shipping target must beat authoritative launcher"
+        );
+        assert!(
+            authoritative_launcher > crash_report_helper,
+            "Authoritative launcher must beat unrelated shipping helper"
+        );
+        assert!(
+            bound_shipping_target > crash_report_helper,
+            "Bound shipping target must beat unrelated shipping helper"
+        );
     }
 
     #[test]
@@ -241,11 +359,13 @@ mod tests {
             &info(&[GraphicsApi::D3D11], Some(Architecture::X64)),
             true,
             false,
+            false,
         );
         let vk = primary_score(
             0,
             &info(&[GraphicsApi::Vulkan], Some(Architecture::X64)),
             true,
+            false,
             false,
         );
         assert!(dx > vk);
@@ -258,10 +378,12 @@ mod tests {
             &info(&[GraphicsApi::Vulkan], Some(Architecture::X64)),
             false,
             false,
+            false,
         );
         let dx_helper = primary_score(
             0,
             &info(&[GraphicsApi::D3D11], Some(Architecture::X64)),
+            false,
             false,
             false,
         );
@@ -283,5 +405,121 @@ mod tests {
         assert!(resolved.is_some());
         let resolved = resolved.unwrap();
         assert_eq!(resolved.file_name, "custom_game.exe");
+    }
+
+    #[test]
+    fn resolve_primary_executable_promotes_bound_shipping_and_rejects_unrelated() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let gog_info = temp.path().join("goggame-12345.info");
+        std::fs::write(
+            &gog_info,
+            r#"{
+                "playTasks": [
+                    { "type": "FileTask", "isPrimary": true, "path": "FactoryGameSteam.exe" }
+                ]
+            }"#,
+        )
+        .expect("write gog info");
+
+        let root_launcher = temp.path().join("FactoryGameSteam.exe");
+        let helper = temp
+            .path()
+            .join("Engine/Binaries/Win64/CrashReportClient-Win64-Shipping.exe");
+        let bound_shipping = temp
+            .path()
+            .join("Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe");
+
+        std::fs::create_dir_all(helper.parent().unwrap()).unwrap();
+        let pe_bytes = [0u8; 1024];
+        std::fs::write(&root_launcher, pe_bytes).unwrap();
+        std::fs::write(&helper, pe_bytes).unwrap();
+        std::fs::write(&bound_shipping, pe_bytes).unwrap();
+
+        let resolved = resolve_primary_executable(temp.path(), None, true)
+            .expect("must resolve primary executable");
+        assert_eq!(
+            resolved.file_name, "FactoryGameSteam-Win64-Shipping.exe",
+            "Bound shipping target must win over launcher and helper"
+        );
+    }
+
+    #[test]
+    fn resolve_primary_executable_authoritative_launcher_wins_over_unrelated_shipping() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let gog_info = temp.path().join("goggame-12345.info");
+        std::fs::write(
+            &gog_info,
+            r#"{
+                "playTasks": [
+                    { "type": "FileTask", "isPrimary": true, "path": "Game.exe" }
+                ]
+            }"#,
+        )
+        .expect("write gog info");
+
+        let root_launcher = temp.path().join("Game.exe");
+        let unrelated_shipping = temp.path().join("Tools/Foo-Shipping.exe");
+        std::fs::create_dir_all(unrelated_shipping.parent().unwrap()).unwrap();
+
+        let pe_bytes = [0u8; 1024];
+        std::fs::write(&root_launcher, pe_bytes).unwrap();
+        std::fs::write(&unrelated_shipping, pe_bytes).unwrap();
+
+        let resolved = resolve_primary_executable(temp.path(), None, true)
+            .expect("must resolve primary executable");
+        assert_eq!(
+            resolved.file_name, "Game.exe",
+            "Authoritative launcher must win over unrelated shipping binary"
+        );
+    }
+
+    #[test]
+    fn resolve_primary_executable_root_bootstrap_binds_shipping_without_launcher_metadata() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        // No launcher metadata written! (Pure filesystem discovery, like Steam)
+        let root_launcher = temp.path().join("FactoryGameSteam.exe");
+        let helper = temp
+            .path()
+            .join("Engine/Binaries/Win64/CrashReportClient-Win64-Shipping.exe");
+        let bound_shipping = temp
+            .path()
+            .join("Engine/Binaries/Win64/FactoryGameSteam-Win64-Shipping.exe");
+        let unrelated_shipping = temp.path().join("Tools/Foo-Shipping.exe");
+
+        std::fs::create_dir_all(helper.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(unrelated_shipping.parent().unwrap()).unwrap();
+        let pe_bytes = [0u8; 1024];
+        std::fs::write(&root_launcher, pe_bytes).unwrap();
+        std::fs::write(&helper, pe_bytes).unwrap();
+        std::fs::write(&bound_shipping, pe_bytes).unwrap();
+        std::fs::write(&unrelated_shipping, pe_bytes).unwrap();
+
+        let resolved = resolve_primary_executable(temp.path(), None, true)
+            .expect("must resolve primary executable");
+        assert_eq!(
+            resolved.file_name, "FactoryGameSteam-Win64-Shipping.exe",
+            "Nested shipping binary bound to root launcher must win even without launcher metadata"
+        );
+    }
+
+    #[test]
+    fn resolve_primary_executable_tools_shipping_with_same_stem_rejected_without_launcher_metadata()
+    {
+        let temp = tempfile::tempdir().expect("tempdir");
+        // No launcher metadata written!
+        let root_launcher = temp.path().join("Game.exe");
+        let tools_shipping = temp.path().join("Tools/Game-Shipping.exe");
+
+        std::fs::create_dir_all(tools_shipping.parent().unwrap()).unwrap();
+        let pe_bytes = [0u8; 1024];
+        std::fs::write(&root_launcher, pe_bytes).unwrap();
+        std::fs::write(&tools_shipping, pe_bytes).unwrap();
+
+        let resolved = resolve_primary_executable(temp.path(), None, true)
+            .expect("must resolve primary executable");
+        assert_eq!(
+            resolved.file_name, "Game.exe",
+            "Root launcher must win over Tools/Game-Shipping.exe when no launcher metadata is present"
+        );
     }
 }

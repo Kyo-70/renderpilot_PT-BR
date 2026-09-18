@@ -1084,13 +1084,17 @@ mod tests {
         fs::write(game_root.path().join("BattlEye"), b"marker").expect("marker");
 
         let guard = crate::game_mutation_lock::blocking_lock(&game_id);
+        let mut entered_commit = false;
         let error = authority
             .authorize_game_commit(
                 &context,
                 renderpilot_domain::mutation_features::CATALOG_SWAP,
                 &guard,
                 &permit,
-                || Ok(()),
+                || {
+                    entered_commit = true;
+                    Ok(())
+                },
             )
             .expect_err("detector change must stale the permit");
         assert_eq!(
@@ -1098,6 +1102,10 @@ mod tests {
             ServiceError::SafetyContextStale {
                 scope: SafetyScope::Game(game_id),
             }
+        );
+        assert!(
+            !entered_commit,
+            "stale permit must not enter the apply closure"
         );
     }
 
