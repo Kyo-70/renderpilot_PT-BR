@@ -268,6 +268,7 @@ fn configure_commands(builder: DesktopBuilder) -> DesktopBuilder {
         commands::set_dlss_indicator_enabled,
         // RenoDX HDR add-on (card/settings surface; CLI status/bulk stay off IPC)
         commands::renodx_availability,
+        commands::renodx_apply_engine_config,
         commands::renodx_install,
         commands::renodx_install_from_file,
         commands::renodx_switch_reshade_channel,
@@ -285,6 +286,7 @@ fn configure_commands(builder: DesktopBuilder) -> DesktopBuilder {
         commands::renodx_dlss_fix_availability,
         // Luma Framework add-on (card surface; CLI status/bulk stay off IPC)
         commands::luma_availability,
+        commands::luma_apply_engine_config,
         commands::luma_install,
         commands::luma_uninstall,
         commands::luma_check_update,

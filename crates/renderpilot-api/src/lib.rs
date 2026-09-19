@@ -72,7 +72,8 @@ pub use self::libraries::{
     list_library_packages,
 };
 pub use self::luma::{
-    luma_availability, luma_check_update, luma_install, luma_uninstall, luma_update,
+    luma_apply_engine_config, luma_availability, luma_check_update, luma_install, luma_uninstall,
+    luma_update,
 };
 pub use self::manifests::{RemoteManifestRefreshOutput, refresh_remote_manifests_forced_output};
 pub use self::nvapi::{
@@ -87,8 +88,8 @@ pub use self::optiscaler::{
     repair_optiscaler, set_optiscaler_modules, uninstall_optiscaler, update_optiscaler,
 };
 pub use self::renodx::{
-    renodx_apply_vulkan_layer, renodx_availability, renodx_check_update,
-    renodx_dlss_fix_availability, renodx_install, renodx_install_dlss_fix,
+    renodx_apply_engine_config, renodx_apply_vulkan_layer, renodx_availability,
+    renodx_check_update, renodx_dlss_fix_availability, renodx_install, renodx_install_dlss_fix,
     renodx_install_from_file, renodx_remove_vulkan_layer, renodx_retry_dlss_fix_recovery,
     renodx_switch_reshade_channel, renodx_uninstall, renodx_uninstall_dlss_fix, renodx_update,
     renodx_update_dlss_fix, renodx_vulkan_layer_management_status, renodx_vulkan_layer_status,

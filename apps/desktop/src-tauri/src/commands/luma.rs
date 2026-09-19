@@ -25,6 +25,21 @@ pub async fn luma_availability(
 }
 
 #[tauri::command]
+pub async fn luma_apply_engine_config(
+    game_id: String,
+    game_context_token: Option<String>,
+    context: tauri::State<'_, Arc<Context>>,
+) -> JsonCommandResult {
+    let boundary = CommandBoundary::new(CommandOperation::LumaApplyEngineConfig);
+    let (game_id, context) = require_game_context(&boundary, game_id, &context)?;
+    boundary
+        .run_async(move || async move {
+            desktop::luma_apply_engine_config(&context, game_id, game_context_token).await
+        })
+        .await
+}
+
+#[tauri::command]
 pub async fn luma_install(
     app: tauri::AppHandle,
     game_id: String,
@@ -69,7 +84,7 @@ pub async fn luma_check_update(
 ) -> JsonCommandResult {
     let boundary = CommandBoundary::new(CommandOperation::LumaCheckUpdate);
     let (game_id, context) = require_game_context(&boundary, game_id, &context)?;
-    let deep = deep.unwrap_or(false);
+    let deep = deep.unwrap_or_default();
 
     boundary
         .run_async(move || async move { desktop::luma_check_update(&context, game_id, deep).await })

@@ -36,6 +36,27 @@ pub async fn luma_availability(context: &Context, game_id: impl Into<String>) ->
     )
 }
 
+/// Applies/reapplies server-resolved typed Luma Unreal Engine.ini guidance.
+/// No client path or recipe is accepted; the backend revalidates installation,
+/// matcher result and proven project target under the game lock.
+pub async fn luma_apply_engine_config(
+    context: &Context,
+    game_id: impl Into<String>,
+    game_context_token: Option<String>,
+) -> JsonResult {
+    let game_id = parse_game_id(game_id)?;
+    let safety = renderpilot_orchestration::FileSafetyAuthority::new()
+        .game_permit(game_id.clone(), game_context_token.as_deref())?;
+    let bundle = luma::manifest_store::get_or_fetch_bundle().await?;
+    luma::use_cases::commands::engine_config::apply(context, &bundle.tool, &game_id, safety)
+        .await?;
+    to_json(luma::use_cases::queries::status::status(
+        context,
+        Some(&bundle.tool),
+        &game_id,
+    )?)
+}
+
 /// Installs Luma into a game, reporting download progress, and returns the
 /// resulting install state. `game_context_token` must come from a fresh file
 /// safety assessment.

@@ -26,6 +26,21 @@ pub async fn renodx_availability(
 }
 
 #[tauri::command]
+pub async fn renodx_apply_engine_config(
+    game_id: String,
+    game_context_token: Option<String>,
+    context: tauri::State<'_, Arc<Context>>,
+) -> JsonCommandResult {
+    let boundary = CommandBoundary::new(CommandOperation::RenodxApplyEngineConfig);
+    let (game_id, context) = require_game_context(&boundary, game_id, &context)?;
+    boundary
+        .run_async(move || async move {
+            desktop::renodx_apply_engine_config(&context, game_id, game_context_token).await
+        })
+        .await
+}
+
+#[tauri::command]
 pub async fn renodx_install(
     app: tauri::AppHandle,
     game_id: String,

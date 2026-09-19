@@ -31,6 +31,26 @@ pub async fn renodx_availability(context: &Context, game_id: impl Into<String>) 
     )
 }
 
+/// Applies/reapplies the server-resolved typed RenoDX Unreal Engine.ini
+/// guidance.  The client supplies only the game id and a fresh safety token;
+/// manifest, project identity, recipe and target path are all revalidated by
+/// orchestration.
+pub async fn renodx_apply_engine_config(
+    context: &Context,
+    game_id: impl Into<String>,
+    game_context_token: Option<String>,
+) -> JsonResult {
+    let game_id = parse_game_id(game_id)?;
+    let safety = renderpilot_orchestration::FileSafetyAuthority::new()
+        .game_permit(game_id.clone(), game_context_token.as_deref())?;
+    let bundle = renodx::manifest_store::get_or_fetch_bundle().await?;
+    renodx::use_cases::commands::engine_config::apply(context, &bundle.tool, &game_id, safety)
+        .await?;
+    to_json(renodx::use_cases::queries::status::status(
+        context, &game_id,
+    )?)
+}
+
 /// Installs RenoDX into a game, reporting download progress, and returns the
 /// resulting install state. `game_context_token` must come from a fresh file
 /// safety assessment. The desktop flow transparently permits
