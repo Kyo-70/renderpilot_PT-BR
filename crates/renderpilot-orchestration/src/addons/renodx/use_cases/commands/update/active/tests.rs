@@ -11,6 +11,7 @@ use tempfile::{TempDir, tempdir};
 use crate::addons::file_update::Replacement;
 use crate::addons::peer_lifecycle::PeerRoots;
 use crate::addons::renodx::peer::{RenoDxConfigSourceSeal, RenoDxRootSeal};
+use crate::addons::renodx::types::RenoDxProcessingPath;
 use crate::addons::renodx::use_cases::commands::update::prepare::{
     HostInstall, PreparedUpdateArtifacts,
 };
@@ -106,6 +107,8 @@ impl Fixture {
         }
         let base = UpdateSnapshot {
             record,
+            game_dir: self.root().to_path_buf(),
+            processing_path: RenoDxProcessingPath::Unmanaged,
             shared_vulkan_channel: None,
             addon: None,
             host: None,
@@ -142,6 +145,8 @@ impl Fixture {
         ActiveUpdatePhase1 {
             base: UpdateSnapshot {
                 record,
+                game_dir: self.root().to_path_buf(),
+                processing_path: RenoDxProcessingPath::Unmanaged,
                 shared_vulkan_channel: None,
                 addon: None,
                 host: None,
@@ -195,6 +200,7 @@ impl Fixture {
             refreshed_sources,
             replacements,
             host_install: None,
+            config: None,
         }
     }
 }
@@ -297,6 +303,7 @@ fn reused_host_and_relocation_are_rejected_before_composition() {
             name: "other.dll".to_owned(),
             bytes: b"host".to_vec(),
         }),
+        config: None,
     };
     assert!(lower_active_update(&phase, &phase, &relocation).is_err());
 }

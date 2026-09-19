@@ -146,6 +146,10 @@ mod tests {
             confidence: MatchConfidence::Verified,
             host_kind: HostKind::Proxy,
             generic_profile: None,
+            profile_id: None,
+            processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
+            guidance: Vec::new(),
+            launch: None,
         };
         let resolution = RenoDxResolution::Installable(Box::new(plan));
 

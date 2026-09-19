@@ -90,6 +90,26 @@ fn uninstall_shared_locked_under_boundary(
         participants,
         Some(registry),
     );
+    crate::addons::engine_config::service::release_record(
+        context.storage(),
+        game_id,
+        record,
+        &format!("renodx-release-{}", ulid::Ulid::generate()),
+    )
+    .map_err(|error| {
+        ServiceError::command_failed(format!(
+            "RenoDX Engine.ini release blocked uninstall: {error}"
+        ))
+    })?;
+    let record_after_release =
+        crate::addons::records::record_of_kind(context, game_id, AddonKind::RenoDx)?.ok_or_else(
+            || ServiceError::command_failed("RenoDX record disappeared during Engine.ini release"),
+        )?;
+    let record_after_release = crate::addons::records::verify_engine_config_release(
+        record,
+        record_after_release,
+        "RenoDX",
+    )?;
     let request = crate::addons::shared_vulkan_mutation::Request::new(
         context,
         identity,
@@ -101,7 +121,7 @@ fn uninstall_shared_locked_under_boundary(
             crate::addons::shared_vulkan_mutation::PeerUnchangedRequest::new_with_renodx_reshade_ini(
                 request,
                 game_id,
-                Some(record),
+                Some(&record_after_release),
                 None,
                 Some(&topology),
                 Some(&topology),
@@ -111,14 +131,14 @@ fn uninstall_shared_locked_under_boundary(
         None => crate::addons::shared_vulkan_mutation::PeerUnchangedRequest::new(
             request,
             game_id,
-            Some(record),
+            Some(&record_after_release),
             None,
             Some(&topology),
             Some(&topology),
         ),
     };
     crate::addons::shared_vulkan_mutation::execute_peer_unchanged(request)?;
-    remove_logs_best_effort(record);
+    remove_logs_best_effort(&record_after_release);
     Ok(())
 }
 

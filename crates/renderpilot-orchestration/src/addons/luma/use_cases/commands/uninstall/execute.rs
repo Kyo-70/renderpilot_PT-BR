@@ -8,6 +8,7 @@ use renderpilot_storage_sqlite::ComponentBaselineMutation;
 use crate::addons::engine::InstallChanges;
 use crate::addons::luma::install::uninstall_engine_files;
 use crate::addons::peer_lifecycle::package::{PeerMutationPackage, PeerMutationRequest};
+use crate::addons::records;
 use crate::game_mutation_lock::GameMutationGuard;
 use crate::{Context, ServiceError};
 
@@ -42,6 +43,23 @@ pub(super) fn execute_active_uninstall(
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
+    let original_record = record;
+    crate::addons::engine_config::service::release_record(
+        context.storage(),
+        guard.game_id(),
+        &original_record,
+        &format!("luma-release-{}", ulid::Ulid::generate()),
+    )
+    .map_err(|error| {
+        ServiceError::command_failed(format!(
+            "Luma Engine.ini release blocked uninstall: {error}"
+        ))
+    })?;
+    let record =
+        records::record_of_kind(context, guard.game_id(), AddonKind::Luma)?.ok_or_else(|| {
+            ServiceError::command_failed("Luma record disappeared during Engine.ini release")
+        })?;
+    let record = records::verify_engine_config_release(&original_record, record, "Luma")?;
     let package = PeerMutationPackage::plan_active(PeerMutationRequest {
         peer_kind: AddonKind::Luma,
         before_peer: Some(&record),
@@ -83,6 +101,19 @@ pub(super) fn execute_uninstall_body(
     apply: &UninstallApply,
     mutation_id: Option<&str>,
 ) -> Result<(), ServiceError> {
+    // Release shared Engine.ini ownership before any payload/cascade deletion
+    // so an Engine.ini access failure leaves the add-on files and row intact.
+    crate::addons::engine_config::service::release_record(
+        context.storage(),
+        game_id,
+        &apply.record,
+        &format!("luma-release-{}", ulid::Ulid::generate()),
+    )
+    .map_err(|error| {
+        ServiceError::command_failed(format!(
+            "Luma Engine.ini release blocked uninstall: {error}"
+        ))
+    })?;
     // Metadata-only: roots are gone -- FS reverse is best-effort so a
     // missing tree cannot block clearing the install row.
     if mutation_id.is_none() {

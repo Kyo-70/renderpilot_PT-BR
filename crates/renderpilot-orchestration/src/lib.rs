@@ -39,7 +39,7 @@ pub use file_safety::{
 };
 
 pub(crate) use error::failed;
-pub use error::{InvalidInstallRootReason, ServiceError};
+pub use error::{InvalidInstallRootReason, ManifestContract, ServiceError};
 
 pub use renderpilot_application as application;
 pub use renderpilot_detection as detection;

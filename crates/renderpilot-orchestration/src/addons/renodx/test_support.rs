@@ -34,6 +34,10 @@ pub(crate) fn title(
         compatibility: RenoDxCompatibility::default(),
         proxy_dll_override: None,
         download_url: None,
+        profile_id: None,
+        processing_path: None,
+        inherit_page_guidance: true,
+        launch: None,
     }
 }
 
@@ -44,6 +48,8 @@ pub(crate) fn manifest(titles: Vec<RenoDxTitle>) -> RenoDxManifest {
         generated_at: "2026-06-15T00:00:00Z".to_owned(),
         generics: Vec::new(),
         titles,
+        title_guidance: Default::default(),
+        page_guidance: Vec::new(),
     }
 }
 

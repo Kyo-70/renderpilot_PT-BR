@@ -2,6 +2,7 @@
 
 use renderpilot_domain::GameId;
 
+use super::engine_config;
 use crate::addons::renodx::types::RenoDxManifest;
 use crate::addons::reshade::types::ReshadeSourceCatalog;
 use crate::net::ProgressObserver;
@@ -45,6 +46,7 @@ pub async fn update(request: UpdateRequest<'_>) -> Result<(), ServiceError> {
     let manifest = request.manifest;
     let reshade_sources = request.reshade_sources;
     let game_id = request.game_id;
+    let safety = request.safety.game().clone();
     let phase1 = {
         let guard =
             crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id).await?;
@@ -55,5 +57,7 @@ pub async fn update(request: UpdateRequest<'_>) -> Result<(), ServiceError> {
         route::UpdatePhase1::Active(snapshot) => {
             active::update(request, *snapshot).await.map(|_| ())
         }
-    }
+    }?;
+    engine_config::reconcile_after_commit(context, manifest, game_id, safety).await?;
+    Ok(())
 }

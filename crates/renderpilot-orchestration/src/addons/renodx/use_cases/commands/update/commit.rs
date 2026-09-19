@@ -55,7 +55,22 @@ pub(super) fn apply_update(commit: UpdateCommit<'_>) -> Result<(), ServiceError>
             game_id,
         },
         |mutation_id| -> Result<(), ServiceError> {
-            let mut originals = apply_replacements(artifacts.replacements)?;
+            if let Some(config) = artifacts.config.as_ref() {
+                validate_config_before(config)?;
+            }
+            let replacements = artifacts.replacements;
+            let mut originals = apply_replacements(replacements)?;
+            if let Some(config) = artifacts.config.as_ref()
+                && let Some(replacement) = config.replacement()
+            {
+                match apply_prepared_config(config, replacement) {
+                    Ok(original) => originals.push(original),
+                    Err(error) => {
+                        restore_originals_best_effort(&originals);
+                        return Err(error);
+                    }
+                }
+            }
             let host_receipt = match artifacts.host_install {
                 Some(install) => match apply_host_install(install, &mut originals) {
                     Ok(receipt) => Some(receipt),
@@ -66,10 +81,15 @@ pub(super) fn apply_update(commit: UpdateCommit<'_>) -> Result<(), ServiceError>
                 },
                 None => None,
             };
-            let refreshed = match tracking::rebuild_with_sources_and_receipt(
+            let config_receipt = match artifacts.config {
+                Some(config) => config.receipt,
+                None => current.renodx_config_receipt().cloned(),
+            };
+            let refreshed = match tracking::rebuild_with_sources_and_renodx_config_receipt(
                 current,
                 artifacts.refreshed_sources,
                 host_receipt.as_ref(),
+                config_receipt,
                 "RenoDX update rebuild",
             ) {
                 Ok(refreshed) => refreshed,
@@ -178,21 +198,29 @@ pub(super) fn authorize_combined_update(
                 refreshed_sources,
                 replacements,
                 host_install,
+                config,
             } = artifacts;
+            if let Some(config) = config.as_ref() {
+                validate_config_before(config)?;
+            }
+            let config_receipt = match &config {
+                Some(config) => config.receipt.clone(),
+                None => current.renodx_config_receipt().cloned(),
+            };
             let replacement_mtimes = replacements
                 .iter()
                 .filter_map(|replacement| {
                     replacement
                         .mtime
-                        .as_deref()
-                        .map(|mtime| (replacement.path.clone(), mtime.to_owned()))
+                        .as_ref()
+                        .map(|mtime| (replacement.path.clone(), mtime.clone()))
                 })
                 .collect::<Vec<_>>();
             let host_receipt = host_install.as_ref().map(|install| InstallReceipt {
                 created_files: vec![install.game_dir.join(&install.name)],
                 backed_up_files: Vec::new(),
             });
-            let game_intents = update_file_intents(replacements, host_install)?;
+            let game_intents = update_file_intents(replacements, host_install, config)?;
             let composed = crate::addons::shared_vulkan_mutation::compose(None, Some(plan))?;
             let (game_scope, _) = targets.into_scope_and_paths()?;
             let roots = if game_intents.is_empty() {
@@ -205,10 +233,11 @@ pub(super) fn authorize_combined_update(
                     &layer_dir,
                 )?
             };
-            let refreshed = tracking::rebuild_with_sources_and_receipt(
+            let refreshed = tracking::rebuild_with_sources_and_renodx_config_receipt(
                 current,
                 refreshed_sources,
                 host_receipt.as_ref(),
+                config_receipt,
                 "RenoDX combined update rebuild",
             )?;
             let mutation_id = ulid::Ulid::generate().to_string();
@@ -245,8 +274,13 @@ pub(super) fn authorize_combined_update(
 fn update_file_intents(
     replacements: Vec<Replacement>,
     host_install: Option<HostInstall>,
+    config: Option<
+        crate::addons::renodx::use_cases::commands::update::prepare::PreparedRenoDxConfig,
+    >,
 ) -> Result<Vec<crate::addons::shared_vulkan_mutation::FileIntent>, ServiceError> {
-    let mut intents = Vec::with_capacity(replacements.len() + usize::from(host_install.is_some()));
+    let mut intents = Vec::with_capacity(
+        replacements.len() + usize::from(host_install.is_some()) + usize::from(config.is_some()),
+    );
     for replacement in replacements {
         intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
             before: read_regular_file(&replacement.path)?,
@@ -262,7 +296,33 @@ fn update_file_intents(
             after: Some(install.bytes),
         });
     }
+    if let Some(config) = config.filter(|config| config.physical_changed) {
+        let after = config
+            .after
+            .ok_or_else(errors::state_changed_retry_update)?;
+        intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
+            before: config.before,
+            live_path: config.path,
+            after: Some(after),
+        });
+    }
     Ok(intents)
+}
+
+fn apply_prepared_config(
+    config: &crate::addons::renodx::use_cases::commands::update::prepare::PreparedRenoDxConfig,
+    replacement: Replacement,
+) -> Result<OriginalFile, ServiceError> {
+    let current = read_regular_file(&config.path)?;
+    if current != config.before {
+        return Err(errors::state_changed_retry_update());
+    }
+    engine::replace_file(&replacement.path, &replacement.bytes)?;
+    crate::fs::stamp_mtime_best_effort(&replacement.path, replacement.mtime.as_deref(), None);
+    Ok(OriginalFile {
+        path: replacement.path,
+        bytes: current,
+    })
 }
 
 fn read_regular_file(path: &Path) -> Result<Option<Vec<u8>>, ServiceError> {
@@ -280,6 +340,19 @@ fn read_regular_file(path: &Path) -> Result<Option<Vec<u8>>, ServiceError> {
     std::fs::read(path)
         .map(Some)
         .map_err(|error| crate::failed(error.to_string()))
+}
+
+fn validate_config_before(
+    config: &crate::addons::renodx::use_cases::commands::update::prepare::PreparedRenoDxConfig,
+) -> Result<(), ServiceError> {
+    if !config.physical_changed {
+        return Ok(());
+    }
+    let current = read_regular_file(&config.path)?;
+    if current != config.before {
+        return Err(errors::state_changed_retry_update());
+    }
+    Ok(())
 }
 
 /// Installs a host artifact without an engine backup and records its previous

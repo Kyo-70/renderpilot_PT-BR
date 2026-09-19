@@ -7,7 +7,8 @@ use crate::addons::catalog_message::WireCatalogMessage;
 use crate::addons::matching::{Engine, MatchRule, Status};
 
 use super::catalog::{
-    RenoDxCategory, RenoDxCompatibility, RenoDxGeneric, RenoDxManifest, RenoDxTitle,
+    RenoDxCategory, RenoDxCompatibility, RenoDxGeneric, RenoDxManifest, RenoDxProcessingPath,
+    RenoDxTitle,
 };
 
 #[derive(Debug, Deserialize)]
@@ -130,6 +131,10 @@ impl RenoDxManifest {
                         url64,
                         url32,
                         message: message.into(),
+                        profile_id: None,
+                        generic_fallback: true,
+                        processing_path: RenoDxProcessingPath::Unmanaged,
+                        guidance: Vec::new(),
                     }
                 })
                 .collect(),
@@ -149,8 +154,14 @@ impl RenoDxManifest {
                     compatibility: game.constraints.into(),
                     proxy_dll_override: game.proxy_dll,
                     download_url: game.addon.source,
+                    profile_id: None,
+                    processing_path: None,
+                    inherit_page_guidance: true,
+                    launch: None,
                 })
                 .collect(),
+            title_guidance: Default::default(),
+            page_guidance: Vec::new(),
         }
     }
 }

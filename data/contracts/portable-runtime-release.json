@@ -3,5 +3,5 @@
   "supervisorCapability": 3,
   "appSessionProtocol": "renderpilot-portable-app-session-v2",
   "minimumPortableSchema": 4,
-  "currentSchema": 19
+  "currentSchema": 20
 }

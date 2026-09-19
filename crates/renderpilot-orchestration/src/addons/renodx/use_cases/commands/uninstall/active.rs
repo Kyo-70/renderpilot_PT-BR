@@ -106,6 +106,23 @@ fn commit_game(
     } else {
         None
     };
+    let original_record = record;
+    crate::addons::engine_config::service::release_record(
+        context.storage(),
+        game_id,
+        original_record,
+        &format!("renodx-release-{}", ulid::Ulid::generate()),
+    )
+    .map_err(|error| {
+        ServiceError::command_failed(format!(
+            "RenoDX Engine.ini release blocked uninstall: {error}"
+        ))
+    })?;
+    let record =
+        records::record_of_kind(context, game_id, AddonKind::RenoDx)?.ok_or_else(|| {
+            ServiceError::command_failed("RenoDX record disappeared during Engine.ini release")
+        })?;
+    let record = records::verify_engine_config_release(original_record, record, "RenoDX")?;
     let (package, use_optiscaler_config) = if let Some(config) = optiscaler_config {
         let (companion, endpoint, payload) = config.into_parts();
         let program = program
@@ -115,7 +132,7 @@ fn commit_game(
         payloads.insert(0, Some(payload));
         let request = crate::addons::peer_lifecycle::package::PeerMutationRequest {
             peer_kind: AddonKind::RenoDx,
-            before_peer: Some(record),
+            before_peer: Some(&record),
             after_peer: None,
             before_topology: topology,
             planned_after_topology: &planned_topology,
@@ -138,7 +155,7 @@ fn commit_game(
     } else {
         let request = crate::addons::peer_lifecycle::package::PeerMutationRequest {
             peer_kind: AddonKind::RenoDx,
-            before_peer: Some(record),
+            before_peer: Some(&record),
             after_peer: None,
             before_topology: topology,
             planned_after_topology: &planned_topology,
@@ -181,7 +198,7 @@ fn commit_game(
     let applied = prepared.apply(&mut changes)?;
     changes.sync_touched_dirs();
     applied.commit()?;
-    super::shared::remove_logs_best_effort(record);
+    super::shared::remove_logs_best_effort(&record);
     Ok(())
 }
 
@@ -225,5 +242,82 @@ pub(super) fn map_active_error(
         crate::addons::renodx::peer::RenoDxActiveUninstallError::Path(path) => {
             ServiceError::invalid_input(format!("invalid active RenoDX path: {}", path.display()))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use renderpilot_application::InstalledAddonRepository;
+    use renderpilot_domain::{EngineConfigJournal, EngineConfigReceipt, PathRef};
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[test]
+    fn active_planning_failure_does_not_release_engine_config() {
+        let database = tempdir().expect("database");
+        let game_root = tempdir().expect("game");
+        let context = Context::open_at(database.path().join("catalog.sqlite")).expect("context");
+        let game_id = GameId::new("manual:renodx-active-plan-failure").expect("game id");
+        let addon_path = game_root.path().join("renodx.addon64");
+        std::fs::write(&addon_path, b"addon").expect("addon");
+        let record = InstalledAddon::new(
+            game_id.clone(),
+            AddonKind::RenoDx,
+            PathRef::new(addon_path.to_string_lossy().into_owned()).expect("path"),
+        )
+        .with_engine_config_journal(Some(EngineConfigJournal {
+            stable: Some(EngineConfigReceipt {
+                schema_version: 1,
+                path: game_root
+                    .path()
+                    .join("Engine.ini")
+                    .to_string_lossy()
+                    .into_owned(),
+                file_created: false,
+                encoding: "utf8".to_owned(),
+                before_digest: "0".repeat(64),
+                after_digest: "1".repeat(64),
+                recipe_fingerprint: "2".repeat(64),
+                contributions: Vec::new(),
+                created_headers: Vec::new(),
+                created_header_prefixes: Vec::new(),
+                created_header_groups: Vec::new(),
+                created_header_ordinals: Vec::new(),
+            }),
+            pending: None,
+        }))
+        .expect("record");
+        let persisted = record
+            .clone()
+            .with_engine_config_journal(None)
+            .expect("base record");
+        context
+            .storage()
+            .upsert_installed_addon(&persisted)
+            .expect("persist record");
+        context
+            .storage()
+            .compare_and_swap_engine_config_journal(
+                &game_id,
+                AddonKind::RenoDx,
+                None,
+                record.engine_config_journal(),
+            )
+            .expect("journal");
+
+        let guard = crate::game_mutation_lock::blocking_lock(&game_id);
+        uninstall_locked_with_record(&context, &guard, &game_id, &record)
+            .expect_err("missing active topology");
+
+        assert_eq!(
+            context
+                .storage()
+                .get_installed_addon(&game_id)
+                .expect("record")
+                .expect("persisted record")
+                .engine_config_journal(),
+            record.engine_config_journal()
+        );
     }
 }

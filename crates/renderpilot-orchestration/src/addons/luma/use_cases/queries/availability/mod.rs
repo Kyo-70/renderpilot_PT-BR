@@ -7,6 +7,8 @@ use crate::ServiceError;
 use super::host_report::host_report;
 use crate::addons::availability_pipeline::{self, AvailabilityPreflight};
 use crate::addons::engine;
+use crate::addons::engine_config::EngineIniRecipeSet;
+use crate::addons::engine_config::service::{self, EngineConfigAvailability};
 use crate::addons::game_analysis::install_target_dir;
 use crate::addons::luma::dgvoodoo;
 use crate::addons::luma::dto::availability::*;
@@ -82,6 +84,7 @@ fn build_report(
         analysis,
         resolution,
         roots: install_roots,
+        engine_config_resolution,
     } = preflight;
     let min_version = manifest.min_reshade_version_parsed()?;
     let mut host = host_report(
@@ -132,6 +135,12 @@ fn build_report(
     // Compute user-facing launch args from the resolved manifest title once.
     let launch_args = effective_launch_args(&resolution);
 
+    let guidance = match &resolution {
+        LumaResolution::Installable(plan) => plan.guidance.as_slice(),
+        _ => &[],
+    };
+    let engine_config = engine_config_report(&engine_config_resolution, record.as_ref(), guidance)?;
+
     let outcome = if let Some(block) = blocked {
         let blocked = availability_pipeline::blocked_outcome(block);
         AvailabilityOutcome::BlockedByOtherAddon {
@@ -161,8 +170,8 @@ fn build_report(
         .graphics
         .architecture()
         .unwrap_or(Architecture::X64);
-
     Ok(AvailabilityReport {
+        engine_config,
         state,
         host_detection: host.detection,
         host_facts: host.facts,
@@ -174,6 +183,37 @@ fn build_report(
         uninstall_blocked_by,
         outcome,
     })
+}
+
+fn engine_config_report(
+    resolution: &crate::addons::engine_config::EngineIniResolution,
+    record: Option<&renderpilot_domain::InstalledAddon>,
+    guidance: &[crate::addons::luma::types::LumaGuidance],
+) -> Result<EngineConfigAvailability, ServiceError> {
+    let manual_only = guidance.iter().any(|item| {
+        matches!(
+            item.kind,
+            crate::addons::luma::types::LumaGuidanceKind::EngineIni
+        ) && item.engine_ini.is_none()
+    });
+    let mut recipes = guidance
+        .iter()
+        .filter_map(|item| item.engine_ini.as_ref())
+        .peekable();
+    let recipe_set = if recipes.peek().is_none() {
+        None
+    } else {
+        Some(
+            EngineIniRecipeSet::from_recipes(recipes)
+                .map_err(|error| ServiceError::invalid_input(error.to_string()))?,
+        )
+    };
+    Ok(service::inspect_availability(
+        resolution,
+        recipe_set.as_ref(),
+        manual_only,
+        record.and_then(|value| value.engine_config_journal()),
+    ))
 }
 
 /// Determines whether a fresh install may write at all. A proved-empty runtime

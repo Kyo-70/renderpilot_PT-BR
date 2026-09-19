@@ -26,8 +26,22 @@ pub struct MatchFacts {
     pub exe_file_name: Option<String>,
     /// Detected engine.
     pub engine: Option<Engine>,
+    /// Strong Unreal Engine version evidence, when available.
+    pub unreal_version: Option<UnrealVersion>,
     /// Graphics API and architecture detected from the executable.
     pub graphics: ExeGraphicsInfo,
+    /// Unreal Engine detection result from RFC game analysis, if evaluated.
+    pub unreal_detection: Option<crate::addons::game_analysis::EngineDetection>,
+    /// Target platform detection from primary executable headers.
+    pub target_platform: Option<crate::addons::game_analysis::TargetPlatformDetection>,
+}
+
+/// Unreal Engine version obtained from an authoritative local source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct UnrealVersion {
+    pub major: u32,
+    pub minor: u32,
+    pub patch: Option<u32>,
 }
 
 /// A single rule used to match an installed game to a manifest title.
@@ -152,7 +166,7 @@ const fn status_rank(status: Status) -> u8 {
 }
 
 /// Engine detected from a game or named by an engine-level manifest rule.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Engine {
     /// Unreal Engine.
@@ -362,7 +376,10 @@ mod tests {
             external_id: None,
             exe_file_name: None,
             engine: None,
+            unreal_version: None,
             graphics: ExeGraphicsInfo::new(Vec::new(), None),
+            unreal_detection: None,
+            target_platform: None,
         }
     }
 

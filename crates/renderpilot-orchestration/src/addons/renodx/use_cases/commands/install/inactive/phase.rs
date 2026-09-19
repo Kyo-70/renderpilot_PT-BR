@@ -156,6 +156,7 @@ pub(super) fn ensure_catalog_install_snapshot_matches(
         || snapshot.plan.arch != current.plan.arch
         || snapshot.plan.host_kind != current.plan.host_kind
         || snapshot.plan.proxy_dll_name != current.plan.proxy_dll_name
+        || snapshot.plan.processing_path != current.plan.processing_path
         || snapshot.channel != current.channel
         || snapshot.writes_host != current.writes_host
         || !same_path(&snapshot.target_dir, &current.target_dir)

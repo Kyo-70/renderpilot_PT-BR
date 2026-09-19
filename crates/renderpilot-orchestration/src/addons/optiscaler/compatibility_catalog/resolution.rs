@@ -109,7 +109,10 @@ mod tests {
             external_id: external_id.map(str::to_owned),
             exe_file_name: executable.map(str::to_owned),
             engine: None,
+            unreal_version: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
+            unreal_detection: None,
+            target_platform: None,
         }
     }
 

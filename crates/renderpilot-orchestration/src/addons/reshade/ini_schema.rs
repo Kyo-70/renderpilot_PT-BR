@@ -16,7 +16,6 @@ pub(crate) const ADDON_PATH_KEY: &str = "AddonPath";
 pub(crate) const BASE_PATH_KEY: &str = "BasePath";
 pub(crate) const DISABLED_ADDONS_KEY: &str = "DisabledAddons";
 pub(crate) const LOAD_FROM_DLL_MAIN_KEY: &str = "LoadFromDllMain";
-
 /// Builds the additive merge strategy for a tool's required `ReShade.ini` tweaks.
 /// An all-empty [`ReshadeIniTweaks`] (Luma's case) still yields an `[ADDON]`
 /// section with no keys — callers gate on whether any key is actually set before

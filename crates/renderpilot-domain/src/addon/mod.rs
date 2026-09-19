@@ -17,16 +17,22 @@
 //!   ([`RenoDxInstallState`], [`LumaInstallState`]); not core ownership models
 //! - [`shared_artifact`] — global shared resources ([`SharedArtifactRecord`], ...)
 
+pub mod engine_config;
 pub mod installed;
 pub mod managed_file;
 pub mod optiscaler_journal;
 pub mod optiscaler_state;
 pub mod peer_transition;
 pub mod proxy_topology;
+pub mod renodx_config;
 pub mod shared_artifact;
 pub mod states;
 pub mod tracked;
 
+pub use engine_config::{
+    EngineConfigContribution, EngineConfigJournal, EngineConfigJournalError, EngineConfigReceipt,
+    EngineConfigTransition,
+};
 pub use installed::{InstalledAddon, InstalledAddonParts};
 pub use managed_file::{
     InstalledAddonInvariantError, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode,
@@ -70,6 +76,7 @@ pub use peer_transition::{
 pub use proxy_topology::{
     GameProxyTopology, ProxyImplementation, ProxyLink, ProxyRootPrestate, ProxyTopologyError,
 };
+pub use renodx_config::{RenoDxConfigReceipt, RenoDxSetPathBaseline, RenoDxSetPathValue};
 pub use shared_artifact::{
     SharedArtifactKind, SharedArtifactOrigin, SharedArtifactRecord, SharedArtifactSource,
 };
@@ -96,6 +103,68 @@ mod tests {
         assert_eq!(installed.created_files(), &[addon_path()]);
         assert!(installed.backed_up_files().is_empty());
         assert!(!installed.has_host_binary_provenance());
+    }
+
+    #[test]
+    fn renodx_receipt_invariants_distinguish_kind_from_receipt_errors() {
+        let invalid = RenoDxConfigReceipt {
+            schema_version: 2,
+            ini_path: PathRef::new(r"C:\Games\CP2077\ReShade.ini").expect("valid path"),
+            baseline: RenoDxSetPathBaseline::Absent,
+            section_preexisted: false,
+            last_written: RenoDxSetPathValue::One,
+            newline_anchor: None,
+        };
+        let invalid_error = InstalledAddon::new(game_id(), AddonKind::RenoDx, addon_path())
+            .with_renodx_config_receipt(Some(invalid))
+            .expect_err("unsupported receipt must fail closed");
+        assert!(matches!(
+            &invalid_error,
+            InstalledAddonInvariantError::InvalidRenoDxConfigReceipt
+        ));
+        assert_eq!(
+            invalid_error.to_string(),
+            "invalid RenoDX configuration receipt"
+        );
+
+        let present_without_section = RenoDxConfigReceipt::new(
+            PathRef::new(r"C:\Games\CP2077\ReShade.ini").expect("valid path"),
+            RenoDxSetPathBaseline::Present {
+                value: "0".to_owned(),
+            },
+            false,
+            RenoDxSetPathValue::One,
+        );
+        assert!(!present_without_section.is_supported());
+
+        let present_with_anchor = RenoDxConfigReceipt::new(
+            PathRef::new(r"C:\Games\CP2077\ReShade.ini").expect("valid path"),
+            RenoDxSetPathBaseline::Present {
+                value: "0".to_owned(),
+            },
+            true,
+            RenoDxSetPathValue::One,
+        )
+        .with_newline_anchor(Some("anchor".to_owned()));
+        assert!(!present_with_anchor.is_supported());
+
+        let valid = RenoDxConfigReceipt::new(
+            PathRef::new(r"C:\Games\CP2077\ReShade.ini").expect("valid path"),
+            RenoDxSetPathBaseline::Absent,
+            false,
+            RenoDxSetPathValue::One,
+        );
+        let kind_error = InstalledAddon::new(
+            game_id(),
+            AddonKind::Luma,
+            PathRef::new(r"C:\Games\CP2077\luma.addon64").expect("valid path"),
+        )
+        .with_renodx_config_receipt(Some(valid))
+        .expect_err("receipt on another addon kind must fail closed");
+        assert!(matches!(
+            &kind_error,
+            InstalledAddonInvariantError::RenoDxConfigReceiptOnNonRenoDx
+        ));
     }
 
     #[test]

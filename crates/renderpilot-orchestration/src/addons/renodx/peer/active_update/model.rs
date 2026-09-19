@@ -5,6 +5,58 @@ use renderpilot_domain::{GameProxyTopology, InstalledAddon, PathRef, PlannedGame
 use crate::addons::shared_vulkan_mutation::FileIntent;
 use crate::peer_mutation_executor::{ExactEndpointProgram, PeerPathSnapshot};
 
+/// Exact Set_Path transition lowered from the sealed ReShade.ini source.
+pub(super) type RenoDxActiveUpdateConfigParts<'a> = (
+    &'a PathRef,
+    Option<&'a crate::peer_mutation_executor::VerifiedPeerFile>,
+    Option<&'a [u8]>,
+    Option<&'a [u8]>,
+);
+
+pub(super) type RenoDxActiveUpdateConfigOwnedParts = (
+    PathRef,
+    Option<crate::peer_mutation_executor::VerifiedPeerFile>,
+    Option<Vec<u8>>,
+    Option<Vec<u8>>,
+);
+
+#[derive(Debug)]
+pub(crate) struct RenoDxActiveUpdateConfigInput {
+    path: PathRef,
+    before: Option<crate::peer_mutation_executor::VerifiedPeerFile>,
+    before_bytes: Option<Vec<u8>>,
+    after: Option<Vec<u8>>,
+}
+
+impl RenoDxActiveUpdateConfigInput {
+    pub(crate) fn new(
+        path: PathRef,
+        before: Option<crate::peer_mutation_executor::VerifiedPeerFile>,
+        before_bytes: Option<Vec<u8>>,
+        after: Option<Vec<u8>>,
+    ) -> Self {
+        Self {
+            path,
+            before,
+            before_bytes,
+            after,
+        }
+    }
+
+    pub(super) fn parts(&self) -> RenoDxActiveUpdateConfigParts<'_> {
+        (
+            &self.path,
+            self.before.as_ref(),
+            self.before_bytes.as_deref(),
+            self.after.as_deref(),
+        )
+    }
+
+    pub(super) fn into_parts(self) -> RenoDxActiveUpdateConfigOwnedParts {
+        (self.path, self.before, self.before_bytes, self.after)
+    }
+}
+
 /// Prepared bytes and the exact sealed preimage for an owned proxy host.
 #[derive(Debug)]
 pub(crate) struct RenoDxActiveUpdateHostInput<'a> {
@@ -23,8 +75,8 @@ impl<'a> RenoDxActiveUpdateHostInput<'a> {
         }
     }
 
-    pub(super) fn parts(&self) -> (&PathRef, &PeerPathSnapshot, &[u8]) {
-        (&self.path, self.snapshot, &self.bytes)
+    pub(super) fn into_parts(self) -> (PathRef, &'a PeerPathSnapshot, Vec<u8>) {
+        (self.path, self.snapshot, self.bytes)
     }
 }
 
@@ -40,6 +92,7 @@ pub(crate) struct RenoDxActiveUpdateInput<'a> {
     pub(crate) addon_snapshot: &'a PeerPathSnapshot,
     pub(crate) addon_bytes: Vec<u8>,
     pub(crate) host: Option<RenoDxActiveUpdateHostInput<'a>>,
+    pub(crate) config: Option<RenoDxActiveUpdateConfigInput>,
 }
 
 /// Metadata-only result when no physical endpoint needs replacement.

@@ -16,6 +16,7 @@ use serde::Serialize;
 pub use renderpilot_domain::LumaInstallState;
 
 use crate::addons::CatalogMessage;
+use crate::addons::engine_config::service::EngineConfigAvailability;
 use crate::addons::luma::types::{
     LumaExternalRequirement, LumaFeatures, LumaGuidance, LumaProfile,
 };
@@ -50,6 +51,8 @@ impl From<LumaExternalRequirement> for ManagedDependencySummary {
 /// Read-only preview of whether Luma can be installed for a game.
 #[derive(Debug, Clone, Serialize)]
 pub struct AvailabilityReport {
+    /// Shared typed Unreal Engine.ini configuration state.
+    pub engine_config: EngineConfigAvailability,
     /// Current install state for the game.
     pub state: LumaInstallState,
     /// Detection state of the Direct3D ReShade proxy host.

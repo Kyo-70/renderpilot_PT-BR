@@ -258,6 +258,13 @@ mod tests {
                 "provider_failed",
             ),
             (
+                ServiceError::manifest_contract_rejected(
+                    renderpilot_orchestration::ManifestContract::RenoDxV2,
+                    "bad manifest",
+                ),
+                "provider_failed",
+            ),
+            (
                 ServiceError::DetectionFailed("detector".into()),
                 "detection_failed",
             ),

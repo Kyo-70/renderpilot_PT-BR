@@ -170,6 +170,7 @@ async fn build_prepared_install(
         reshade_last_modified: reshade.last_modified,
         reshade_digest: reshade.digest,
         reshade_channel: reshade.channel,
+        processing_path: resolved.processing_path,
         ini_tweaks: renodx_ini_defaults(),
     })
 }

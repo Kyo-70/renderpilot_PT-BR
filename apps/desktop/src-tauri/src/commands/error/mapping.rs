@@ -177,6 +177,10 @@ impl CommandError {
                 format_args!("access denied while {operation}: {detail}"),
             ),
             ServiceError::NvapiCatalogNotReady => Self::new(Kind::NvapiCatalogNotReady),
+            ServiceError::ManifestContractRejected { contract, detail } => Self::with_diagnostic(
+                Kind::ProviderFailed,
+                format_args!("{contract} contract rejected: {detail}"),
+            ),
         }
     }
 }

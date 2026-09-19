@@ -8,16 +8,16 @@ use crate::addons::reshade::scan as reshade;
 use crate::addons::reshade::types::ReshadeIniTweaks;
 
 pub(super) fn combined_ops(
-    game_dir: &Path,
     prepared: &PreparedInstall,
     writes_host: bool,
+    ini_op: Option<&FileOp>,
 ) -> Vec<FileOp> {
     let mut ops = vec![addon_op(prepared)];
     if writes_host {
         ops.push(host_op(prepared));
     }
-    if let Some(ini_op) = ini_op_for_game(game_dir, &prepared.ini_tweaks) {
-        ops.push(ini_op);
+    if let Some(ini_op) = ini_op {
+        ops.push(ini_op.clone());
     }
     ops
 }
@@ -44,16 +44,16 @@ pub(super) fn host_op(prepared: &PreparedInstall) -> FileOp {
 }
 
 pub(super) fn host_ops(
-    game_dir: &Path,
     prepared: &PreparedInstall,
     writes_host: bool,
+    ini_op: Option<&FileOp>,
 ) -> Vec<FileOp> {
     let mut ops = Vec::new();
     if writes_host {
         ops.push(host_op(prepared));
     }
-    if let Some(ini_op) = ini_op_for_game(game_dir, &prepared.ini_tweaks) {
-        ops.push(ini_op);
+    if let Some(ini_op) = ini_op {
+        ops.push(ini_op.clone());
     }
     ops
 }
@@ -64,13 +64,72 @@ pub(super) fn host_ops(
 /// user's own hand-tuned ReShade settings. The engine itself tracks a from-empty
 /// write as `created_files` (see `engine::InstallChanges::into_receipt`), so
 /// `install_plans`/`build_vulkan_plan` need no extra book-keeping for it.
-pub(super) fn ini_op_for_game(game_dir: &Path, tweaks: &ReshadeIniTweaks) -> Option<FileOp> {
-    let tweaks = effective_ini_tweaks(game_dir, tweaks);
-    ini_tweaks_write_keys(&tweaks).then(|| FileOp::UpdateText {
+pub(super) fn ini_op_for_game(
+    game_dir: &Path,
+    prepared: &PreparedInstall,
+) -> Result<Option<FileOp>, crate::ServiceError> {
+    let tweaks = effective_ini_tweaks(game_dir, &prepared.ini_tweaks);
+    let strategy = ini_merge_strategy(&tweaks);
+    if let Some(desired) = prepared.processing_path.desired_set_path() {
+        let path = reshade::reshade_ini_path(game_dir)
+            .unwrap_or_else(|| game_dir.join(reshade::RESHADE_INI_FILE_NAME));
+        let expected_before = read_ini_preimage(&path)?;
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| crate::addons::errors::invalid("invalid ReShade.ini path"))?;
+        let path_ref = renderpilot_domain::PathRef::new(path_str)
+            .map_err(|error| crate::addons::errors::invalid(error.to_string()))?;
+        let planned = crate::addons::renodx::reshade_ini::plan_set_path(
+            path_ref,
+            expected_before.as_deref().unwrap_or_default(),
+            desired,
+        )
+        .map_err(|error| {
+            crate::addons::errors::invalid(format!("cannot plan RenoDX Set_Path: {error}"))
+        })?;
+        let planned_text = std::str::from_utf8(&planned.after).map_err(|_| {
+            crate::addons::errors::invalid("RenoDX Set_Path planner returned non-UTF-8")
+        })?;
+        let after = if strategy.has_writes() {
+            strategy.apply(planned_text).into_bytes()
+        } else {
+            planned.after
+        };
+        return Ok(Some(FileOp::RenoDxSetPath {
+            name: reshade::RESHADE_INI_FILE_NAME.to_owned(),
+            expected_before,
+            after,
+            receipt: planned.receipt,
+        }));
+    }
+    Ok(ini_tweaks_write_keys(&tweaks).then(|| FileOp::UpdateText {
         name: reshade::RESHADE_INI_FILE_NAME.to_owned(),
         default: String::new(),
-        strategy: ini_merge_strategy(&tweaks),
-    })
+        strategy,
+    }))
+}
+
+fn read_ini_preimage(path: &Path) -> Result<Option<Vec<u8>>, crate::ServiceError> {
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(crate::addons::errors::io(
+                "read ReShade.ini metadata",
+                path,
+                &error,
+            ));
+        }
+    };
+    if !metadata.file_type().is_file() {
+        return Err(crate::addons::errors::invalid(format!(
+            "cannot manage RenoDX ReShade.ini `{}`: not a regular file",
+            path.display()
+        )));
+    }
+    std::fs::read(path)
+        .map(Some)
+        .map_err(|error| crate::addons::errors::io("read ReShade.ini", path, &error))
 }
 
 pub(super) fn effective_ini_tweaks(game_dir: &Path, tweaks: &ReshadeIniTweaks) -> ReshadeIniTweaks {

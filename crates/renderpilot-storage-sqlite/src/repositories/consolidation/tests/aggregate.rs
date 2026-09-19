@@ -1,6 +1,7 @@
 //! Aggregate consolidation and conflict-policy tests.
 
 use super::*;
+use renderpilot_domain::{EngineConfigContribution, EngineConfigJournal, EngineConfigReceipt};
 #[test]
 fn aggregate_consolidation_rekeys_every_scoped_state_category() {
     let storage = SqliteStorage::in_memory().expect("storage");
@@ -28,6 +29,47 @@ fn aggregate_consolidation_rekeys_every_scoped_state_category() {
         .replace_components_for_game(source.id(), std::slice::from_ref(&source_component))
         .expect("source component");
     seed_all_scoped_state(&storage);
+    let journal = EngineConfigJournal {
+        stable: Some(EngineConfigReceipt {
+            schema_version: 1,
+            path: "C:/Games/Example/Engine.ini".to_owned(),
+            file_created: false,
+            encoding: "utf8".to_owned(),
+            before_digest: "0".repeat(64),
+            after_digest: "1".repeat(64),
+            recipe_fingerprint: "2".repeat(64),
+            contributions: vec![EngineConfigContribution {
+                section: "SystemSettings".to_owned(),
+                key: "r.AllowHDR".to_owned(),
+                value: "1".to_owned(),
+                line: b"r.AllowHDR=1\n".to_vec(),
+                left_anchor: "3".repeat(64),
+                right_anchor: "4".repeat(64),
+                introduced_prefix: Vec::new(),
+                group: "systemsettings".to_owned(),
+                ordinal: 0,
+            }],
+            created_headers: Vec::new(),
+            created_header_prefixes: Vec::new(),
+            created_header_groups: Vec::new(),
+            created_header_ordinals: Vec::new(),
+        }),
+        pending: None,
+    };
+    let journal_json = serde_json::to_string(&journal).expect("journal json");
+    storage
+        .connection()
+        .expect("connection")
+        .execute(
+            "UPDATE installed_addons
+                SET kind = 'renodx', engine_config_journal_json = :journal
+              WHERE game_id = :game_id",
+            rusqlite::named_params! {
+                ":journal": journal_json,
+                ":game_id": source.id().as_str(),
+            },
+        )
+        .expect("stable journal fixture");
 
     let plan = ConsolidationPlan {
         destination_game_id: destination.id().clone(),
@@ -94,6 +136,19 @@ fn aggregate_consolidation_rekeys_every_scoped_state_category() {
         )
         .expect("artifact owner");
     assert_eq!(artifact_owner, "game:destination");
+    let moved_journal: String = connection
+        .query_row(
+            "SELECT engine_config_journal_json
+               FROM installed_addons
+              WHERE game_id = 'game:destination'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("moved Engine.ini journal");
+    assert_eq!(
+        moved_journal,
+        serde_json::to_string(&journal).expect("journal json")
+    );
     let operation_component: String = connection
         .query_row(
             "SELECT component_id FROM operation_items WHERE operation_id = 'operation:source'",

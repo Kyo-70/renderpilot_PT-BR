@@ -74,7 +74,7 @@ pub(super) fn commit(
                 after_record,
                 game_intents,
                 shared_plan,
-                reshade_ini_authority: None,
+                reshade_ini_authority: lowered.reshade_ini_authority(),
                 layer_dir: &layer_dir,
                 source: None,
                 shared_record: Some(&shared_record),

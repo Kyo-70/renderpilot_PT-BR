@@ -52,7 +52,7 @@ pub(crate) mod test_support;
 
 use crate::ServiceError;
 
-use self::types::{LumaManifest, WireManifestV1};
+use self::types::{LumaManifest, WireManifestV2};
 use super::UTF8_BOM;
 
 /// i18n key for the indeterminate "finalizing" progress phase (see
@@ -67,9 +67,9 @@ pub(crate) const LUMA_PHASE_FINALIZING: &str = "luma.phase.finalizing";
 /// validation, so a returned manifest can be acted on without further checks.
 pub fn parse_manifest(bytes: &[u8]) -> Result<LumaManifest, ServiceError> {
     let bytes = bytes.strip_prefix(UTF8_BOM).unwrap_or(bytes);
-    let wire: WireManifestV1 = serde_json::from_slice(bytes)
+    let wire: WireManifestV2 = serde_json::from_slice(bytes)
         .map_err(|error| errors::failed(format!("failed to parse Luma manifest: {error}")))?;
-    let manifest = LumaManifest::from_wire_v1(wire)?;
+    let manifest = LumaManifest::from_wire_v2(wire)?;
     validate::validate_manifest(&manifest)?;
     Ok(manifest)
 }
@@ -79,7 +79,7 @@ mod tests {
     use super::*;
 
     const SAMPLE: &str = r#"{
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": "2026-07-04T00:00:00Z",
         "minimum_reshade_version": "6.7.0",
         "games": [
@@ -93,10 +93,19 @@ mod tests {
                 "package": { "release_asset": "Luma-Unreal_Engine.zip", "addon_file": "Luma-Unreal Engine.addon" }, "profile": "unreal", "architecture": "X64", "status": "unknown",
                 "match": [{ "kind": "steam_appid", "value": "389730", "tier": 100 }],
                 "features": { "dlss_fsr": "unknown", "hdr": "unknown" },
-                "requirements": { "launch_arguments": ["-nod3d9ex"] }
+                "requirements": { "launch_arguments": ["-nod3d9ex", "-dx11"] }
             }
         ]
     }"#;
+
+    fn sample_with_guidance(guidance: &str) -> String {
+        SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex", "-dx11"] }"#,
+            &format!(
+                r#""requirements": {{ "launch_arguments": ["-nod3d9ex", "-dx11"] }}, "guidance": [{guidance}]"#
+            ),
+        )
+    }
 
     #[test]
     fn parses_and_validates_a_sample_manifest() {
@@ -106,89 +115,11 @@ mod tests {
         assert_eq!(manifest.titles[0].addon_file, "Luma-Dishonored 2.addon");
         assert!(!manifest.titles[0].profile.is_engine());
         assert!(manifest.titles[1].profile.is_engine());
-        assert_eq!(manifest.titles[1].launch_args, vec!["-nod3d9ex".to_owned()]);
-        assert!(manifest.titles[1].guidance.is_empty());
-    }
-
-    #[test]
-    fn normalizes_historical_launch_argument_guidance_into_launch_args() {
-        let legacy = SAMPLE.replace(
-            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
-            r#""guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-nod3d9ex" }]"#,
-        );
-
-        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
-        assert_eq!(manifest.titles[1].launch_args, vec!["-nod3d9ex".to_owned()]);
-        assert!(manifest.titles[1].guidance.is_empty());
-    }
-
-    #[test]
-    fn rejects_historical_launch_argument_guidance_with_blank_id() {
-        let legacy = SAMPLE.replace(
-            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
-            r#""guidance": [{ "id": " ", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-nod3d9ex" }]"#,
-        );
-
-        let error = parse_manifest(legacy.as_bytes()).expect_err("blank id must be rejected");
-        assert!(error.to_string().contains("non-blank id"));
-    }
-
-    #[test]
-    fn rejects_historical_launch_argument_guidance_with_blank_fallback_text() {
-        let legacy = SAMPLE.replace(
-            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
-            r#""guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "\t", "code": "-nod3d9ex" }]"#,
-        );
-
-        let error =
-            parse_manifest(legacy.as_bytes()).expect_err("blank fallback text must be rejected");
-        assert!(error.to_string().contains("non-blank fallback_text"));
-    }
-
-    #[test]
-    fn canonicalizes_only_standalone_historical_dx11_aliases() {
-        let legacy = SAMPLE.replace(
-            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
-            r#""requirements": { "launch_arguments": ["-DX11"] },
-                "guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": " -dx11 " }]"#,
-        );
-
-        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
-        assert_eq!(manifest.titles[1].launch_args, vec!["-dx11".to_owned()]);
-    }
-
-    #[test]
-    fn compound_historical_dx11_argument_supersedes_a_standalone_requirement() {
-        let legacy = SAMPLE.replace(
-            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
-            r#""requirements": { "launch_arguments": ["-dx11"] },
-                "guidance": [{ "id": "luma.song-of-nunu.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-oss=Steam -dx11" }]"#,
-        );
-
-        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
         assert_eq!(
             manifest.titles[1].launch_args,
-            vec!["-oss=Steam -dx11".to_owned()]
+            vec!["-nod3d9ex".to_owned(), "-dx11".to_owned()]
         );
-    }
-
-    #[test]
-    fn preserves_unrelated_historical_arguments_when_a_compound_dx11_argument_is_present() {
-        let legacy = SAMPLE.replace(
-            r#""requirements": { "launch_arguments": ["-nod3d9ex"] }"#,
-            r#""requirements": { "launch_arguments": ["--foo=-dx11", "-DX11", "-bar"] },
-                "guidance": [{ "id": "luma.song-of-nunu.launch", "kind": "launch_argument", "fallback_text": "Add this launch argument manually.", "code": "-oss=Steam -dx11" }]"#,
-        );
-
-        let manifest = parse_manifest(legacy.as_bytes()).expect("legacy v1 manifest is valid");
-        assert_eq!(
-            manifest.titles[1].launch_args,
-            vec![
-                "--foo=-dx11".to_owned(),
-                "-bar".to_owned(),
-                "-oss=Steam -dx11".to_owned(),
-            ]
-        );
+        assert!(manifest.titles[1].guidance.is_empty());
     }
 
     #[test]
@@ -208,11 +139,71 @@ mod tests {
         assert!(
             parse_manifest(
                 SAMPLE
-                    .replace("\"schema_version\": 1", "\"schema_version\": 99")
+                    .replace("\"schema_version\": 2", "\"schema_version\": 99")
                     .as_bytes()
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn rejects_engine_ini_guidance_without_a_typed_recipe() {
+        let payload = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex", "-dx11"] }"#,
+            r#""requirements": { "launch_arguments": ["-nod3d9ex", "-dx11"] },
+                "guidance": [{ "id": "luma.tekken-7.engine", "kind": "engine_ini", "fallback_text": "Configure Engine.ini.", "code": "[SystemSettings]" }]"#,
+        );
+
+        let error = parse_manifest(payload.as_bytes()).expect_err("typed recipe is required");
+        assert!(error.to_string().contains("typed recipe"));
+    }
+
+    #[test]
+    fn accepts_engine_ini_guidance_with_canonical_code() {
+        let payload = sample_with_guidance(
+            r#"{"id":"luma.tekken-7.engine","kind":"engine_ini","fallback_text":"Configure Engine.ini.","code":"[SystemSettings]\nr.Test=1\n\n[ConsoleVariables]\nr.Other=2","engine_ini":{"schema_version":1,"revision":1,"id":"luma.tekken-7.engine","sections":[{"name":"SystemSettings","entries":[{"key":"r.Test","value":"1"}]},{"name":"ConsoleVariables","entries":[{"key":"r.Other","value":"2"}]}]}}"#,
+        );
+
+        let manifest = parse_manifest(payload.as_bytes()).expect("canonical code is accepted");
+        let guidance = &manifest.titles[1].guidance[0];
+        assert_eq!(
+            guidance.code.as_deref(),
+            Some("[SystemSettings]\nr.Test=1\n\n[ConsoleVariables]\nr.Other=2")
+        );
+        assert!(guidance.engine_ini.is_some());
+    }
+
+    #[test]
+    fn rejects_engine_ini_guidance_with_divergent_code() {
+        let payload = sample_with_guidance(
+            r#"{"id":"luma.tekken-7.engine","kind":"engine_ini","fallback_text":"Configure Engine.ini.","code":"[SystemSettings]\nr.Wrong=1","engine_ini":{"schema_version":1,"revision":1,"id":"luma.tekken-7.engine","sections":[{"name":"SystemSettings","entries":[{"key":"r.Expected","value":"1"}]}]}}"#,
+        );
+
+        let error = parse_manifest(payload.as_bytes()).expect_err("divergent code is rejected");
+        assert!(error.to_string().contains("does not match canonical"));
+    }
+
+    #[test]
+    fn rejects_typed_recipe_on_non_engine_guidance() {
+        let payload = sample_with_guidance(
+            r#"{"id":"luma.tekken-7.warning","kind":"warning","fallback_text":"Warning.","engine_ini":{"schema_version":1,"revision":1,"id":"luma.tekken-7.warning","sections":[{"name":"SystemSettings","entries":[{"key":"r.Test","value":"1"}]}]}}"#,
+        );
+
+        let error = parse_manifest(payload.as_bytes()).expect_err("non-engine recipe is rejected");
+        assert!(error.to_string().contains("non-engine guidance"));
+    }
+
+    #[test]
+    fn rejects_launch_argument_guidance_in_v2() {
+        let payload = SAMPLE.replace(
+            r#""requirements": { "launch_arguments": ["-nod3d9ex", "-dx11"] }"#,
+            r#""requirements": { "launch_arguments": ["-nod3d9ex", "-dx11"] },
+                "guidance": [{ "id": "luma.tekken-7.launch", "kind": "launch_argument", "fallback_text": "Use this launch argument.", "code": "-dx11" }]"#,
+        );
+
+        let error = parse_manifest(payload.as_bytes()).expect_err("v2 rejects launch guidance");
+        assert!(error.to_string().contains("unknown variant"));
+        assert!(error.to_string().contains("launch_argument"));
     }
 
     #[test]
@@ -304,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_v1_fields() {
+    fn rejects_unknown_v2_fields() {
         let sample = SAMPLE.replace(
             r#""generated_at": "2026-07-04T00:00:00Z""#,
             r#""generated_at": "2026-07-04T00:00:00Z", "unexpected": true"#,

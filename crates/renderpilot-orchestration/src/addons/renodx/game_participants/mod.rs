@@ -6,7 +6,6 @@
 //! emits for that flow (`Replace` and `UpdateText`).  It deliberately never
 //! enumerates the game directory or reads an unrelated file.
 
-use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -34,6 +33,7 @@ pub(crate) struct GameParticipantPlan {
     files: Vec<GameFileIntent>,
     created_dirs: Vec<PathBuf>,
     receipt: InstallReceipt,
+    config_receipt: Option<renderpilot_domain::RenoDxConfigReceipt>,
 }
 
 impl GameParticipantPlan {
@@ -45,6 +45,7 @@ impl GameParticipantPlan {
             files,
             created_dirs,
             receipt: _,
+            config_receipt: _,
         } = self;
         (files, created_dirs)
     }
@@ -52,6 +53,10 @@ impl GameParticipantPlan {
     #[must_use]
     pub(crate) fn receipt(&self) -> &InstallReceipt {
         &self.receipt
+    }
+
+    pub(crate) fn config_receipt(&self) -> Option<&renderpilot_domain::RenoDxConfigReceipt> {
+        self.config_receipt.as_ref()
     }
 }
 
@@ -65,41 +70,74 @@ impl GameParticipantPlan {
 /// without an explicit planner rule.
 pub(crate) fn build(
     game_dir: &Path,
-    plan: &InstallPlan,
+    plan: InstallPlan,
 ) -> Result<GameParticipantPlan, ServiceError> {
     let mut files = Vec::with_capacity(plan.ops.len());
     let mut receipt = InstallReceipt::default();
+    let mut config_receipt = None;
 
-    for operation in &plan.ops {
-        let (path, before, after, record_as_created) = match operation {
+    for operation in plan.ops {
+        let (path, before, after, record_as_created, planned_config_receipt) = match operation {
             FileOp::Replace { name, bytes } => {
-                let path = exact_path(game_dir, "file name", name)?;
+                let path = exact_path(game_dir, "file name", &name)?;
                 let before = read_replace_before(&path)?;
-                (path, before, Some(bytes.clone()), true)
+                (path, before, Some(bytes), true, None)
             }
             FileOp::UpdateText {
                 name,
                 default,
                 strategy,
             } => {
-                ensure_bare_file_name("update file name", name)?;
-                let path = existing_case_insensitive(game_dir, name)
+                ensure_bare_file_name("update file name", &name)?;
+                let path = existing_case_insensitive(game_dir, &name)
                     .unwrap_or_else(|| game_dir.join(name));
                 let before = read_update_before(&path)?;
                 let current = before
                     .as_deref()
                     .map(String::from_utf8_lossy)
-                    .map_or_else(|| default.clone(), Cow::into_owned);
+                    .map_or_else(|| default, |value| value.into_owned());
                 let after = strategy.apply(&current).into_bytes();
                 let record_as_created = before.is_none();
-                (path, before, Some(after), record_as_created)
+                (path, before, Some(after), record_as_created, None)
+            }
+            FileOp::RenoDxSetPath {
+                name,
+                expected_before,
+                after,
+                receipt,
+            } => {
+                ensure_bare_file_name("RenoDX Set_Path file name", &name)?;
+                let path = existing_case_insensitive(game_dir, &name)
+                    .unwrap_or_else(|| game_dir.join(name));
+                let current_before = read_update_before(&path)?;
+                if current_before != expected_before {
+                    return Err(crate::addons::errors::invalid(format!(
+                        "RenoDX ReShade.ini changed after preparation: {}",
+                        path.display()
+                    )));
+                }
+                let record_as_created = expected_before.is_none();
+                (
+                    path,
+                    expected_before,
+                    Some(after),
+                    record_as_created,
+                    Some(receipt),
+                )
             }
             _ => {
                 return Err(crate::addons::errors::invalid(
-                    "RenoDX Vulkan combined planning supports only Replace and UpdateText operations",
+                    "RenoDX Vulkan combined planning supports only Replace, UpdateText, and RenoDxSetPath operations",
                 ));
             }
         };
+        if let Some(planned_config_receipt) = planned_config_receipt
+            && config_receipt.replace(planned_config_receipt).is_some()
+        {
+            return Err(crate::addons::errors::invalid(
+                "RenoDX Vulkan plan contains duplicate Set_Path operations",
+            ));
+        }
 
         if record_as_created {
             receipt.created_files.push(path.clone());
@@ -115,6 +153,7 @@ pub(crate) fn build(
         files,
         created_dirs: Vec::new(),
         receipt,
+        config_receipt,
     })
 }
 
@@ -152,7 +191,7 @@ mod tests {
 
     use super::*;
     use crate::addons::engine::{IniSection, MergeStrategy};
-    use renderpilot_domain::AddonKind;
+    use renderpilot_domain::{AddonKind, RenoDxSetPathValue};
 
     fn plan(ops: Vec<FileOp>) -> InstallPlan {
         InstallPlan {
@@ -167,7 +206,7 @@ mod tests {
         fs::write(directory.path().join("unrelated.bin"), [0xff, 0xfe]).expect("unrelated");
         let participants = build(
             directory.path(),
-            &plan(vec![FileOp::Replace {
+            plan(vec![FileOp::Replace {
                 name: "renodx.addon".to_owned(),
                 bytes: vec![1, 2, 3],
             }]),
@@ -193,7 +232,7 @@ mod tests {
         fs::write(&target, [9, 8]).expect("existing addon");
         let participants = build(
             directory.path(),
-            &plan(vec![FileOp::Replace {
+            plan(vec![FileOp::Replace {
                 name: "renodx.addon".to_owned(),
                 bytes: vec![1, 2, 3],
             }]),
@@ -213,7 +252,7 @@ mod tests {
         fs::write(&existing, &original).expect("existing ini");
         let participants = build(
             directory.path(),
-            &plan(vec![FileOp::UpdateText {
+            plan(vec![FileOp::UpdateText {
                 name: "ReShade.ini".to_owned(),
                 default: String::new(),
                 strategy: MergeStrategy::IniSetKeys {
@@ -233,11 +272,52 @@ mod tests {
     }
 
     #[test]
+    fn typed_set_path_uses_planner_bytes_and_captures_receipt() {
+        let directory = tempdir().expect("tempdir");
+        let existing = directory.path().join("reshade.INI");
+        let original = b"; keep this comment\n[renodx]\nSet_Path = arbitrary\n";
+        fs::write(&existing, original).expect("existing ini");
+        let path_ref = renderpilot_domain::PathRef::new(existing.to_string_lossy().into_owned())
+            .expect("path");
+        let prepared = crate::addons::renodx::reshade_ini::plan_set_path(
+            path_ref,
+            original,
+            RenoDxSetPathValue::One,
+        )
+        .expect("set path prepare");
+        let participants = build(
+            directory.path(),
+            plan(vec![FileOp::RenoDxSetPath {
+                name: "ReShade.ini".to_owned(),
+                expected_before: Some(original.to_vec()),
+                after: prepared.after,
+                receipt: prepared.receipt,
+            }]),
+        )
+        .expect("typed config plan");
+
+        assert_eq!(
+            participants.files[0].after,
+            Some(b"; keep this comment\n[renodx]\nSet_Path = 1\n".to_vec())
+        );
+        assert_eq!(
+            participants
+                .config_receipt
+                .as_ref()
+                .expect("receipt")
+                .baseline,
+            renderpilot_domain::RenoDxSetPathBaseline::Present {
+                value: "arbitrary".to_owned()
+            }
+        );
+    }
+
+    #[test]
     fn unsupported_operations_fail_closed() {
         let directory = tempdir().expect("tempdir");
         let error = build(
             directory.path(),
-            &plan(vec![FileOp::Create {
+            plan(vec![FileOp::Create {
                 name: "unexpected.bin".to_owned(),
                 bytes: vec![1],
             }]),

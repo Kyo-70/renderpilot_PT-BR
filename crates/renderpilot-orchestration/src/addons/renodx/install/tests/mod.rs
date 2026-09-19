@@ -20,6 +20,7 @@ fn prepared() -> PreparedInstall {
     PreparedInstall {
         game_id: GameId::new("steam:1091500").expect("id"),
         host_kind: HostKind::Proxy,
+        processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
         proxy_dll_name: "dxgi.dll".to_owned(),
         addon_file_name: "renodx-cp2077.addon64".to_owned(),
         addon_source_url: "https://clshortfuse.github.io/renodx/renodx-cp2077.addon64".to_owned(),

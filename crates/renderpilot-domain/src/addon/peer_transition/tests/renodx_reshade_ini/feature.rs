@@ -13,6 +13,7 @@ fn feature_parser_is_closed_and_authority_handles_roots() {
             RenoDxReshadeIniFeature::InstallFromFile,
         ),
         (RENODX_UNINSTALL, RenoDxReshadeIniFeature::Uninstall),
+        (RENODX_UPDATE, RenoDxReshadeIniFeature::Update),
         (
             RENODX_DLSS_FIX_INSTALL,
             RenoDxReshadeIniFeature::DlssFixInstall,
@@ -34,12 +35,7 @@ fn feature_parser_is_closed_and_authority_handles_roots() {
         RenoDxReshadeIniFeature::try_from_feature(RENODX_SWITCH_RESHADE_CHANNEL),
         Err(PeerTransitionError::UnsupportedRenoDxReshadeIniFeature)
     ));
-    for unsupported in [
-        RENODX_UPDATE,
-        "luma_install",
-        "optiscaler_install",
-        "unknown",
-    ] {
+    for unsupported in ["luma_install", "optiscaler_install", "unknown"] {
         assert!(matches!(
             RenoDxReshadeIniFeature::try_from_feature(unsupported),
             Err(PeerTransitionError::UnsupportedRenoDxReshadeIniFeature)

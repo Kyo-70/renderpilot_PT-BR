@@ -89,6 +89,19 @@ pub(super) fn rebuild_with_sources_and_receipt(
     rebuild_with_parts(record, created, backed_up, sources, label)
 }
 
+pub(super) fn rebuild_with_sources_and_renodx_config_receipt(
+    record: &InstalledAddon,
+    sources: Vec<TrackedSource>,
+    receipt: Option<&InstallReceipt>,
+    config_receipt: Option<renderpilot_domain::RenoDxConfigReceipt>,
+    label: &str,
+) -> Result<InstalledAddon, ServiceError> {
+    let rebuilt = rebuild_with_sources_and_receipt(record, sources, receipt, label)?;
+    rebuilt
+        .with_renodx_config_receipt(config_receipt)
+        .map_err(|error| errors::failed(error.to_string()))
+}
+
 /// Rebuilds the single DLSS-Fix ownership projection. The exact managed path is
 /// deletion authority; the source is advisory update provenance. Both are
 /// replaced atomically in the persisted record so partial-evidence convergence

@@ -27,7 +27,7 @@ use crate::addons::manifest_validate::{
 };
 
 /// Schema version this build understands.
-const SUPPORTED_SCHEMA_VERSION: u32 = 1;
+const SUPPORTED_SCHEMA_VERSION: u32 = 2;
 
 /// Validates an entire manifest.
 pub(super) fn validate_manifest(manifest: &LumaManifest) -> Result<(), ServiceError> {

@@ -69,6 +69,8 @@ use self::version::database_has_user_schema;
 //   17 → 18: add the singleton shared-Vulkan durable mutation fence.
 //   18 → 19: add typed OptiScaler state, neutral proxy-topology aggregates,
 //             and exact immutable configuration baseline custody.
+//   19 → 20: add the nullable RenoDX ReShade configuration receipt and shared
+//             Engine.ini configuration journal.
 pub(super) fn pragma_column_names(
     connection: &Connection,
     table_name: &str,

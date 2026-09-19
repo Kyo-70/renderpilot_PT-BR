@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use renderpilot_domain::{
     InstalledAddon, InstalledAddonHostKind, InstalledAddonParts, ManagedAddonFile, PathRef,
-    TrackedSource,
+    RenoDxConfigReceipt, TrackedSource,
 };
 
 use crate::ServiceError;
@@ -91,6 +91,24 @@ pub(crate) fn rebuild_install_record(
     parts: RebuildParts,
     preserve: PreserveMetadata,
 ) -> Result<InstalledAddon, ServiceError> {
+    rebuild_install_record_with_renodx_receipt(
+        record,
+        parts,
+        preserve,
+        record.renodx_config_receipt().cloned(),
+    )
+}
+
+/// Rebuilds an install record while explicitly projecting the narrow RenoDX
+/// ReShade.ini receipt. Ordinary rebuild callers retain the source receipt via
+/// [`rebuild_install_record`]; update/reconcile callers use this entrypoint to
+/// commit the exact receipt transition together with their file postimage.
+pub(crate) fn rebuild_install_record_with_renodx_receipt(
+    record: &InstalledAddon,
+    parts: RebuildParts,
+    preserve: PreserveMetadata,
+    renodx_config_receipt: Option<RenoDxConfigReceipt>,
+) -> Result<InstalledAddon, ServiceError> {
     let installed_at = record.installed_at();
     let updated_at = record.updated_at();
     let version = match &parts.addon_version {
@@ -111,6 +129,8 @@ pub(crate) fn rebuild_install_record(
         backed_up_files: parts.backed_up_files,
         managed_files,
         tracked_sources: parts.tracked_sources,
+        renodx_config_receipt,
+        engine_config_journal: record.engine_config_journal().cloned(),
     })
     .map_err(|error| errors::failed(error.to_string()))?
     .ok_or_else(|| {

@@ -36,6 +36,7 @@ fn renodx_proxy_install_then_optiscaler_chain_converts_the_actual_peer_receipt()
     let prepared_renodx = crate::addons::renodx::install::PreparedInstall {
         game_id: game_id.clone(),
         host_kind: crate::addons::reshade::proxy::HostKind::Proxy,
+        processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
         proxy_dll_name: "dxgi.dll".to_owned(),
         addon_file_name: "renodx.addon64".to_owned(),
         addon_source_url: "https://example.invalid/renodx.addon64".to_owned(),

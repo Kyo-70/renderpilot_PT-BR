@@ -2,19 +2,25 @@
 
 use std::path::Path;
 
-use renderpilot_domain::{ManagedAddonFile, ManagedFileMode, TrackedSourceRole};
+use renderpilot_domain::{
+    ManagedAddonFile, ManagedFileMode, RenoDxConfigReceipt, RenoDxReshadeIniAuthority,
+    RenoDxReshadeIniFeature, TrackedSourceRole,
+};
 use sha2::{Digest, Sha256};
 
 use crate::ServiceError;
 use crate::addons::renodx::errors;
+use crate::addons::renodx::peer::RenoDxConfigSourceSeal;
 use crate::addons::renodx::peer::{
-    RenoDxActiveUpdateComposition, RenoDxActiveUpdateHostInput, RenoDxActiveUpdateInput,
-    compose_active_update,
+    RenoDxActiveUpdateComposition, RenoDxActiveUpdateConfigInput, RenoDxActiveUpdateHostInput,
+    RenoDxActiveUpdateInput, compose_active_update,
 };
+use crate::addons::renodx::reshade_ini::plan_set_path_reconcile;
 use crate::addons::tracking;
 use crate::addons::tracking::{
     AddonVersionUpdate, ManagedFilesUpdate, PreserveMetadata, RebuildParts,
 };
+use crate::peer_mutation_executor::VerifiedPeerFile;
 
 use super::super::prepare::PreparedUpdateArtifacts;
 use super::snapshot::ActiveUpdatePhase1;
@@ -24,7 +30,14 @@ use super::snapshot::ActiveUpdatePhase1;
 pub(crate) struct ActiveLoweredUpdate {
     pub(super) composition: RenoDxActiveUpdateComposition,
     pub(super) addon_mtime: Option<String>,
+    pub(super) reshade_ini_authority: Option<RenoDxReshadeIniAuthority>,
 }
+
+type LoweredConfig = (
+    Option<RenoDxActiveUpdateConfigInput>,
+    Option<RenoDxConfigReceipt>,
+    Option<RenoDxReshadeIniAuthority>,
+);
 
 pub(crate) fn lower_active_update(
     phase1: &ActiveUpdatePhase1,
@@ -75,7 +88,13 @@ pub(crate) fn lower_active_update(
         }
     }
 
-    let after = rebuild_record(phase3, prepared, host_bytes.as_deref())?;
+    let (config, config_receipt, reshade_ini_authority) = lower_config(phase3)?;
+    let after = rebuild_record(
+        phase3,
+        prepared,
+        host_bytes.as_deref(),
+        config_receipt.as_ref(),
+    )?;
     validate_source_digests(
         &after,
         &addon_bytes,
@@ -109,12 +128,14 @@ pub(crate) fn lower_active_update(
         addon_snapshot: &phase3.addon_snapshot,
         addon_bytes,
         host,
+        config,
     };
-    let composition = compose_active_update(&input)
+    let composition = compose_active_update(input)
         .map_err(|error| invalid(format!("active RenoDX update composition failed: {error}")))?;
     Ok(ActiveLoweredUpdate {
         composition,
         addon_mtime,
+        reshade_ini_authority,
     })
 }
 
@@ -122,6 +143,7 @@ fn rebuild_record(
     phase3: &ActiveUpdatePhase1,
     prepared: &PreparedUpdateArtifacts,
     host_bytes: Option<&[u8]>,
+    config_receipt: Option<&RenoDxConfigReceipt>,
 ) -> Result<renderpilot_domain::InstalledAddon, ServiceError> {
     let record = phase3.base.record();
     let managed = match (host_bytes, phase3.host_path.as_ref()) {
@@ -147,7 +169,7 @@ fn rebuild_record(
         }
         (Some(_), None) => return Err(invalid("active RenoDX host replacement has no host path")),
     };
-    tracking::rebuild_install_record(
+    tracking::rebuild_install_record_with_renodx_receipt(
         record,
         RebuildParts {
             addon_file: record.addon_file().clone(),
@@ -159,7 +181,85 @@ fn rebuild_record(
             label: "RenoDX active update rebuild".to_owned(),
         },
         PreserveMetadata::renodx(),
+        config_receipt.cloned(),
     )
+}
+
+fn lower_config(phase3: &ActiveUpdatePhase1) -> Result<LoweredConfig, ServiceError> {
+    let desired = phase3.base.processing_path.desired_set_path();
+    let current_receipt = phase3.base.record().renodx_config_receipt();
+    if desired.is_none() && current_receipt.is_none() {
+        return Ok((None, None, None));
+    }
+    let source = phase3.root_seal.config_source();
+    let path = path_ref(source.exact_ini_path())?;
+    let (before, before_bytes) = match source {
+        RenoDxConfigSourceSeal::Absent { .. } => (None, None),
+        RenoDxConfigSourceSeal::File {
+            identity,
+            digest,
+            length,
+            owned_bytes,
+            ..
+        } => {
+            if *length != owned_bytes.len() as u64
+                || renderpilot_detection::sha256_bytes(owned_bytes)
+                    .map_err(|error| invalid(format!("config digest failed: {error}")))?
+                    != *digest
+            {
+                return Err(invalid("active ReShade.ini seal digest is inconsistent"));
+            }
+            let before =
+                VerifiedPeerFile::new_with_length(identity.clone(), digest.clone(), *length)
+                    .map_err(|error| {
+                        invalid(format!("active ReShade.ini seal is invalid: {error}"))
+                    })?;
+            (Some(before), Some(owned_bytes.clone()))
+        }
+    };
+    let planned = plan_set_path_reconcile(
+        path.clone(),
+        before_bytes.as_deref(),
+        desired,
+        current_receipt,
+    )
+    .map_err(|error| invalid(format!("active RenoDX Set_Path reconcile failed: {error}")))?;
+    let physical_changed = before_bytes != planned.after;
+    let config = if physical_changed {
+        let after = planned
+            .after
+            .ok_or_else(|| invalid("active Set_Path reconcile removed ReShade.ini"))?;
+        Some(RenoDxActiveUpdateConfigInput::new(
+            path,
+            before,
+            before_bytes,
+            Some(after),
+        ))
+    } else {
+        None
+    };
+    let authority = if config.is_some() {
+        Some(
+            RenoDxReshadeIniAuthority::new(
+                RenoDxReshadeIniFeature::Update,
+                phase3.root_seal().canonical_game_root_ref().clone(),
+            )
+            .map_err(|error| {
+                invalid(format!("active ReShade.ini authority is invalid: {error}"))
+            })?,
+        )
+    } else {
+        None
+    };
+    Ok((config, planned.receipt, authority))
+}
+
+fn path_ref(path: &Path) -> Result<renderpilot_domain::PathRef, ServiceError> {
+    let value = path
+        .to_str()
+        .ok_or_else(|| invalid("active ReShade.ini path is not valid UTF-8"))?;
+    renderpilot_domain::PathRef::new(value)
+        .map_err(|error| invalid(format!("active ReShade.ini path is invalid: {error}")))
 }
 
 fn validate_source_digests(

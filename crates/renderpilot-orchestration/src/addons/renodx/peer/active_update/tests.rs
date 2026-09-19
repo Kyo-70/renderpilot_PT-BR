@@ -103,6 +103,7 @@ fn input(input: ActiveUpdateFixtureInput<'_>) -> RenoDxActiveUpdateInput<'_> {
         addon_snapshot,
         addon_bytes,
         host,
+        config: None,
     }
 }
 
@@ -130,7 +131,7 @@ fn addon_only_change_is_one_disjoint_replace() {
     let before = record(&topology.game_id, path(&addon), None);
     let after = before.clone();
 
-    let result = compose_active_update(&input!(
+    let result = compose_active_update(input!(
         &before,
         &after,
         &topology,
@@ -171,7 +172,7 @@ fn addon_and_owned_reshade_host_are_replaced_in_one_program() {
         Some((&host, OLD_HOST, NEW_HOST)),
     );
 
-    let result = compose_active_update(&input!(
+    let result = compose_active_update(input!(
         &before,
         &after,
         &topology,
@@ -212,7 +213,7 @@ fn unchanged_endpoint_is_noop_and_record_only_change_is_metadata() {
     let addon_ref = path(&addon);
     let before = record(&topology.game_id, addon_ref.clone(), None);
 
-    let noop = compose_active_update(&input!(
+    let noop = compose_active_update(input!(
         &before,
         &before,
         &topology,
@@ -226,7 +227,7 @@ fn unchanged_endpoint_is_noop_and_record_only_change_is_metadata() {
     assert!(matches!(noop, RenoDxActiveUpdateComposition::Noop));
 
     let after = before.clone().with_addon_version("new-version");
-    let metadata = compose_active_update(&input!(
+    let metadata = compose_active_update(input!(
         &before,
         &after,
         &topology,
@@ -249,7 +250,7 @@ fn missing_or_relocated_preimage_is_rejected() {
     let addon_ref = path(&addon);
     let before = record(&topology.game_id, addon_ref.clone(), None);
 
-    let missing = compose_active_update(&input!(
+    let missing = compose_active_update(input!(
         &before,
         &before,
         &topology,
@@ -266,7 +267,7 @@ fn missing_or_relocated_preimage_is_rejected() {
     ));
 
     let relocated = root.path().join("other.dll");
-    let relocated_error = compose_active_update(&input!(
+    let relocated_error = compose_active_update(input!(
         &before,
         &before,
         &topology,

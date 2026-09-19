@@ -6,9 +6,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{AddonKind, GameId, PathRef};
 
+use super::engine_config::EngineConfigJournal;
 use super::managed_file::{
     InstalledAddonInvariantError, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode,
 };
+use super::renodx_config::RenoDxConfigReceipt;
 use super::tracked::{InstalledAddonHostKind, TrackedSource, TrackedSourceRole};
 
 /// Named fields for reconstructing an [`InstalledAddon`] from storage or rebuild paths.
@@ -30,6 +32,10 @@ pub struct InstalledAddonParts {
     pub managed_files: Vec<ManagedAddonFile>,
     /// Upstream provenance for updates.
     pub tracked_sources: Vec<TrackedSource>,
+    /// RenoDX-only provenance for the typed ReShade.ini Set_Path mutation.
+    pub renodx_config_receipt: Option<RenoDxConfigReceipt>,
+    /// Shared Unreal Engine.ini ownership journal for RenoDX/Luma.
+    pub engine_config_journal: Option<EngineConfigJournal>,
 }
 
 /// Record of an installed add-on: the source of truth for reversing an install.
@@ -73,6 +79,11 @@ pub struct InstalledAddon {
     /// uninstall does not depend on the current executable override.
     #[serde(default)]
     registered_exe_path: Option<PathRef>,
+    /// RenoDX-only provenance for the typed ReShade.ini Set_Path mutation.
+    #[serde(default)]
+    renodx_config_receipt: Option<RenoDxConfigReceipt>,
+    #[serde(default)]
+    engine_config_journal: Option<EngineConfigJournal>,
 }
 
 impl InstalledAddon {
@@ -97,6 +108,8 @@ impl InstalledAddon {
             host_kind: None,
             reshade_channel: None,
             registered_exe_path: None,
+            renodx_config_receipt: None,
+            engine_config_journal: None,
         }
     }
 
@@ -127,6 +140,8 @@ impl InstalledAddon {
             backed_up_files,
             managed_files: Vec::new(),
             tracked_sources,
+            renodx_config_receipt: None,
+            engine_config_journal: None,
         })
         .ok()
         .flatten()
@@ -149,7 +164,15 @@ impl InstalledAddon {
             backed_up_files,
             managed_files,
             tracked_sources,
+            renodx_config_receipt,
+            engine_config_journal,
         } = parts;
+        validate_renodx_config_receipt_invariants(kind, renodx_config_receipt.as_ref())?;
+        if let Some(journal) = &engine_config_journal {
+            journal
+                .validate_for_kind(kind)
+                .map_err(|_| InstalledAddonInvariantError::InvalidEngineConfigJournal)?;
+        }
         if !created_files.contains(&addon_file) {
             return Ok(None);
         }
@@ -168,6 +191,8 @@ impl InstalledAddon {
             host_kind: None,
             reshade_channel: None,
             registered_exe_path: None,
+            renodx_config_receipt,
+            engine_config_journal,
         };
         if managed_files.is_empty() {
             return Ok(Some(record));
@@ -214,6 +239,8 @@ impl InstalledAddon {
             host_kind,
             reshade_channel,
             registered_exe_path,
+            renodx_config_receipt,
+            engine_config_journal,
         } = self;
         let Self {
             game_id: other_game_id,
@@ -229,6 +256,8 @@ impl InstalledAddon {
             host_kind: other_host_kind,
             reshade_channel: other_reshade_channel,
             registered_exe_path: other_registered_exe_path,
+            renodx_config_receipt: other_renodx_config_receipt,
+            engine_config_journal: other_engine_config_journal,
         } = other;
 
         game_id == other_game_id
@@ -242,6 +271,8 @@ impl InstalledAddon {
             && host_kind == other_host_kind
             && reshade_channel == other_reshade_channel
             && registered_exe_path == other_registered_exe_path
+            && renodx_config_receipt == other_renodx_config_receipt
+            && engine_config_journal == other_engine_config_journal
     }
 
     /// Attaches host metadata to the install.
@@ -263,6 +294,30 @@ impl InstalledAddon {
     pub fn with_registered_exe_path(mut self, path: PathRef) -> Self {
         self.registered_exe_path = Some(path);
         self
+    }
+
+    /// Attaches or clears RenoDX's typed ReShade.ini Set_Path receipt.
+    pub fn with_renodx_config_receipt(
+        mut self,
+        receipt: Option<RenoDxConfigReceipt>,
+    ) -> Result<Self, InstalledAddonInvariantError> {
+        validate_renodx_config_receipt_invariants(self.kind, receipt.as_ref())?;
+        self.renodx_config_receipt = receipt;
+        Ok(self)
+    }
+
+    /// Attaches or clears the shared Unreal Engine.ini journal.
+    pub fn with_engine_config_journal(
+        mut self,
+        journal: Option<EngineConfigJournal>,
+    ) -> Result<Self, InstalledAddonInvariantError> {
+        if let Some(value) = &journal {
+            value
+                .validate_for_kind(self.kind)
+                .map_err(|_| InstalledAddonInvariantError::InvalidEngineConfigJournal)?;
+        }
+        self.engine_config_journal = journal;
+        Ok(self)
     }
 
     /// Records an additional file created by the install (removed on uninstall).
@@ -456,6 +511,18 @@ impl InstalledAddon {
         self.registered_exe_path.as_ref()
     }
 
+    /// Returns RenoDX's typed Set_Path provenance, if this record manages it.
+    #[must_use]
+    pub fn renodx_config_receipt(&self) -> Option<&RenoDxConfigReceipt> {
+        self.renodx_config_receipt.as_ref()
+    }
+
+    /// Returns the shared Unreal Engine.ini ownership journal, if present.
+    #[must_use]
+    pub fn engine_config_journal(&self) -> Option<&EngineConfigJournal> {
+        self.engine_config_journal.as_ref()
+    }
+
     /// Returns whether the add-on payload has a checkable upstream identity. This
     /// includes an advisory source recovered from an exact manifest payload; only
     /// records with no source URL at all are displayed as installed from a file.
@@ -465,6 +532,22 @@ impl InstalledAddon {
             source.role() == TrackedSourceRole::AddonPayload && !source.url().is_empty()
         })
     }
+}
+
+fn validate_renodx_config_receipt_invariants(
+    kind: AddonKind,
+    receipt: Option<&RenoDxConfigReceipt>,
+) -> Result<(), InstalledAddonInvariantError> {
+    let Some(receipt) = receipt else {
+        return Ok(());
+    };
+    if kind != AddonKind::RenoDx {
+        return Err(InstalledAddonInvariantError::RenoDxConfigReceiptOnNonRenoDx);
+    }
+    if !receipt.is_supported() {
+        return Err(InstalledAddonInvariantError::InvalidRenoDxConfigReceipt);
+    }
+    Ok(())
 }
 
 #[cfg(test)]

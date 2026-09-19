@@ -143,6 +143,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         };
         assert_eq!(
             generic_addon_url(&explicit, Architecture::X64).as_deref(),
@@ -163,6 +167,10 @@ mod tests {
                 "renodx.generic.universal",
                 "Generic Unreal profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         };
         assert_eq!(
             generic_addon_url(&slugged, Architecture::X64).as_deref(),

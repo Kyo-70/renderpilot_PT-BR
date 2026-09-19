@@ -2,7 +2,9 @@ use renderpilot_domain::Architecture;
 
 use crate::addons::CatalogMessage;
 use crate::addons::matching::{IncompatibilityReason, MatchConfidence};
-use crate::addons::renodx::types::RenoDxGenericProfile;
+use crate::addons::renodx::types::{
+    RenoDxGenericProfile, RenoDxGuidance, RenoDxLaunchRequirement, RenoDxProcessingPath,
+};
 use crate::addons::reshade::proxy::HostKind;
 
 /// A matched, compatible game resolved to everything an install needs (owned).
@@ -26,6 +28,14 @@ pub struct ResolvedInstall {
     /// Present when this plan came from an engine-level generic profile rather
     /// than a dedicated per-game title. The UI uses this for the generic badge.
     pub generic_profile: Option<RenoDxGenericProfile>,
+    /// Stable profile identifier selected for this title, when provided.
+    pub profile_id: Option<String>,
+    /// Closed RenoDX processing route resolved from title > profile > fallback.
+    pub processing_path: RenoDxProcessingPath,
+    /// Materialized title guidance for the resolved game.
+    pub guidance: Vec<RenoDxGuidance>,
+    /// Curated launch arguments, when the title declares them.
+    pub launch: Option<RenoDxLaunchRequirement>,
 }
 
 impl ResolvedInstall {
@@ -38,6 +48,10 @@ impl ResolvedInstall {
             confidence: self.confidence,
             host_kind: self.host_kind,
             generic_profile: self.generic_profile,
+            profile_id: self.profile_id,
+            processing_path: self.processing_path,
+            guidance: self.guidance,
+            launch: self.launch,
         }
     }
 }
@@ -58,6 +72,14 @@ pub struct ExternalInstall {
     pub host_kind: HostKind,
     /// Engine generic this external file-install path came from, when applicable.
     pub generic_profile: Option<RenoDxGenericProfile>,
+    /// Stable profile identifier selected for this title, when provided.
+    pub profile_id: Option<String>,
+    /// Closed RenoDX processing route resolved from title > profile > fallback.
+    pub processing_path: RenoDxProcessingPath,
+    /// Materialized title guidance for the resolved game.
+    pub guidance: Vec<RenoDxGuidance>,
+    /// Curated launch arguments, when the title declares them.
+    pub launch: Option<RenoDxLaunchRequirement>,
 }
 
 /// Outcome of resolving a game against the manifest.

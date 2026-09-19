@@ -199,6 +199,15 @@ fn expected_operation(
                 (false, true) => return invalid_transition("backup claim has no live claim"),
             }
         }
+        RenoDxReshadeIniFeature::Update => {
+            if before_claim != after_claim {
+                return invalid_transition("main update requires stable config claims");
+            }
+            if supplied != PeerEndpointOperation::Replace {
+                return invalid_transition("main update requires a replacement config endpoint");
+            }
+            PeerEndpointOperation::Replace
+        }
         RenoDxReshadeIniFeature::DlssFixInstall => {
             if before_claim.1 != after_claim.1 {
                 return invalid_transition("DLSS-fix install cannot change backup membership");

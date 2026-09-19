@@ -6,8 +6,8 @@ use crate::addons::reshade::manifest_store::{self as reshade_store, AddonCatalog
 use super::parse_manifest;
 use super::types::LumaManifest;
 
-const MANIFEST_FILE_NAME: &str = "luma_manifest_v1.json";
-const MANIFEST_REMOTE_PATH: &str = "addons/v1/luma.json";
+const MANIFEST_FILE_NAME: &str = "luma_manifest_v2.json";
+const MANIFEST_REMOTE_PATH: &str = "addons/v2/luma.json";
 
 /// Loads only the Luma tool catalogue. It contains no ReShade source URLs.
 pub async fn get_or_fetch_manifest() -> Result<LumaManifest, ServiceError> {

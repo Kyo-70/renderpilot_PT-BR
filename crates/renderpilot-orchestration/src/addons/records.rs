@@ -78,6 +78,25 @@ pub(crate) fn record_of_kind(
         .filter(|record| record.kind() == kind))
 }
 
+/// Verifies that releasing the Engine.ini journal changed only the journal
+/// projection of an authoritative installed record.
+pub(crate) fn verify_engine_config_release(
+    original: &InstalledAddon,
+    refreshed: InstalledAddon,
+    addon_name: &str,
+) -> Result<InstalledAddon, ServiceError> {
+    let expected = original
+        .clone()
+        .with_engine_config_journal(None)
+        .map_err(|error| ServiceError::command_failed(error.to_string()))?;
+    if !refreshed.eq_ignoring_persistence_timestamps(&expected) {
+        return Err(ServiceError::command_failed(format!(
+            "{addon_name} record changed while Engine.ini ownership was released"
+        )));
+    }
+    Ok(refreshed)
+}
+
 /// The persisted record for `game_id` only while the owning tool considers the
 /// installation active on disk.
 pub(crate) fn active_record(
@@ -185,7 +204,7 @@ pub(crate) fn ensure_no_record(
 
 #[cfg(test)]
 mod tests {
-    use renderpilot_domain::{PathRef, TrackedSource};
+    use renderpilot_domain::{EngineConfigJournal, EngineConfigReceipt, PathRef, TrackedSource};
     use tempfile::tempdir;
 
     use super::*;
@@ -331,6 +350,40 @@ mod tests {
                 .expect("active query")
                 .is_some()
         );
+    }
+
+    #[test]
+    fn engine_config_release_verification_allows_only_journal_change() {
+        let receipt = EngineConfigReceipt {
+            schema_version: 1,
+            path: r"C:\games\x\Engine.ini".to_owned(),
+            file_created: false,
+            encoding: "utf8".to_owned(),
+            before_digest: "0".repeat(64),
+            after_digest: "1".repeat(64),
+            recipe_fingerprint: "2".repeat(64),
+            contributions: Vec::new(),
+            created_headers: Vec::new(),
+            created_header_prefixes: Vec::new(),
+            created_header_groups: Vec::new(),
+            created_header_ordinals: Vec::new(),
+        };
+        let journal = EngineConfigJournal {
+            stable: Some(receipt),
+            pending: None,
+        };
+        let original = addon_record()
+            .with_engine_config_journal(Some(journal))
+            .expect("journal");
+        let released = original
+            .clone()
+            .with_engine_config_journal(None)
+            .expect("release");
+        assert!(verify_engine_config_release(&original, released, "RenoDX").is_ok());
+
+        let changed = original.clone().with_addon_version("changed");
+        let changed = changed.with_engine_config_journal(None).expect("release");
+        assert!(verify_engine_config_release(&original, changed, "RenoDX").is_err());
     }
 
     fn addon_record() -> InstalledAddon {

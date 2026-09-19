@@ -3,6 +3,8 @@
 
 use renderpilot_domain::{AddonKind, GameId, GameInstallation, InstalledAddon};
 
+use crate::addons::engine_config::EngineIniResolution;
+use crate::addons::engine_config::service;
 use crate::addons::exclusivity::{self, ExclusivityBlock, ExclusivityBlockKind};
 use crate::addons::game_analysis::{GameAnalysis, install_roots_for_analysis};
 use crate::addons::game_context::{executable_override, require_game};
@@ -44,6 +46,9 @@ pub(crate) struct AvailabilityPreflight<R> {
     /// Install scan roots (exe parent + optional split AddonPath), when a
     /// rendering executable was found. Same roots install/update use.
     pub(crate) roots: Option<InstallRoots>,
+    /// Bounded shared Engine.ini target proof.  This is computed once from
+    /// the same analysis used by both RenoDX and Luma availability paths.
+    pub(crate) engine_config_resolution: EngineIniResolution,
 }
 
 /// Runs the shared availability preflight: record lookup, [`require_game`],
@@ -67,6 +72,9 @@ where
     let override_path = executable_override(context, game_id);
     let (analysis, resolution) = analyze_and_resolve(&game, manifest, override_path.as_deref());
     let roots = install_roots_for_analysis(&analysis);
+    let local_app_data = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from);
+    let engine_config_resolution =
+        service::resolve_for_analysis(&analysis, local_app_data.as_deref());
     let blocked = {
         let scan_dirs = roots.as_ref().map(InstallRoots::scan_dir_paths);
         exclusivity::check_blocked(context, game_id, kind, scan_dirs.as_deref())?
@@ -77,5 +85,6 @@ where
         analysis,
         resolution,
         roots,
+        engine_config_resolution,
     })
 }

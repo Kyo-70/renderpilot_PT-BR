@@ -314,7 +314,10 @@ mod tests {
             external_id: Some("999999991".to_owned()),
             exe_file_name: Some("Game.exe".to_owned()),
             engine: None,
+            unreal_version: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
+            unreal_detection: None,
+            target_platform: None,
         }
     }
 
@@ -341,7 +344,10 @@ mod tests {
             external_id: Some(app_id.to_owned()),
             exe_file_name: None,
             engine: None,
+            unreal_version: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
+            unreal_detection: None,
+            target_platform: None,
         }
     }
 
@@ -405,7 +411,10 @@ mod tests {
             external_id: Some("1549970".to_owned()),
             exe_file_name: Some("Endeavor.exe".to_owned()),
             engine: None,
+            unreal_version: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
+            unreal_detection: None,
+            target_platform: None,
         };
         let evaluation = evaluate(
             &[],

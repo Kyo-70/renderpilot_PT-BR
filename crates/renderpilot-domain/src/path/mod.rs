@@ -98,6 +98,12 @@ impl PathRef {
         &self.0
     }
 
+    /// Returns the owned normalized path string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+
     /// Returns the final path component (the file name), when present.
     ///
     /// The path is already forward-slash normalized, so this is a pure lexical
@@ -127,6 +133,12 @@ impl fmt::Display for PathRef {
 impl AsRef<str> for PathRef {
     fn as_ref(&self) -> &str {
         self.as_str()
+    }
+}
+
+impl From<PathRef> for String {
+    fn from(path: PathRef) -> Self {
+        path.into_inner()
     }
 }
 

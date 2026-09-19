@@ -11,6 +11,8 @@ pub enum RenoDxReshadeIniFeature {
     InstallFromFile,
     /// Remove the RenoDX add-on through the typed mutation authority.
     Uninstall,
+    /// Reconcile the RenoDX add-on's narrow Set_Path policy during update.
+    Update,
     /// Mutate the shared configuration for a RenoDX DLSS fix install.
     DlssFixInstall,
     /// Mutate the shared configuration for a RenoDX DLSS fix update.
@@ -39,6 +41,7 @@ impl RenoDxReshadeIniFeature {
             RENODX_INSTALL => Ok(Self::Install),
             RENODX_INSTALL_FROM_FILE => Ok(Self::InstallFromFile),
             RENODX_UNINSTALL => Ok(Self::Uninstall),
+            crate::mutation_features::RENODX_UPDATE => Ok(Self::Update),
             RENODX_DLSS_FIX_INSTALL => Ok(Self::DlssFixInstall),
             RENODX_DLSS_FIX_UPDATE => Ok(Self::DlssFixUpdate),
             RENODX_DLSS_FIX_UNINSTALL => Ok(Self::DlssFixUninstall),
@@ -53,6 +56,7 @@ impl RenoDxReshadeIniFeature {
             Self::Install => RENODX_INSTALL,
             Self::InstallFromFile => RENODX_INSTALL_FROM_FILE,
             Self::Uninstall => RENODX_UNINSTALL,
+            Self::Update => crate::mutation_features::RENODX_UPDATE,
             Self::DlssFixInstall => RENODX_DLSS_FIX_INSTALL,
             Self::DlssFixUpdate => RENODX_DLSS_FIX_UPDATE,
             Self::DlssFixUninstall => RENODX_DLSS_FIX_UNINSTALL,
@@ -63,6 +67,12 @@ impl RenoDxReshadeIniFeature {
     #[must_use]
     pub const fn is_main_install(self) -> bool {
         matches!(self, Self::Install | Self::InstallFromFile)
+    }
+
+    /// Returns whether this operation is the main add-on update.
+    #[must_use]
+    pub const fn is_main_update(self) -> bool {
+        matches!(self, Self::Update)
     }
 
     /// Returns whether this feature is a main add-on uninstall.

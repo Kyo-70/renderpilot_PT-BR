@@ -26,6 +26,29 @@ impl InvalidInstallRootReason {
     }
 }
 
+/// Tool manifest contract rejected during parsing or validation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ManifestContract {
+    /// RenoDX v2 overrides/catalog manifest contract.
+    RenoDxV2,
+}
+
+impl ManifestContract {
+    /// Stable wire identifier for the contract.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::RenoDxV2 => "renodx_v2",
+        }
+    }
+}
+
+impl fmt::Display for ManifestContract {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Service-layer errors produced by orchestration feature modules.
 ///
 /// These variants cover domain, infrastructure, and runtime failure modes.
@@ -33,6 +56,13 @@ impl InvalidInstallRootReason {
 /// consuming crates (`renderpilot-api` or `renderpilot-cli`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ServiceError {
+    /// An upstream tool manifest violated its strict schema or domain contract.
+    ManifestContractRejected {
+        /// Stable contract identifier.
+        contract: ManifestContract,
+        /// Rejection detail.
+        detail: String,
+    },
     /// The requested game was not found in the catalog.
     GameNotFound(String),
     /// The requested operation was not found in the catalog.
@@ -182,6 +212,9 @@ pub enum ServiceError {
 impl fmt::Display for ServiceError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ManifestContractRejected { contract, detail } => {
+                write!(formatter, "{contract} manifest contract rejected: {detail}")
+            }
             Self::GameNotFound(id) => write!(formatter, "game not found: {id}"),
             Self::OperationNotFound(id) => write!(formatter, "operation not found: {id}"),
             Self::ArtifactNotFound(id) => write!(formatter, "artifact not found: {id}"),
@@ -305,6 +338,18 @@ pub(crate) fn failed(message: impl Into<String>) -> ServiceError {
 }
 
 impl ServiceError {
+    /// Constructs a [`ServiceError::ManifestContractRejected`] for an upstream contract.
+    #[must_use]
+    pub fn manifest_contract_rejected(
+        contract: ManifestContract,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self::ManifestContractRejected {
+            contract,
+            detail: detail.into(),
+        }
+    }
+
     /// Constructs a [`ServiceError::CommandFailed`] from any string-like value.
     /// Feature modules and `addons::errors` route through it so construction
     /// stays in one place.

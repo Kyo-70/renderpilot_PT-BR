@@ -49,7 +49,7 @@ pub(crate) fn title(
 /// Builds a manifest over the given titles with the default Luma host policy.
 pub(crate) fn manifest(titles: Vec<LumaTitle>) -> LumaManifest {
     LumaManifest {
-        schema_version: 1,
+        schema_version: 2,
         generated_at: "2026-07-04T00:00:00Z".to_owned(),
         min_reshade_version: DEFAULT_MIN_RESHADE_VERSION.to_owned(),
         titles,

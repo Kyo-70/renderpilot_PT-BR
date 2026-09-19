@@ -57,6 +57,8 @@ pub(super) fn rebuild_record(
         backed_up_files,
         managed_files,
         tracked_sources,
+        renodx_config_receipt: None,
+        engine_config_journal: before.engine_config_journal().cloned(),
     })
     .map_err(|error| LumaActiveUpdateError::invalid_input_detail(error.to_string()))?
     .ok_or_else(|| {

@@ -28,8 +28,8 @@ pub(crate) use active_uninstall::{
     snapshot_active_uninstall,
 };
 pub(crate) use active_update::{
-    RenoDxActiveUpdateComposition, RenoDxActiveUpdateHostInput, RenoDxActiveUpdateInput,
-    compose_active_update,
+    RenoDxActiveUpdateComposition, RenoDxActiveUpdateConfigInput, RenoDxActiveUpdateHostInput,
+    RenoDxActiveUpdateInput, compose_active_update,
 };
 pub(crate) use model::{
     InstallActiveSnapshot, InstallCommandVariant, RenoDxConfigSourceSeal, RenoDxRootSeal,

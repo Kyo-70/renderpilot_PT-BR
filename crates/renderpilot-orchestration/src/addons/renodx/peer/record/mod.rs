@@ -7,7 +7,7 @@
 
 use renderpilot_domain::{
     AddonKind, InstalledAddon, InstalledAddonHostKind, InstalledAddonParts, ManagedAddonFile,
-    PathRef, Sha256Hash, TrackedSource, TrackedSourceRole,
+    PathRef, RenoDxConfigReceipt, Sha256Hash, TrackedSource, TrackedSourceRole,
 };
 
 use crate::addons::renodx::install::PreparedInstall;
@@ -46,6 +46,7 @@ pub(crate) fn build_record(
     prepared: &PreparedInstall,
     host: Option<&ManagedAddonFile>,
     config_created: bool,
+    config_receipt: Option<&RenoDxConfigReceipt>,
 ) -> Result<InstalledAddon, RenoDxRecordError> {
     let addon_file = snapshot.payload_path().clone();
     let mut created_files = vec![addon_file.clone()];
@@ -123,6 +124,8 @@ pub(crate) fn build_record(
         backed_up_files: Vec::new(),
         managed_files,
         tracked_sources,
+        renodx_config_receipt: config_receipt.cloned(),
+        engine_config_journal: None,
     })
     .map_err(|error| RenoDxRecordError::Record(error.to_string()))?
     .ok_or(RenoDxRecordError::InvalidInput(
@@ -217,6 +220,7 @@ mod tests {
         PreparedInstall {
             game_id,
             host_kind: HostKind::Vulkan,
+            processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
             proxy_dll_name: String::new(),
             addon_file_name: "renodx.addon64".to_owned(),
             addon_source_url: String::new(),
@@ -239,7 +243,7 @@ mod tests {
         let root = tempfile::tempdir().expect("root");
         let snapshot = snapshot(root.path());
         let game_id = GameId::new("manual:test").expect("game id");
-        let record = build_record(&snapshot, &prepared(game_id), None, true).expect("record");
+        let record = build_record(&snapshot, &prepared(game_id), None, true, None).expect("record");
         let canonical_root = crate::paths::canonicalize_existing(root.path()).expect("canonical");
         let expected_exe = PathRef::new(format!("{}/game.exe", canonical_root.to_string_lossy()))
             .expect("exe path");

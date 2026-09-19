@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use renderpilot_domain::{
     NormalizedPathRelation, PeerEndpointRole, RenoDxReshadeIniAuthority, RenoDxReshadeIniFeature,
     normalized_path_relation,
@@ -9,7 +11,7 @@ use super::effects::{
 };
 use super::error::RenoDxActiveUninstallError;
 use super::model::ActiveUninstallInput;
-use crate::addons::renodx::reshade_ini::ini_remove_renodx_strategy;
+use crate::addons::renodx::reshade_ini::{ini_remove_renodx_strategy, plan_set_path_removal};
 
 pub(super) fn compose_ini(
     input: &ActiveUninstallInput<'_>,
@@ -49,12 +51,29 @@ pub(super) fn compose_ini(
         ));
     }
     let current_bytes = input.ini_snapshot.bytes();
-    let transformed = current_bytes.map(|bytes| {
-        ini_remove_renodx_strategy()
-            .apply(&String::from_utf8_lossy(bytes))
-            .into_bytes()
-    });
     let should_remove = created && !backed;
+    // A whole-file claim retains its established deletion semantics.  When
+    // the file survives, only a receipt-backed Set_Path value is eligible for
+    // CAS removal; all other bytes continue through the existing narrow
+    // RenoDX cleanup transform.
+    let transformed = current_bytes.map(|bytes| {
+        let set_path_after: Cow<'_, [u8]> = input
+            .record
+            .renodx_config_receipt()
+            .filter(|receipt| {
+                receipt.is_supported()
+                    && matches!(
+                        normalized_path_relation(receipt.ini_path.as_str(), ini_ref.as_str()),
+                        NormalizedPathRelation::Equal
+                    )
+            })
+            .and_then(|receipt| plan_set_path_removal(bytes, receipt).ok())
+            .and_then(|plan| plan.after.map(Cow::Owned))
+            .unwrap_or(Cow::Borrowed(bytes));
+        std::str::from_utf8(&set_path_after)
+            .map(|text| ini_remove_renodx_strategy().apply(text).into_bytes())
+            .unwrap_or_else(|_| set_path_after.into_owned())
+    });
     let should_replace = (created && backed)
         || (!created
             && !backed

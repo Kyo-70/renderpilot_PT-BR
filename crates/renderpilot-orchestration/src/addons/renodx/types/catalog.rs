@@ -1,9 +1,11 @@
 //! Runtime RenoDX catalogue model.
 
 use renderpilot_domain::{Architecture, GraphicsApi};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::addons::CatalogMessage;
+use crate::addons::engine_config::{EngineIniEntry, EngineIniRecipe};
 use crate::addons::matching::{Engine, MatchRule, Status};
 use crate::addons::reshade::types::ReshadeIniTweaks;
 
@@ -18,6 +20,10 @@ pub struct RenoDxManifest {
     pub generics: Vec<RenoDxGeneric>,
     /// Curated per-game catalogue.
     pub titles: Vec<RenoDxTitle>,
+    /// Curated guidance keyed by stable game id (v2; empty for v1).
+    pub title_guidance: BTreeMap<String, Vec<RenoDxGuidance>>,
+    /// Curated page-level guidance (v2; empty for v1).
+    pub page_guidance: Vec<RenoDxGuidance>,
 }
 
 /// Default `ReShade.ini` changes requested by a RenoDX install.
@@ -45,6 +51,41 @@ pub struct RenoDxGeneric {
     pub url32: Option<String>,
     /// Localizable label published with this generic profile.
     pub message: CatalogMessage,
+    /// Stable v2 profile identifier.
+    pub profile_id: Option<String>,
+    /// Whether this profile can be selected as an engine fallback.
+    pub generic_fallback: bool,
+    /// Closed install-time processing route selected by this engine profile.
+    pub processing_path: RenoDxProcessingPath,
+    /// Engine-wide curated guidance.
+    pub guidance: Vec<RenoDxGuidance>,
+}
+
+/// RenoDX's closed processing-path policy.  This is deliberately independent
+/// from user-facing guidance: remote text can never select an INI mutation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum RenoDxProcessingPath {
+    /// Enable RenoDX's resource upgrade route (`[renodx] Set_Path=1`).
+    Upgrade,
+    /// Use the engine/native HDR route (`[renodx] Set_Path=0`).
+    Native,
+    /// Leave the existing RenoDX processing-path setting untouched.
+    #[default]
+    Unmanaged,
+}
+
+impl RenoDxProcessingPath {
+    /// Maps the processing path into the typed ReShade.ini `Set_Path` value,
+    /// or `None` if the configuration should not be managed.
+    #[must_use]
+    pub const fn desired_set_path(self) -> Option<renderpilot_domain::RenoDxSetPathValue> {
+        match self {
+            Self::Upgrade => Some(renderpilot_domain::RenoDxSetPathValue::One),
+            Self::Native => Some(renderpilot_domain::RenoDxSetPathValue::Zero),
+            Self::Unmanaged => None,
+        }
+    }
 }
 
 /// User-facing identity of an engine-level generic match.
@@ -54,6 +95,8 @@ pub struct RenoDxGenericProfile {
     pub engine: Engine,
     /// Localizable catalogue label.
     pub message: CatalogMessage,
+    /// Stable v2 profile identifier when supplied by the manifest.
+    pub profile_id: Option<String>,
 }
 
 /// How a matched title is routed after its match rules win.
@@ -101,6 +144,15 @@ pub struct RenoDxTitle {
     pub proxy_dll_override: Option<String>,
     /// Optional direct add-on source override.
     pub download_url: Option<String>,
+    /// Stable v2 profile reference for an exact title.
+    pub profile_id: Option<String>,
+    /// Optional title-specific processing route.  When absent, the referenced
+    /// engine profile supplies the route.
+    pub processing_path: Option<RenoDxProcessingPath>,
+    /// Whether page-wide guidance is composed into this title's guidance.
+    pub inherit_page_guidance: bool,
+    /// Launch arguments associated with this title.
+    pub launch: Option<RenoDxLaunchRequirement>,
 }
 
 /// Constraints that gate whether a title can be installed.
@@ -112,4 +164,168 @@ pub struct RenoDxCompatibility {
     pub conflicts: Vec<String>,
     /// Provenance for a non-empty conflict list.
     pub source: Option<String>,
+}
+
+/// A manually curated RenoDX recommendation or caveat.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxGuidance {
+    /// Stable catalogue guidance id.
+    pub id: String,
+    /// Rendering kind used by the UI.
+    pub kind: RenoDxGuidanceKind,
+    /// External i18n message key.
+    pub message_id: String,
+    /// Safe fallback when a translation is unavailable.
+    pub fallback_text: String,
+    /// Optional copyable code (required for Engine.ini entries).
+    pub code: Option<String>,
+    /// Optional structured setting values.
+    pub settings: Vec<RenoDxSetting>,
+    /// Typed Engine.ini instructions.  When present, this is the sole source
+    /// of truth for future file mutation; `code` remains presentation only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engine_ini: Option<RenoDxEngineIniRecipe>,
+    /// Optional reviewed source URL.
+    pub url: Option<String>,
+    /// Optional engine/version gate.
+    pub condition: Option<RenoDxGuidanceCondition>,
+}
+
+/// A closed, versioned Engine.ini mutation recipe published by RenoDX v2.
+///
+/// This model intentionally contains only scalar section/key/value data.  It
+/// is not a general INI parser and never derives authority from the rendered
+/// guidance `code` string.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxEngineIniRecipe {
+    /// Recipe format version, currently fixed at one.
+    pub schema_version: u32,
+    /// Curated revision of this recipe's semantics.
+    pub revision: u32,
+    /// Ordered INI sections.
+    pub sections: Vec<RenoDxEngineIniSection>,
+}
+
+impl RenoDxEngineIniRecipe {
+    /// Renders the recipe in the canonical presentation form.  Callers that
+    /// need to apply a recipe must use the typed fields, not this text.
+    #[must_use]
+    pub fn canonical_code(&self) -> String {
+        use std::fmt::Write;
+
+        let mut out = String::new();
+        for (i, section) in self.sections.iter().enumerate() {
+            if i > 0 {
+                out.push_str("\n\n");
+            }
+            let _ = write!(out, "[{}]", section.name);
+            for entry in &section.entries {
+                let _ = write!(out, "\n{}={}", entry.key, entry.value);
+            }
+        }
+        out
+    }
+
+    /// Converts the RenoDX wire recipe into the shared runtime authority.
+    pub fn to_engine_config_recipe(
+        &self,
+        id: impl Into<String>,
+    ) -> Result<EngineIniRecipe, crate::addons::engine_config::EngineIniError> {
+        let entries = self
+            .sections
+            .iter()
+            .flat_map(|section| {
+                section.entries.iter().map(|entry| EngineIniEntry {
+                    section: section.name.clone(),
+                    key: entry.key.clone(),
+                    value: entry.value.clone(),
+                })
+            })
+            .collect();
+        EngineIniRecipe::new(id, self.revision, entries)
+    }
+}
+
+/// One ordered section of a RenoDx Engine.ini recipe.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxEngineIniSection {
+    /// Section name without surrounding brackets.
+    pub name: String,
+    /// Ordered key/value entries in this section.
+    pub entries: Vec<RenoDxEngineIniEntry>,
+}
+
+/// One scalar key/value assignment in an Engine.ini recipe.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxEngineIniEntry {
+    /// INI key.
+    pub key: String,
+    /// INI scalar value.
+    pub value: String,
+}
+
+/// Guidance category. Serialized names are owned by the v2 wire adapter/schema.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RenoDxGuidanceKind {
+    /// Setting changed in the game UI.
+    GameSetting,
+    /// Structured RenoDX setting/value pair.
+    AddonSetting,
+    /// Copyable `Engine.ini` fragment.
+    EngineIni,
+    /// Important operational warning.
+    Warning,
+    /// Compatibility behavior or limitation.
+    Compatibility,
+    /// External helper or prerequisite.
+    ExternalTool,
+}
+
+/// A typed setting shown alongside a guidance item.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxSetting {
+    /// User-facing setting name.
+    pub name: String,
+    /// Reviewed value to apply.
+    pub value: String,
+}
+
+/// Version/engine condition for guidance materialization.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxGuidanceCondition {
+    /// Engine required for the guidance.
+    pub engine: Option<Engine>,
+    /// Required Unreal Engine major version.
+    pub unreal_major: Option<u32>,
+    /// Inclusive minimum Unreal Engine minor version.
+    pub unreal_minor_min: Option<u32>,
+    /// Inclusive maximum Unreal Engine minor version.
+    pub unreal_minor_max: Option<u32>,
+}
+
+/// Launch argument recommendation attached to an exact title.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxLaunchRequirement {
+    /// Arguments in launcher order.
+    pub arguments: Vec<String>,
+    /// Whether the arguments are mandatory or advisory.
+    pub requirement: RenoDxLaunchRequirementLevel,
+}
+
+/// Whether launch arguments are required for the curated path or merely advised.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RenoDxLaunchRequirementLevel {
+    /// The curated RenoDX path requires these arguments.
+    Required,
+    /// The arguments are recommended but not mandatory.
+    Recommended,
 }

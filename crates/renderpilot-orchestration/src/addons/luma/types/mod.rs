@@ -1,4 +1,4 @@
-//! Runtime types for the Luma Framework v1 manifest.
+//! Runtime types for the Luma Framework v2 manifest.
 //!
 //! Luma Framework (Filoppi) is a DirectX 11 ReShade add-on distributed as
 //! per-game ZIP archives on GitHub Releases — there is no upstream exe/appid
@@ -14,7 +14,7 @@
 
 mod catalog;
 mod managed;
-mod wire_v1;
+mod wire_v2;
 
 pub use crate::addons::matching::{MatchKind, MatchRule, Status};
 #[cfg(test)]
@@ -28,4 +28,4 @@ pub use managed::{
     ExternalConfigEntry, ExternalConfigSection, LumaExternalRequirement, ManagedArchiveSource,
     ManagedInstallMapEntry,
 };
-pub(crate) use wire_v1::WireManifestV1;
+pub(crate) use wire_v2::WireManifestV2;

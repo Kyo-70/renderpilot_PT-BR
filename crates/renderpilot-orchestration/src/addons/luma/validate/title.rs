@@ -80,6 +80,23 @@ fn validate_guidance(title: &LumaTitle) -> Result<(), ServiceError> {
         if let Some(code) = &guidance.code {
             ensure_not_blank("guidance code", code)?;
         }
+        if let Some(recipe) = &guidance.engine_ini {
+            if guidance.kind != LumaGuidanceKind::EngineIni {
+                return Err(errors::failed(format!(
+                    "title `{}` guidance `{}` has an Engine.ini recipe but is not engine_ini",
+                    title.id, guidance.id
+                )));
+            }
+            if recipe.id != guidance.id {
+                return Err(errors::failed(format!(
+                    "title `{}` guidance `{}` recipe id must match guidance id",
+                    title.id, guidance.id
+                )));
+            }
+            recipe
+                .validate()
+                .map_err(|error| errors::failed(error.to_string()))?;
+        }
     }
     Ok(())
 }

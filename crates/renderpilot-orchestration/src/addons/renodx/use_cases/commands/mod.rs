@@ -1,5 +1,7 @@
 /// System-modifying commands.
 pub mod dlss_fix;
+/// Shared Unreal Engine.ini lifecycle adapter.
+pub mod engine_config;
 /// Install commands.
 pub mod install;
 mod optiscaler_config;

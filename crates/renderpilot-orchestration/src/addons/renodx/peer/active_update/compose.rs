@@ -12,7 +12,7 @@ use crate::addons::renodx::peer::effects::{
 
 /// Composes one active RenoDX update from sealed evidence and prepared bytes.
 pub(crate) fn compose_active_update(
-    input: &RenoDxActiveUpdateInput<'_>,
+    input: RenoDxActiveUpdateInput<'_>,
 ) -> Result<RenoDxActiveUpdateComposition, RenoDxActiveUpdateError> {
     let validated = validation::validate_input(input)?;
     if !validated.has_physical_change {
@@ -34,6 +34,7 @@ pub(crate) fn compose_active_update(
         addon_before_bytes,
         addon_bytes,
         host,
+        config,
         ..
     } = validated;
     let mut accumulator =
@@ -57,6 +58,27 @@ pub(crate) fn compose_active_update(
             host.before_bytes,
             host.bytes,
         )?;
+    }
+    if let Some(config) = config {
+        let (path, before, before_bytes, after) = config.into_parts();
+        let after = after.ok_or(RenoDxActiveUpdateError::InvalidInput(
+            "active config physical change has no postimage",
+        ))?;
+        match (before, before_bytes) {
+            (Some(before), Some(before_bytes)) if before_bytes != after => {
+                accumulator.replace(
+                    RenoDxPeerEffectGroup::Config,
+                    path,
+                    &before,
+                    before_bytes,
+                    after,
+                )?;
+            }
+            (None, _) => {
+                accumulator.create(RenoDxPeerEffectGroup::Config, path, after)?;
+            }
+            _ => {}
+        }
     }
     let effects = accumulator.finalize()?;
     let (program, payloads, game_intents) = effects.into_parts();

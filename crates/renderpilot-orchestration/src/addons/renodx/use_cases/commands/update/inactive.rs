@@ -2,7 +2,9 @@
 
 use crate::ServiceError;
 use crate::addons::renodx::use_cases::commands::update::commit;
-use crate::addons::renodx::use_cases::commands::update::prepare::prepare_update_artifacts;
+use crate::addons::renodx::use_cases::commands::update::prepare::{
+    prepare_config_update, prepare_update_artifacts,
+};
 use crate::addons::renodx::use_cases::commands::update::route::{
     UpdatePhase1, ensure_update_route_matches, snapshot_update_route,
 };
@@ -40,6 +42,8 @@ pub(super) async fn update(
     let UpdatePhase1::Inactive(revalidated) = phase3_route else {
         return Err(crate::addons::renodx::errors::state_changed_retry_update());
     };
+    let config = prepare_config_update(&revalidated)?;
+    let prepared = prepared.with_config(config);
 
     crate::addons::progress::emit_tool_finalizing(progress, renderpilot_domain::AddonKind::RenoDx);
     let replacement_paths = prepared.replacement_paths();
@@ -48,6 +52,10 @@ pub(super) async fn update(
         revalidated.record(),
         &replacement_paths,
         host_install_path.as_deref(),
+        prepared
+            .config
+            .as_ref()
+            .and_then(|config| config.physical_changed.then_some(config.path.as_path())),
     )?;
     match shared_update {
         Some(shared_update) => commit::authorize_combined_update(commit::CombinedUpdateRequest {

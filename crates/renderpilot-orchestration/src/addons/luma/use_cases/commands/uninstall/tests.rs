@@ -5,12 +5,12 @@ use renderpilot_application::{
     ProxyTopologyRepository,
 };
 use renderpilot_domain::{
-    AddonKind, ComponentFile, ComponentId, ComponentKind, FileOwnership, FileReceipt, GameId,
-    GameIdentity, GameInstallation, GameProxyTopology, GameRuntime, InstalledAddon, Launcher,
-    LibraryComponent, LibraryTechnology, ManagedAddonFile, ManagedFileBaseline,
-    OptiScalerAdoptionState, OptiScalerFileCleanup, OptiScalerFileReceipt, OptiScalerFileRole,
-    OptiScalerPrerequisiteBinding, PathRef, Platform, ProxyImplementation, ProxyLink,
-    ProxyRootPrestate, Swappability,
+    AddonKind, ComponentFile, ComponentId, ComponentKind, EngineConfigJournal, EngineConfigReceipt,
+    FileOwnership, FileReceipt, GameId, GameIdentity, GameInstallation, GameProxyTopology,
+    GameRuntime, InstalledAddon, Launcher, LibraryComponent, LibraryTechnology, ManagedAddonFile,
+    ManagedFileBaseline, OptiScalerAdoptionState, OptiScalerFileCleanup, OptiScalerFileReceipt,
+    OptiScalerFileRole, OptiScalerPrerequisiteBinding, PathRef, Platform, ProxyImplementation,
+    ProxyLink, ProxyRootPrestate, Swappability,
 };
 use tempfile::tempdir;
 
@@ -377,6 +377,65 @@ fn uninstall_keeps_the_db_row_when_file_removal_fails() {
 }
 
 #[test]
+fn engine_config_release_failure_blocks_luma_payload_and_row_mutation() {
+    let db_dir = tempdir().expect("db dir");
+    let game_dir = tempdir().expect("game dir");
+    let context = Context::open_at(db_dir.path().join("catalog.sqlite")).expect("context");
+    let game_id = GameId::new("manual:luma-engine-release-failure").expect("game id");
+    let addon = game_dir.path().join("Luma-Game.addon");
+    std::fs::write(&addon, b"addon").expect("write addon");
+    // A directory at the journal target makes the audited Engine.ini release
+    // fail before any payload/cascade deletion is allowed to begin.
+    let blocked_target = game_dir.path().join("Engine.ini");
+    std::fs::create_dir(&blocked_target).expect("blocked target");
+    let receipt = EngineConfigReceipt {
+        schema_version: 1,
+        path: blocked_target.to_string_lossy().into_owned(),
+        file_created: false,
+        encoding: "utf8".to_owned(),
+        before_digest: "0".repeat(64),
+        after_digest: "1".repeat(64),
+        recipe_fingerprint: "2".repeat(64),
+        contributions: Vec::new(),
+        created_headers: Vec::new(),
+        created_header_prefixes: Vec::new(),
+        created_header_groups: Vec::new(),
+        created_header_ordinals: Vec::new(),
+    };
+    let journal = EngineConfigJournal {
+        stable: Some(receipt),
+        pending: None,
+    };
+    let record = InstalledAddon::new(game_id.clone(), AddonKind::Luma, path_ref(&addon))
+        .with_engine_config_journal(Some(journal))
+        .expect("record");
+    context
+        .storage()
+        .upsert_installed_addon(&record)
+        .expect("seed");
+    context
+        .storage()
+        .compare_and_swap_engine_config_journal(
+            &game_id,
+            AddonKind::Luma,
+            None,
+            record.engine_config_journal(),
+        )
+        .expect("journal");
+
+    uninstall(&context, &game_id).expect_err("Engine.ini release must block uninstall");
+
+    assert!(addon.exists(), "payload remains after release failure");
+    assert_eq!(
+        records::record_of_kind(&context, &game_id, AddonKind::Luma)
+            .expect("record")
+            .expect("row remains")
+            .engine_config_journal(),
+        record.engine_config_journal()
+    );
+}
+
+#[test]
 fn uninstall_cascades_swap_and_restores_exact_owned_baseline() {
     let db = tempdir().expect("db");
     let game = tempdir().expect("game");
@@ -521,6 +580,29 @@ fn active_owned_host_uninstall_commits_files_topology_and_luma_row_together() {
         .storage()
         .upsert_installed_addon(&record)
         .expect("record");
+    let engine_ini = game.path().join("Engine.ini");
+    std::fs::write(&engine_ini, b"[SystemSettings]\n").expect("Engine.ini");
+    let journal = EngineConfigJournal {
+        stable: Some(EngineConfigReceipt {
+            schema_version: 1,
+            path: engine_ini.to_string_lossy().into_owned(),
+            file_created: false,
+            encoding: "utf8".to_owned(),
+            before_digest: "0".repeat(64),
+            after_digest: "1".repeat(64),
+            recipe_fingerprint: "2".repeat(64),
+            contributions: Vec::new(),
+            created_headers: Vec::new(),
+            created_header_prefixes: Vec::new(),
+            created_header_groups: Vec::new(),
+            created_header_ordinals: Vec::new(),
+        }),
+        pending: None,
+    };
+    context
+        .storage()
+        .compare_and_swap_engine_config_journal(&game_id, AddonKind::Luma, None, Some(&journal))
+        .expect("journal");
     let topology = seed_active_topology(
         &context,
         &game_id,
@@ -757,11 +839,34 @@ fn active_missing_downstream_fails_before_any_write() {
     seed_game(&context, &game_id, game.path());
     let addon = game.path().join("Luma-Game.addon");
     std::fs::write(&addon, b"addon").expect("addon");
+    let engine_ini = game.path().join("Engine.ini");
+    std::fs::write(&engine_ini, b"[SystemSettings]\n").expect("Engine.ini");
     let record = InstalledAddon::new(game_id.clone(), AddonKind::Luma, path_ref(&addon));
     context
         .storage()
         .upsert_installed_addon(&record)
         .expect("record");
+    let journal = EngineConfigJournal {
+        stable: Some(EngineConfigReceipt {
+            schema_version: 1,
+            path: engine_ini.to_string_lossy().into_owned(),
+            file_created: false,
+            encoding: "utf8".to_owned(),
+            before_digest: "0".repeat(64),
+            after_digest: "1".repeat(64),
+            recipe_fingerprint: "2".repeat(64),
+            contributions: Vec::new(),
+            created_headers: Vec::new(),
+            created_header_prefixes: Vec::new(),
+            created_header_groups: Vec::new(),
+            created_header_ordinals: Vec::new(),
+        }),
+        pending: None,
+    };
+    context
+        .storage()
+        .compare_and_swap_engine_config_journal(&game_id, AddonKind::Luma, None, Some(&journal))
+        .expect("journal");
     let persisted_before = context
         .storage()
         .get_installed_addon(&game_id)

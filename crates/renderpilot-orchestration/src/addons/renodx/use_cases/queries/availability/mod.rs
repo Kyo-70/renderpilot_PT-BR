@@ -6,6 +6,8 @@ use crate::ServiceError;
 
 use crate::addons::availability_pipeline::{self, AvailabilityPreflight};
 use crate::addons::engine;
+use crate::addons::engine_config::service::{self, EngineConfigAvailability};
+use crate::addons::engine_config::{EngineIniRecipe, EngineIniRecipeSet};
 use crate::addons::matching::MatchFacts;
 use crate::addons::renodx::dto::availability::*;
 use crate::addons::renodx::game_context::analyze_and_resolve;
@@ -45,7 +47,7 @@ pub async fn load_availability(
         analyze_and_resolve,
     )?;
     reconcile::maybe_adopt(context, &mut preflight, reshade_sources, game_id)?;
-    Ok(build_report(preflight, manifest, reshade_sources))
+    build_report(preflight, manifest, reshade_sources)
 }
 
 /// Pure preview of whether RenoDX can be installed for the game. Never changes
@@ -65,21 +67,27 @@ pub(crate) fn availability(
         manifest,
         analyze_and_resolve,
     )?;
-    Ok(build_report(preflight, manifest, reshade_sources))
+    build_report(preflight, manifest, reshade_sources)
 }
 
 fn build_report(
     preflight: AvailabilityPreflight<RenoDxResolution>,
     manifest: &RenoDxManifest,
     reshade_sources: &ReshadeSourceCatalog,
-) -> AvailabilityReport {
+) -> Result<AvailabilityReport, ServiceError> {
     let AvailabilityPreflight {
         record,
         blocked,
         analysis,
         resolution,
         roots: install_roots,
+        engine_config_resolution,
     } = preflight;
+    let engine_config = engine_config_report(
+        &engine_config_resolution,
+        record.as_ref(),
+        guidance_for_resolution(&resolution),
+    )?;
     let host_report =
         host_report::reshade_report(&analysis, &resolution, record.as_ref(), reshade_sources);
 
@@ -111,7 +119,10 @@ fn build_report(
             RenoDxResolution::Installable(plan) => AvailabilityOutcome::Installable {
                 confidence: plan.confidence,
                 generic_profile: plan.generic_profile,
+                profile_id: plan.profile_id,
                 host_kind: plan.host_kind,
+                guidance: plan.guidance,
+                launch: plan.launch,
             },
             RenoDxResolution::External {
                 url,
@@ -124,6 +135,9 @@ fn build_report(
                     confidence: fi.confidence,
                     host_kind: fi.host_kind,
                     generic_profile: fi.generic_profile,
+                    profile_id: fi.profile_id,
+                    guidance: fi.guidance,
+                    launch: fi.launch,
                 }),
             },
             RenoDxResolution::NativeHdr => AvailabilityOutcome::NativeHdr,
@@ -137,7 +151,8 @@ fn build_report(
         }
     };
 
-    AvailabilityReport {
+    Ok(AvailabilityReport {
+        engine_config,
         state,
         host_detection: host_report.detection,
         host_facts: host_report.facts,
@@ -148,7 +163,56 @@ fn build_report(
         outcome,
         manual_install,
         vulkan_layer: vulkan::layer_report(),
+    })
+}
+
+fn guidance_for_resolution(
+    resolution: &RenoDxResolution,
+) -> &[crate::addons::renodx::types::RenoDxGuidance] {
+    match resolution {
+        RenoDxResolution::Installable(plan) => &plan.guidance,
+        RenoDxResolution::External {
+            file_install: Some(plan),
+            ..
+        } => &plan.guidance,
+        _ => &[],
     }
+}
+
+fn engine_config_report(
+    resolution: &crate::addons::engine_config::EngineIniResolution,
+    record: Option<&renderpilot_domain::InstalledAddon>,
+    guidance: &[crate::addons::renodx::types::RenoDxGuidance],
+) -> Result<EngineConfigAvailability, ServiceError> {
+    let manual_only = guidance.iter().any(|item| {
+        matches!(
+            item.kind,
+            crate::addons::renodx::types::RenoDxGuidanceKind::EngineIni
+        ) && item.engine_ini.is_none()
+    });
+    let recipes = guidance
+        .iter()
+        .filter_map(|item| {
+            item.engine_ini
+                .as_ref()
+                .map(|recipe| recipe.to_engine_config_recipe(&item.id))
+        })
+        .collect::<Result<Vec<EngineIniRecipe>, _>>()
+        .map_err(|error| ServiceError::invalid_input(error.to_string()))?;
+    let recipe_set = if recipes.is_empty() {
+        None
+    } else {
+        Some(
+            EngineIniRecipeSet::from_recipes(recipes.iter())
+                .map_err(|error| ServiceError::invalid_input(error.to_string()))?,
+        )
+    };
+    Ok(service::inspect_availability(
+        resolution,
+        recipe_set.as_ref(),
+        manual_only,
+        record.and_then(|value| value.engine_config_journal()),
+    ))
 }
 
 /// The manual file-install escape hatch for the availability preview: offered only

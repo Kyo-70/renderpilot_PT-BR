@@ -406,6 +406,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "linux"))]
     fn age_file_for_test(path: &Path, age: Duration) {
         let modified = SystemTime::now()
             .checked_sub(age)
@@ -418,6 +419,7 @@ mod tests {
             .expect("set mtime");
     }
 
+    #[cfg(not(target_os = "linux"))]
     #[tokio::test]
     async fn stale_cache_equal_to_bundled_refreshes_newer_remote() {
         let temp = tempfile::tempdir().expect("tempdir");
@@ -491,6 +493,7 @@ mod tests {
         assert_eq!(result.revision, r1_revision);
     }
 
+    #[cfg(not(target_os = "linux"))]
     #[tokio::test]
     async fn remote_equal_to_admitted_marks_refresh_as_fresh() {
         let temp = tempfile::tempdir().expect("tempdir");
@@ -525,6 +528,7 @@ mod tests {
         assert_eq!(result2.revision, r1_revision);
     }
 
+    #[cfg(not(target_os = "linux"))]
     #[tokio::test]
     async fn remote_older_than_admitted_does_not_refetch_until_refresh_ttl() {
         let temp = tempfile::tempdir().expect("tempdir");

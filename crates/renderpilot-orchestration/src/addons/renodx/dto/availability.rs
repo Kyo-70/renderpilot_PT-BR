@@ -9,7 +9,8 @@ use serde::Serialize;
 pub use renderpilot_domain::{RenoDxHostKind, RenoDxInstallState};
 
 use crate::addons::CatalogMessage;
-use crate::addons::renodx::types::RenoDxGenericProfile;
+use crate::addons::engine_config::service::EngineConfigAvailability;
+use crate::addons::renodx::types::{RenoDxGenericProfile, RenoDxGuidance, RenoDxLaunchRequirement};
 
 use super::super::reshade::RenoDxAddonState;
 use super::vulkan::VulkanLayerReport;
@@ -83,6 +84,8 @@ pub enum DlssFixBindingState {
 /// Read-only preview of whether RenoDX can be installed for a game.
 #[derive(Debug, Clone, Serialize)]
 pub struct AvailabilityReport {
+    /// Shared typed Unreal Engine.ini configuration state.
+    pub engine_config: EngineConfigAvailability,
     /// Current install state for the game.
     pub state: RenoDxInstallState,
     /// Detection state of the Direct3D ReShade proxy host.
@@ -118,8 +121,14 @@ pub enum AvailabilityOutcome {
         confidence: MatchConfidence,
         /// Present when this install comes from an engine-level generic profile.
         generic_profile: Option<RenoDxGenericProfile>,
+        /// Stable profile identifier selected for this title.
+        profile_id: Option<String>,
         /// How RenoDX would hook in: a per-game proxy DLL or the shared Vulkan layer.
         host_kind: HostKind,
+        /// Materialized title/profile guidance for this install.
+        guidance: Vec<RenoDxGuidance>,
+        /// Curated launch arguments, when applicable.
+        launch: Option<RenoDxLaunchRequirement>,
     },
     /// The add-on is distributed off-GitHub; link the user out, and — when the
     /// game is compatible — offer to install a file the user downloaded.
@@ -182,4 +191,10 @@ pub struct ExternalFileInstall {
     pub host_kind: HostKind,
     /// Engine generic this offer came from, when applicable.
     pub generic_profile: Option<RenoDxGenericProfile>,
+    /// Stable profile identifier selected for this title.
+    pub profile_id: Option<String>,
+    /// Materialized title guidance for this external title.
+    pub guidance: Vec<RenoDxGuidance>,
+    /// Curated launch arguments, when applicable.
+    pub launch: Option<RenoDxLaunchRequirement>,
 }

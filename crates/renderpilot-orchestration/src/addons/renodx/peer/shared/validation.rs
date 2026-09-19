@@ -111,10 +111,20 @@ pub(super) fn validate_inputs(
                     "shared update cannot carry layer download metadata",
                 ));
             }
-            if reshade_ini_authority.is_some() {
-                return Err(ActiveSharedMutationError::InvalidInput(
-                    "shared update cannot carry ReShade.ini authority",
-                ));
+            if let Some(authority) = reshade_ini_authority {
+                if !crate::paths::same_path(
+                    Path::new(authority.canonical_game_root().as_str()),
+                    game_root,
+                ) {
+                    return Err(ActiveSharedMutationError::InvalidInput(
+                        "ReShade.ini authority belongs to another game root",
+                    ));
+                }
+                if authority.feature().as_feature() != *feature {
+                    return Err(ActiveSharedMutationError::InvalidInput(
+                        "ReShade.ini authority feature differs from the transaction feature",
+                    ));
+                }
             }
             let shared_record = shared_record.ok_or(ActiveSharedMutationError::InvalidInput(
                 "shared update is missing its prepared shared-artifact record",

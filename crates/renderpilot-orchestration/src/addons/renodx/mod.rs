@@ -31,7 +31,7 @@ pub mod platform;
 pub(crate) mod policy;
 mod reconciliation;
 pub(crate) mod reshade;
-mod reshade_ini;
+pub(crate) mod reshade_ini;
 mod source;
 pub(crate) mod tool;
 mod tracking;
@@ -55,7 +55,7 @@ use renderpilot_domain::Architecture;
 
 use crate::ServiceError;
 
-use self::types::{RenoDxManifest, WireManifestV1};
+use self::types::{RenoDxManifest, WireManifestV1, WireManifestV2};
 use super::UTF8_BOM;
 
 /// Parses and validates a RenoDX manifest document.
@@ -67,8 +67,49 @@ pub fn parse_manifest(bytes: &[u8]) -> Result<RenoDxManifest, ServiceError> {
     let wire: WireManifestV1 = serde_json::from_slice(bytes)
         .map_err(|error| errors::failed(format!("failed to parse RenoDX manifest: {error}")))?;
     let manifest = RenoDxManifest::from_wire_v1(wire);
+    ensure_wire_schema_version(&manifest, 1, "RenoDX")?;
     validate::validate_manifest(&manifest)?;
     Ok(manifest)
+}
+
+/// Parses the strict v2 RenoDX document. v2 is deliberately a separate entry
+/// point so malformed v2 data is never silently interpreted as v1.
+pub fn parse_manifest_v2(bytes: &[u8]) -> Result<RenoDxManifest, ServiceError> {
+    let bytes = bytes.strip_prefix(UTF8_BOM).unwrap_or(bytes);
+    let wire: WireManifestV2 = serde_json::from_slice(bytes).map_err(|error| {
+        ServiceError::manifest_contract_rejected(
+            crate::ManifestContract::RenoDxV2,
+            format!("parsing rejected: {error}"),
+        )
+    })?;
+    let manifest = RenoDxManifest::from_wire_v2(wire);
+    ensure_wire_schema_version(&manifest, 2, "RenoDX v2").map_err(|error| {
+        ServiceError::manifest_contract_rejected(
+            crate::ManifestContract::RenoDxV2,
+            error.to_string(),
+        )
+    })?;
+    validate::validate_manifest(&manifest).map_err(|error| {
+        ServiceError::manifest_contract_rejected(
+            crate::ManifestContract::RenoDxV2,
+            error.to_string(),
+        )
+    })?;
+    Ok(manifest)
+}
+
+fn ensure_wire_schema_version(
+    manifest: &RenoDxManifest,
+    expected: u32,
+    document: &str,
+) -> Result<(), ServiceError> {
+    if manifest.schema_version != expected {
+        return Err(errors::failed(format!(
+            "{document} schema version {} does not match parser version {expected}",
+            manifest.schema_version
+        )));
+    }
+    Ok(())
 }
 
 /// Derives the add-on architecture from an add-on file name's extension
@@ -108,6 +149,63 @@ mod tests {
                 "match": [{ "kind": "steam_appid", "value": "424242", "tier": 100 }]
             }
         ]
+    }"#;
+
+    const SAMPLE_V2: &str = r#"{
+        "schema_version": 2,
+        "generated_at": "2026-09-15T00:00:00Z",
+        "games": [{
+            "id": "black-myth-wukong",
+            "name": "Black Myth: Wukong",
+            "architecture": "X64",
+            "status": "working",
+            "match": [{ "kind": "steam_appid", "value": "2358720", "tier": 100 }],
+            "addon": { "slug": "ue-extended" },
+            "profile_id": "ue_extended",
+            "inherit_page_guidance": false,
+            "guidance": [{
+                "id": "renodx.black_myth_wukong.hdr",
+                "kind": "engine_ini",
+                "message_id": "renodx.black_myth_wukong.hdr",
+                "fallback_text": "Add the title-specific HDR setting to Engine.ini.",
+                "code": "r.HDR.EnableHDROutput=1"
+            }]
+        }],
+        "engine_profiles": [{
+            "id": "ue_extended",
+            "engine": "unreal",
+            "processing_path": "native",
+            "generic_fallback": true,
+            "status": "unknown",
+            "addon": {
+                "slug": "ue-extended",
+                "sources": {
+                    "x64": "https://marat569.github.io/renodx/renodx-ue-extended.addon64",
+                    "x86": "https://marat569.github.io/renodx/renodx-ue-extended.addon32"
+                }
+            },
+            "message": {
+                "id": "renodx.generic.ue_extended",
+                "fallback_text": "Uses the shared Unreal Engine Extended profile."
+            },
+            "guidance": [{
+                "id": "renodx.ue_extended.hdr_engine_ini",
+                "kind": "engine_ini",
+                "message_id": "renodx.ue_extended.hdr_engine_ini",
+                "fallback_text": "Add the UE5 HDR settings to Engine.ini.",
+                "code": "[SystemSettings]\nr.AllowHDR=1",
+                "engine_ini": {
+                    "schema_version": 1,
+                    "revision": 1,
+                    "sections": [{
+                        "name": "SystemSettings",
+                        "entries": [{ "key": "r.AllowHDR", "value": "1" }]
+                    }]
+                },
+                "condition": { "engine": "unreal", "unreal_major": 5 }
+            }]
+        }],
+        "page_guidance": []
     }"#;
 
     #[test]
@@ -153,6 +251,194 @@ mod tests {
         );
 
         assert!(parse_manifest(xbox_manifest.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn parses_strict_v2_guidance_and_profile_references() {
+        let manifest = parse_manifest_v2(SAMPLE_V2.as_bytes()).expect("v2 sample is valid");
+        assert_eq!(manifest.schema_version, 2);
+        assert_eq!(
+            manifest.generics[0].profile_id.as_deref(),
+            Some("ue_extended")
+        );
+        assert_eq!(
+            manifest.titles[0].profile_id.as_deref(),
+            Some("ue_extended")
+        );
+        assert_eq!(
+            manifest.title_guidance["black-myth-wukong"][0]
+                .code
+                .as_deref(),
+            Some("r.HDR.EnableHDROutput=1")
+        );
+        assert!(
+            manifest.title_guidance["black-myth-wukong"][0]
+                .engine_ini
+                .is_none()
+        );
+        let hdr = &manifest.generics[0].guidance[0];
+        assert_eq!(
+            hdr.engine_ini.as_ref().map(|recipe| recipe.revision),
+            Some(1)
+        );
+        assert_eq!(
+            hdr.engine_ini
+                .as_ref()
+                .map(|recipe| recipe.sections[0].entries[0].key.as_str()),
+            Some("r.AllowHDR")
+        );
+    }
+
+    #[test]
+    fn versioned_parsers_reject_the_other_schema_number() {
+        assert!(
+            parse_manifest(
+                &SAMPLE
+                    .replace("\"schema_version\": 1", "\"schema_version\": 2")
+                    .into_bytes()
+            )
+            .is_err()
+        );
+        assert!(
+            parse_manifest_v2(
+                &SAMPLE_V2
+                    .replace("\"schema_version\": 2", "\"schema_version\": 1")
+                    .into_bytes()
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn v2_rejects_unknown_profiles_and_malformed_engine_ini_guidance() {
+        let unknown_profile = SAMPLE_V2.replace(
+            "\"profile_id\": \"ue_extended\"",
+            "\"profile_id\": \"missing_profile\"",
+        );
+        assert!(parse_manifest_v2(unknown_profile.as_bytes()).is_err());
+
+        let missing_code = SAMPLE_V2.replace(
+            ",\n                \"code\": \"r.HDR.EnableHDROutput=1\"",
+            "",
+        );
+        assert!(parse_manifest_v2(missing_code.as_bytes()).is_err());
+    }
+
+    #[test]
+    fn v2_rejects_shapes_outside_the_published_closed_contract() {
+        fn sample_value() -> serde_json::Value {
+            serde_json::from_str(SAMPLE_V2).expect("sample JSON")
+        }
+        fn rejected(value: &serde_json::Value) -> bool {
+            parse_manifest_v2(&serde_json::to_vec(value).expect("serialize mutation")).is_err()
+        }
+
+        let mut missing_page_guidance = sample_value();
+        missing_page_guidance
+            .as_object_mut()
+            .expect("manifest object")
+            .remove("page_guidance");
+        assert!(rejected(&missing_page_guidance));
+
+        let mut unknown_profile = sample_value();
+        unknown_profile["engine_profiles"][0]["id"] = serde_json::json!("anything");
+        assert!(rejected(&unknown_profile));
+
+        let mut unsupported_engine = sample_value();
+        unsupported_engine["engine_profiles"][0]["engine"] = serde_json::json!("unreal_extended");
+        assert!(rejected(&unsupported_engine));
+
+        let mut catch_all_match = sample_value();
+        catch_all_match["games"][0]["match"][0]["kind"] = serde_json::json!("generic");
+        assert!(rejected(&catch_all_match));
+
+        let mut ue3_condition = sample_value();
+        ue3_condition["engine_profiles"][0]["guidance"][0]["condition"]["unreal_major"] =
+            serde_json::json!(3);
+        assert!(rejected(&ue3_condition));
+    }
+
+    #[test]
+    fn v2_rejects_invalid_engine_ini_recipes_and_code_drift() {
+        fn sample_value() -> serde_json::Value {
+            serde_json::from_str(SAMPLE_V2).expect("sample JSON")
+        }
+        fn rejected(value: &serde_json::Value) -> bool {
+            parse_manifest_v2(&serde_json::to_vec(value).expect("serialize mutation")).is_err()
+        }
+
+        let mut unknown_recipe_field = sample_value();
+        unknown_recipe_field["engine_profiles"][0]["guidance"][0]["engine_ini"]["extra"] =
+            serde_json::json!(true);
+        assert!(rejected(&unknown_recipe_field));
+
+        for (field, value) in [
+            ("schema_version", serde_json::json!(2)),
+            ("revision", serde_json::json!(0)),
+        ] {
+            let mut invalid = sample_value();
+            invalid["engine_profiles"][0]["guidance"][0]["engine_ini"][field] = value;
+            assert!(rejected(&invalid));
+        }
+
+        let mut empty_sections = sample_value();
+        empty_sections["engine_profiles"][0]["guidance"][0]["engine_ini"]["sections"] =
+            serde_json::json!([]);
+        assert!(rejected(&empty_sections));
+
+        let mut invalid_scalar = sample_value();
+        invalid_scalar["engine_profiles"][0]["guidance"][0]["engine_ini"]["sections"][0]["name"] =
+            serde_json::json!("System\nSettings");
+        assert!(rejected(&invalid_scalar));
+
+        let mut duplicate_section = sample_value();
+        duplicate_section["engine_profiles"][0]["guidance"][0]["engine_ini"]["sections"] = serde_json::json!([
+            { "name": "SystemSettings", "entries": [{ "key": "r.AllowHDR", "value": "1" }] },
+            { "name": "systemsettings", "entries": [{ "key": "other", "value": "1" }] }
+        ]);
+        assert!(rejected(&duplicate_section));
+
+        let mut duplicate_target = sample_value();
+        duplicate_target["engine_profiles"][0]["guidance"][0]["engine_ini"]["sections"][0]["entries"] = serde_json::json!([
+            { "key": "r.AllowHDR", "value": "1" },
+            { "key": "R.ALLOWHDR", "value": "1" }
+        ]);
+        assert!(rejected(&duplicate_target));
+
+        let mut code_drift = sample_value();
+        code_drift["engine_profiles"][0]["guidance"][0]["code"] =
+            serde_json::json!("[SystemSettings]\nr.AllowHDR=0");
+        assert!(rejected(&code_drift));
+
+        let mut recipe_on_wrong_kind = sample_value();
+        recipe_on_wrong_kind["engine_profiles"][0]["guidance"][0]["kind"] =
+            serde_json::json!("warning");
+        assert!(rejected(&recipe_on_wrong_kind));
+
+        let mut explicit_null_engine_ini = sample_value();
+        explicit_null_engine_ini["engine_profiles"][0]["guidance"][0]["engine_ini"] =
+            serde_json::Value::Null;
+        assert!(rejected(&explicit_null_engine_ini));
+
+        let mut explicit_null_wrong_kind = sample_value();
+        explicit_null_wrong_kind["engine_profiles"][0]["guidance"][0]["kind"] =
+            serde_json::json!("warning");
+        explicit_null_wrong_kind["engine_profiles"][0]["guidance"][0]["engine_ini"] =
+            serde_json::Value::Null;
+        assert!(rejected(&explicit_null_wrong_kind));
+
+        let mut max_revision = sample_value();
+        max_revision["engine_profiles"][0]["guidance"][0]["engine_ini"]["revision"] =
+            serde_json::json!(u64::from(u32::MAX));
+        assert!(
+            parse_manifest_v2(&serde_json::to_vec(&max_revision).expect("serialize max revision"))
+                .is_ok()
+        );
+
+        let mut overflowing_revision = sample_value();
+        overflowing_revision["engine_profiles"][0]["guidance"][0]["engine_ini"]["revision"] =
+            serde_json::json!(u64::from(u32::MAX) + 1);
+        assert!(rejected(&overflowing_revision));
     }
 
     #[test]

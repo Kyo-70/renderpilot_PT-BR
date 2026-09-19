@@ -114,6 +114,8 @@ pub(super) fn build_record(
         backed_up_files,
         managed_files,
         tracked_sources,
+        renodx_config_receipt: None,
+        engine_config_journal: None,
     })
     .map_err(|error| LumaActiveInstallCompositionError::Record(error.to_string()))?
     .ok_or_else(|| {

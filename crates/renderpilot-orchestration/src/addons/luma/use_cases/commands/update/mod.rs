@@ -10,6 +10,7 @@ mod route;
 
 use renderpilot_domain::GameId;
 
+use super::engine_config;
 use crate::addons::luma::types::LumaManifest;
 use crate::addons::reshade::types::ReshadeSourceCatalog;
 use crate::net::ProgressObserver;
@@ -38,6 +39,8 @@ pub struct UpdateRequest<'a> {
 pub async fn update(request: UpdateRequest<'_>) -> Result<(), ServiceError> {
     let context = request.context;
     let game_id = request.game_id;
+    let manifest = request.manifest;
+    let safety = request.safety.clone();
     let phase1 = {
         let guard =
             crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id).await?;
@@ -52,6 +55,7 @@ pub async fn update(request: UpdateRequest<'_>) -> Result<(), ServiceError> {
     if let Err(error) = crate::catalog::refresh_game_components(context, game_id).await {
         log::warn!("failed to refresh game components after Luma update: {error}");
     }
+    engine_config::reconcile_after_commit(context, manifest, game_id, safety).await?;
 
     Ok(())
 }

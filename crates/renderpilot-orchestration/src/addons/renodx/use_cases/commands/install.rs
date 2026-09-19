@@ -6,6 +6,7 @@ mod inactive;
 use renderpilot_application::ProxyTopologyRepository;
 use renderpilot_domain::{GameId, InstalledAddon};
 
+use super::engine_config;
 use crate::Context;
 use crate::addons::renodx::types::RenoDxManifest;
 use crate::addons::reshade::types::{ReshadeChannel, ReshadeSourceCatalog};
@@ -46,10 +47,16 @@ pub struct InstallRequest<'a> {
 /// Network prepare runs **outside** the per-game `game_mutation_lock` (same 3-phase
 /// contract as Luma install) so a slow download does not block peer availability.
 pub async fn install(request: InstallRequest<'_>) -> Result<InstalledAddon, crate::ServiceError> {
-    match select_route(&request)? {
+    let context = request.context;
+    let manifest = request.manifest;
+    let game_id = request.game_id;
+    let safety = request.safety.game().clone();
+    let installed = match select_route(&request)? {
         InstallRoute::Active(topology) => active::install(request, *topology).await,
         InstallRoute::Inactive => inactive::install(request).await,
-    }
+    }?;
+    engine_config::reconcile_after_commit(context, manifest, game_id, safety).await?;
+    Ok(installed)
 }
 
 /// Installs RenoDX from a user-downloaded add-on file — the manual path for any
@@ -66,12 +73,18 @@ pub async fn install_from_file(
     request: InstallRequest<'_>,
     file_path: &str,
 ) -> Result<InstalledAddon, crate::ServiceError> {
-    match select_route(&request)? {
+    let context = request.context;
+    let manifest = request.manifest;
+    let game_id = request.game_id;
+    let safety = request.safety.game().clone();
+    let installed = match select_route(&request)? {
         InstallRoute::Active(topology) => {
             active::install_from_file(request, file_path, *topology).await
         }
         InstallRoute::Inactive => inactive::install_from_file(request, file_path).await,
-    }
+    }?;
+    engine_config::reconcile_after_commit(context, manifest, game_id, safety).await?;
+    Ok(installed)
 }
 
 enum InstallRoute {

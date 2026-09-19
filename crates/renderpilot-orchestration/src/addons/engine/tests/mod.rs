@@ -2,7 +2,7 @@ use std::assert_matches;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use renderpilot_domain::AddonKind;
+use renderpilot_domain::{AddonKind, PathRef, RenoDxSetPathValue};
 
 use super::changes::UndoOutcome;
 use super::helpers::{self, ensure_safe_relative_path};
@@ -414,6 +414,40 @@ fn update_text_creates_a_missing_file_from_default() {
     assert_eq!(receipt_paths(&receipt.created_files), vec!["ReShade.ini"]);
     assert!(receipt.backed_up_files.is_empty());
     assert!(!game.join("ReShade.ini.bak").exists());
+}
+
+#[test]
+fn prepared_renodx_set_path_rejects_a_changed_preimage() {
+    let dir = tempdir().expect("tempdir");
+    let path = dir.path().join("ReShade.ini");
+    let before = b"[renodx]\nSet_Path=1\n";
+    fs::write(&path, before).expect("initial ini");
+    let planned = crate::addons::renodx::reshade_ini::plan_set_path(
+        PathRef::new(path.to_string_lossy().into_owned()).expect("path"),
+        before,
+        RenoDxSetPathValue::Zero,
+    )
+    .expect("prepare set path");
+    fs::write(&path, b"[renodx]\nSet_Path=user-value\n").expect("user edit");
+
+    let error = install(
+        dir.path(),
+        &InstallPlan {
+            kind: AddonKind::RenoDx,
+            ops: vec![FileOp::RenoDxSetPath {
+                name: "ReShade.ini".to_owned(),
+                expected_before: Some(before.to_vec()),
+                after: planned.after,
+                receipt: planned.receipt,
+            }],
+        },
+    )
+    .expect_err("stale prepared operation must fail");
+    assert!(error.to_string().contains("changed after preparation"));
+    assert_eq!(
+        fs::read(&path).expect("user bytes survive"),
+        b"[renodx]\nSet_Path=user-value\n"
+    );
 }
 
 #[test]

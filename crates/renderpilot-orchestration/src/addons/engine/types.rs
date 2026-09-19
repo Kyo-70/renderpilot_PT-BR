@@ -51,6 +51,19 @@ pub enum MergeStrategy {
 }
 
 impl MergeStrategy {
+    /// Whether applying this strategy can change the input. Typed RenoDX
+    /// operations use this to keep the byte planner's postimage authoritative
+    /// when there are no unrelated INI keys to merge.
+    #[must_use]
+    pub fn has_writes(&self) -> bool {
+        match self {
+            MergeStrategy::IniSetKeys { sections } => {
+                sections.iter().any(|section| !section.keys.is_empty())
+            }
+            MergeStrategy::IniRemoveKeys { sections } => !sections.is_empty(),
+        }
+    }
+
     /// Applies the strategy to `base` (the existing file contents, or the op's
     /// default when none), returning the new file contents.
     #[must_use]
@@ -143,6 +156,21 @@ pub enum FileOp {
         default: String,
         /// How to fold the required keys into the base.
         strategy: MergeStrategy,
+    },
+    /// RenoDX-only text update whose Set_Path key is planned by the typed
+    /// RenoDX byte planner before the ordinary merge handles other keys.
+    RenoDxSetPath {
+        /// Conventional bare file name.
+        name: String,
+        /// Exact bytes observed when this operation was prepared. `None`
+        /// seals an absent file and is checked again immediately before the
+        /// atomic write.
+        expected_before: Option<Vec<u8>>,
+        /// Fully prepared postimage. Apply never reparses or replans the
+        /// live file, so this remains the sole Set_Path write source.
+        after: Vec<u8>,
+        /// Typed receipt captured from the same preimage/postimage plan.
+        receipt: renderpilot_domain::RenoDxConfigReceipt,
     },
     /// Delete a file the install previously created. If the file exists, it is
     /// moved to a `.bak` first (so a rollback can restore it); a missing file is a

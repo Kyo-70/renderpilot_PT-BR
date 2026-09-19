@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::addons::CatalogMessage;
+use crate::addons::engine_config::EngineIniRecipe;
 use crate::addons::matching::{MatchRule, Status};
 
 use super::managed::LumaExternalRequirement;
@@ -115,6 +116,9 @@ pub struct LumaGuidance {
     /// Exact copyable INI text when this guidance kind uses code.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
+    /// Optional typed Engine.ini mutation authority. `code` remains display-only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engine_ini: Option<EngineIniRecipe>,
 }
 
 /// How a matched [`LumaTitle`] is routed. Deliberately narrower than RenoDX's
@@ -221,7 +225,7 @@ pub struct LumaTitle {
     pub guidance: Vec<LumaGuidance>,
     /// Required launch arguments (e.g. `-dx11`, `-nod3d9ex`), shown to the user as
     /// a copyable callout rather than written automatically (see the project
-    /// decision log — no launcher-config automation in v1).
+    /// decision log — launcher configuration is not automated).
     pub launch_args: Vec<String>,
     /// Managed external dependency for this title. RenderPilot downloads,
     /// verifies, installs, and configures it alongside Luma.

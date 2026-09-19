@@ -3,11 +3,12 @@ use renderpilot_domain::Architecture;
 use super::super::policy::check_title_compatibility;
 use super::super::source;
 use super::super::types::{
-    MatchRule, RenoDxCategory, RenoDxGenericProfile, RenoDxManifest, RenoDxTitle,
+    MatchRule, RenoDxCategory, RenoDxGenericProfile, RenoDxGuidance, RenoDxGuidanceCondition,
+    RenoDxManifest, RenoDxProcessingPath, RenoDxTitle,
 };
 use super::types::{RenoDxResolution, ResolvedInstall};
 use crate::addons::matching::{
-    IncompatibilityReason, MatchConfidence, MatchFacts, confidence_for_match,
+    Engine, IncompatibilityReason, MatchConfidence, MatchFacts, confidence_for_match,
     confidence_for_status, select_title,
 };
 use crate::addons::reshade::proxy::{HostKind, host_decision, primary_api, resolve_proxy_dll};
@@ -71,6 +72,19 @@ fn build_install_plan(
         proxy_dll_name,
         confidence: confidence_for_match(title.status, rule.kind),
         generic_profile: None,
+        profile_id: title.profile_id.clone(),
+        processing_path: resolve_title_processing_path(manifest, title),
+        guidance: materialize_guidance(
+            if title.inherit_page_guidance {
+                manifest.page_guidance.as_slice()
+            } else {
+                &[]
+            }
+            .iter()
+            .chain(manifest.title_guidance.get(&title.id).into_iter().flatten()),
+            facts,
+        ),
+        launch: title.launch.clone(),
     })
 }
 
@@ -152,6 +166,10 @@ pub fn generic_file_install_plan(
         },
         confidence: MatchConfidence::Untested,
         generic_profile: None,
+        profile_id: None,
+        guidance: Vec::new(),
+        launch: None,
+        processing_path: RenoDxProcessingPath::Unmanaged,
     })
 }
 
@@ -160,9 +178,37 @@ fn resolve_generic(manifest: &RenoDxManifest, facts: &MatchFacts) -> RenoDxResol
     let Some(engine) = facts.engine else {
         return RenoDxResolution::NoMatch;
     };
-    let Some(generic) = manifest.generics.iter().find(|g| g.engine == engine) else {
+    let Some(generic) = manifest
+        .generics
+        .iter()
+        .find(|g| g.engine == engine && g.generic_fallback)
+    else {
         return RenoDxResolution::NoMatch;
     };
+
+    // A confirmed pre-UE4 binary cannot safely consume UE Extended. An exact
+    // legacy title has already won the title pass and is therefore unaffected.
+    if engine == Engine::Unreal {
+        if let Some(ref unreal_detection) = facts.unreal_detection {
+            let platform = facts
+                .target_platform
+                .as_ref()
+                .unwrap_or(&crate::addons::game_analysis::TargetPlatformDetection::Unknown);
+            let compat = crate::addons::game_analysis::evaluate_ue_extended_fallback_compatibility(
+                unreal_detection,
+                platform,
+                &crate::addons::game_analysis::VersionRequirement::AnySupportedUnreal,
+            );
+            if compat != crate::addons::game_analysis::RenoDxCompatibility::Compatible {
+                return RenoDxResolution::NoMatch;
+            }
+        } else if facts
+            .unreal_version
+            .is_some_and(|version| version.major < 4)
+        {
+            return RenoDxResolution::NoMatch;
+        }
+    }
 
     let api = primary_api(&facts.graphics);
     // Pick the host from the renderer: Direct3D / inconclusive → a proxy DLL (the
@@ -200,6 +246,77 @@ fn resolve_generic(manifest: &RenoDxManifest, facts: &MatchFacts) -> RenoDxResol
         generic_profile: Some(RenoDxGenericProfile {
             engine,
             message: generic.message.clone(),
+            profile_id: generic.profile_id.clone(),
         }),
+        profile_id: generic.profile_id.clone(),
+        processing_path: generic.processing_path,
+        guidance: materialize_guidance(
+            manifest.page_guidance.iter().chain(generic.guidance.iter()),
+            facts,
+        ),
+        launch: None,
     }))
+}
+
+fn resolve_title_processing_path(
+    manifest: &RenoDxManifest,
+    title: &RenoDxTitle,
+) -> RenoDxProcessingPath {
+    title.processing_path.unwrap_or_else(|| {
+        title
+            .profile_id
+            .as_deref()
+            .and_then(|profile_id| {
+                manifest
+                    .generics
+                    .iter()
+                    .find(|generic| generic.profile_id.as_deref() == Some(profile_id))
+            })
+            .map_or(RenoDxProcessingPath::Unmanaged, |generic| {
+                generic.processing_path
+            })
+    })
+}
+
+fn materialize_guidance<'a>(
+    guidance: impl IntoIterator<Item = &'a RenoDxGuidance>,
+    facts: &MatchFacts,
+) -> Vec<RenoDxGuidance> {
+    guidance
+        .into_iter()
+        .filter(|item| condition_matches(item.condition.as_ref(), facts))
+        .cloned()
+        .collect()
+}
+
+fn condition_matches(condition: Option<&RenoDxGuidanceCondition>, facts: &MatchFacts) -> bool {
+    let Some(condition) = condition else {
+        return true;
+    };
+    if let Some(engine) = condition.engine
+        && facts.engine != Some(engine)
+    {
+        return false;
+    }
+    let Some(version) = facts.unreal_version else {
+        return condition.unreal_major.is_none()
+            && condition.unreal_minor_min.is_none()
+            && condition.unreal_minor_max.is_none();
+    };
+    if let Some(major) = condition.unreal_major
+        && version.major != major
+    {
+        return false;
+    }
+    if let Some(minor) = condition.unreal_minor_min
+        && version.minor < minor
+    {
+        return false;
+    }
+    if let Some(max) = condition.unreal_minor_max
+        && version.minor > max
+    {
+        return false;
+    }
+    true
 }

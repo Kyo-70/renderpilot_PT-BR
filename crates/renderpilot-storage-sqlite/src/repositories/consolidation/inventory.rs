@@ -3,8 +3,8 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use renderpilot_application::AppResult;
-use renderpilot_domain::normalized_path_key;
-use rusqlite::{Connection, named_params};
+use renderpilot_domain::{RenoDxConfigReceipt, normalized_path_key};
+use rusqlite::{Connection, OptionalExtension, named_params};
 
 use super::{ConsolidationPlan, validation::validate_plan};
 use crate::error::{storage_context, storage_error};
@@ -68,6 +68,27 @@ pub(in crate::repositories) fn recovery_file_paths(
                     })?;
                 collect_json_strings(&value, &mut values);
             }
+        }
+        // The RenoDX receipt is deliberately not fed through the generic JSON
+        // walker: its baseline is opaque user data and must never become a
+        // recovery path. Only its typed, exact ReShade.ini path is inventory.
+        let receipt_json: Option<String> = connection
+            .query_row(
+                "SELECT renodx_config_receipt_json FROM installed_addons
+                 WHERE game_id = :game_id AND renodx_config_receipt_json IS NOT NULL",
+                named_params! { ":game_id": game_id.as_str() },
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(storage_error)?;
+        if let Some(json) = receipt_json {
+            let receipt: RenoDxConfigReceipt = crate::mapping::deserialize_json(&json)?;
+            if !receipt.is_supported() {
+                return Err(storage_error(
+                    "unsupported RenoDX config receipt in recovery inventory",
+                ));
+            }
+            values.push(receipt.ini_path.into_inner());
         }
     }
 

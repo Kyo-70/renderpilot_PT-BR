@@ -6,6 +6,7 @@ use renderpilot_domain::{RenoDxReshadeIniAuthority, Sha256Hash};
 
 use crate::addons::renodx::install::PreparedInstall;
 use crate::addons::renodx::peer::{InstallActiveSnapshot, RenoDxConfigSourceSeal};
+use crate::addons::renodx::reshade_ini::{RenoDxSetPathError, plan_set_path};
 use crate::addons::reshade::ini_schema::ini_merge_strategy;
 use crate::peer_mutation_executor::VerifiedPeerFile;
 
@@ -18,6 +19,7 @@ pub(crate) enum RenoDxConfigError {
     InvalidSource(&'static str),
     InvalidDigest,
     Effects(RenoDxPeerEffectError),
+    SetPath(RenoDxSetPathError),
 }
 
 impl std::fmt::Display for RenoDxConfigError {
@@ -32,6 +34,7 @@ impl std::fmt::Display for RenoDxConfigError {
             }
             Self::InvalidDigest => formatter.write_str("invalid retained RenoDX config digest"),
             Self::Effects(error) => error.fmt(formatter),
+            Self::SetPath(error) => error.fmt(formatter),
         }
     }
 }
@@ -44,6 +47,12 @@ impl From<RenoDxPeerEffectError> for RenoDxConfigError {
     }
 }
 
+impl From<RenoDxSetPathError> for RenoDxConfigError {
+    fn from(error: RenoDxSetPathError) -> Self {
+        Self::SetPath(error)
+    }
+}
+
 /// Result of config planning. A typed authority exists only when the config
 /// endpoint actually changes; existing changed files never become ownership
 /// claims and absent changed files are represented solely in `created`.
@@ -51,6 +60,7 @@ impl From<RenoDxPeerEffectError> for RenoDxConfigError {
 pub(crate) struct RenoDxConfigProjection {
     authority: Option<RenoDxReshadeIniAuthority>,
     created: bool,
+    receipt: Option<renderpilot_domain::RenoDxConfigReceipt>,
 }
 
 impl RenoDxConfigProjection {
@@ -60,6 +70,10 @@ impl RenoDxConfigProjection {
 
     pub(crate) const fn created(&self) -> bool {
         self.created
+    }
+
+    pub(crate) fn receipt(&self) -> Option<&renderpilot_domain::RenoDxConfigReceipt> {
+        self.receipt.as_ref()
     }
 }
 
@@ -83,8 +97,8 @@ pub(crate) fn lower_config(
     }
 
     let source = snapshot.root_seal().config_source();
-    let (before, before_bytes, base) = match source {
-        RenoDxConfigSourceSeal::Absent { .. } => (None, None, std::borrow::Cow::Borrowed("")),
+    let (before, before_bytes, base_bytes) = match source {
+        RenoDxConfigSourceSeal::Absent { .. } => (None, None, &[][..]),
         RenoDxConfigSourceSeal::File {
             owned_bytes,
             identity,
@@ -110,7 +124,7 @@ pub(crate) fn lower_config(
             (
                 Some(file),
                 Some(owned_bytes.clone()),
-                String::from_utf8_lossy(owned_bytes),
+                owned_bytes.as_slice(),
             )
         }
     };
@@ -121,33 +135,62 @@ pub(crate) fn lower_config(
         // must not have its bundled add-ons disabled as part of this install.
         tweaks.disabled_addons.clear();
     }
-    if !has_write_keys(&tweaks) {
+    let desired_set_path = prepared.processing_path.desired_set_path();
+    if desired_set_path.is_none() && !has_write_keys(&tweaks) {
         return Ok(RenoDxConfigProjection {
             authority: None,
             created: false,
+            receipt: None,
         });
     }
 
-    let merged = ini_merge_strategy(&tweaks).apply(&base);
+    let set_path = desired_set_path
+        .map(|desired| plan_set_path(ini_path.clone(), base_bytes, desired))
+        .transpose()?;
+    let strategy = ini_merge_strategy(&tweaks);
+    let (merged, receipt) = match set_path {
+        Some(set_path) => {
+            let text = std::str::from_utf8(&set_path.after)
+                .map_err(|_| RenoDxConfigError::SetPath(RenoDxSetPathError::NonUtf8))?;
+            let merged = if strategy.has_writes() {
+                strategy.apply(text).into_bytes()
+            } else {
+                set_path.after
+            };
+            (merged, Some(set_path.receipt))
+        }
+        None => {
+            let base = String::from_utf8_lossy(base_bytes);
+            let merged = if strategy.has_writes() {
+                strategy.apply(&base)
+            } else {
+                base.into_owned()
+            };
+            (merged.into_bytes(), None)
+        }
+    };
     match (before, before_bytes) {
         (None, _) => {
             if merged.is_empty() {
                 return Ok(RenoDxConfigProjection {
                     authority: None,
                     created: false,
+                    receipt,
                 });
             }
-            accumulator.create(RenoDxPeerEffectGroup::Config, ini_path, merged.into_bytes())?;
+            accumulator.create(RenoDxPeerEffectGroup::Config, ini_path, merged)?;
             Ok(RenoDxConfigProjection {
                 authority: Some(authority),
                 created: true,
+                receipt,
             })
         }
         (Some(before), Some(before_bytes)) => {
-            if merged.as_bytes() == before_bytes.as_slice() {
+            if merged == before_bytes {
                 Ok(RenoDxConfigProjection {
                     authority: None,
                     created: false,
+                    receipt,
                 })
             } else {
                 accumulator.replace(
@@ -155,11 +198,12 @@ pub(crate) fn lower_config(
                     ini_path,
                     &before,
                     before_bytes,
-                    merged.into_bytes(),
+                    merged,
                 )?;
                 Ok(RenoDxConfigProjection {
                     authority: Some(authority),
                     created: false,
+                    receipt,
                 })
             }
         }

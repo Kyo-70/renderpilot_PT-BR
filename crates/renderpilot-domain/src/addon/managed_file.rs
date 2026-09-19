@@ -111,6 +111,12 @@ pub enum InstalledAddonInvariantError {
     DuplicateManagedPath(PathRef),
     /// A coordinated path is also owned by the generic add-on file engine.
     ManagedPathOwnedByEngine(PathRef),
+    /// RenoDX-only configuration provenance was attached to another add-on kind.
+    RenoDxConfigReceiptOnNonRenoDx,
+    /// A RenoDX configuration receipt failed its schema/path/value invariants.
+    InvalidRenoDxConfigReceipt,
+    /// The shared Unreal Engine.ini journal failed its closed invariants.
+    InvalidEngineConfigJournal,
 }
 
 impl fmt::Display for InstalledAddonInvariantError {
@@ -131,6 +137,14 @@ impl fmt::Display for InstalledAddonInvariantError {
                 formatter,
                 "managed file path is also tracked by the generic add-on engine: {path}"
             ),
+            Self::RenoDxConfigReceiptOnNonRenoDx => formatter
+                .write_str("RenoDX configuration receipt is attached to a non-RenoDX add-on"),
+            Self::InvalidRenoDxConfigReceipt => {
+                formatter.write_str("invalid RenoDX configuration receipt")
+            }
+            Self::InvalidEngineConfigJournal => {
+                formatter.write_str("invalid shared Engine.ini configuration journal")
+            }
         }
     }
 }

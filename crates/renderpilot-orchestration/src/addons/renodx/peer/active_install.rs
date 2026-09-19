@@ -188,7 +188,13 @@ pub(crate) fn compose_active_install(
 
     let config = lower_config(&phase3, &owned, &mut accumulator)?;
     let (program, payloads, game_intents) = accumulator.finalize()?.into_parts();
-    let record = build_record(&phase3, &owned, host_binding.as_ref(), config.created())?;
+    let record = build_record(
+        &phase3,
+        &owned,
+        host_binding.as_ref(),
+        config.created(),
+        config.receipt(),
+    )?;
 
     Ok(ActiveInstallComposition {
         record,
@@ -410,6 +416,7 @@ mod tests {
         PreparedInstall {
             game_id,
             host_kind: HostKind::Vulkan,
+            processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
             proxy_dll_name: String::new(),
             addon_file_name: "renodx.addon64".to_owned(),
             addon_source_url: String::new(),

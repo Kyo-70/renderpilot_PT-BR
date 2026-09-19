@@ -70,11 +70,15 @@ pub(in crate::repositories) fn apply(
                 INSERT INTO installed_addons (
                     game_id, kind, addon_file, addon_version, created_files_json,
                     backed_up_files_json, managed_files_json, tracked_sources_json,
-                    host_kind, reshade_channel, registered_exe_path, created_at, updated_at
+                    host_kind, reshade_channel, registered_exe_path, renodx_config_receipt_json,
+                    engine_config_journal_json,
+                    created_at, updated_at
                 )
                 SELECT :destination, kind, addon_file, addon_version, created_files_json,
                        backed_up_files_json, managed_files_json, tracked_sources_json,
-                       host_kind, reshade_channel, registered_exe_path, created_at, updated_at
+                       host_kind, reshade_channel, registered_exe_path, renodx_config_receipt_json,
+                       engine_config_journal_json,
+                       created_at, updated_at
                   FROM installed_addons WHERE game_id = :source
                 ON CONFLICT(game_id) DO NOTHING
             ",
@@ -205,7 +209,7 @@ fn insert_optiscaler_state(
         super::super::optiscaler_states::codec::encode(state.configuration_baseline())?;
     let now = sqlite_clock::now_ms(transaction)?;
     let created_at = state.created_at.unwrap_or(now);
-    let updated_at = state.updated_at.unwrap_or(created_at.max(now));
+    let updated_at = state.updated_at.unwrap_or_else(|| created_at.max(now));
     transaction
         .execute(
             "INSERT INTO optiscaler_install_states (

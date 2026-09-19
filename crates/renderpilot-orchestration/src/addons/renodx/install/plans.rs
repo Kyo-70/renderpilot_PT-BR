@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use renderpilot_domain::RenoDxConfigReceipt;
 use renderpilot_domain::{AddonKind, InstalledAddon, TrackedSource, TrackedSourceRole};
 
 use crate::ServiceError;
@@ -43,14 +44,32 @@ pub(super) fn install_proxy(
         )));
     }
     let adopted_existing = host.initial_owned_existing_paths(paths.ini_path.as_deref());
+    let prepared_ini = ini_op_for_game(game_dir, prepared)?;
+    let config_receipt = prepared_ini.as_ref().and_then(|operation| match operation {
+        engine::FileOp::RenoDxSetPath { receipt, .. } => Some(receipt),
+        _ => None,
+    });
 
     let roots = InstallRoots::resolve(game_dir, &host.target_path);
+    let (unified_ops, payload_ops, host_ops) = if roots.is_unified {
+        (
+            combined_ops(prepared, host.initial_writes_host(), prepared_ini.as_ref()),
+            Vec::new(),
+            Vec::new(),
+        )
+    } else {
+        (
+            Vec::new(),
+            vec![addon_op(prepared)],
+            host_ops(prepared, host.initial_writes_host(), prepared_ini.as_ref()),
+        )
+    };
     let success = run_split_install(
         &roots,
         AddonKind::RenoDx,
-        combined_ops(game_dir, prepared, host.initial_writes_host()),
-        vec![addon_op(prepared)],
-        host_ops(game_dir, prepared, host.initial_writes_host()),
+        unified_ops,
+        payload_ops,
+        host_ops,
         PayloadRollback::Flat,
     )?;
     let record = build_record(
@@ -59,6 +78,7 @@ pub(super) fn install_proxy(
         host.initial_writes_host(),
         &adopted_existing,
         &success.receipt,
+        config_receipt,
     )?;
     Ok((record, success.commit))
 }
@@ -71,6 +91,7 @@ pub(super) fn build_record(
     tracks_host: bool,
     adopted_existing: &[PathBuf],
     receipt: &engine::InstallReceipt,
+    config_receipt: Option<&RenoDxConfigReceipt>,
 ) -> Result<InstalledAddon, ServiceError> {
     let addon_path = addon_dir.join(&prepared.addon_file_name);
 
@@ -103,6 +124,9 @@ pub(super) fn build_record(
         receipt,
         sources,
     )?;
+    let record = record
+        .with_renodx_config_receipt(config_receipt.cloned())
+        .map_err(|error| errors::invalid(error.to_string()))?;
     record::adopt_existing_paths(record, adopted_existing)
 }
 
@@ -139,17 +163,23 @@ pub(super) fn install_vulkan(
         ));
     }
 
+    let sources: Vec<TrackedSource> = addon_tracked_source(prepared).into_iter().collect();
     let plan = build_vulkan_plan(prepared, game_dir)?;
+    let config_receipt = plan.ops.iter().find_map(|operation| match operation {
+        engine::FileOp::RenoDxSetPath { receipt, .. } => Some(receipt.clone()),
+        _ => None,
+    });
     let pending = engine::install_pending(game_dir, &plan)?;
 
-    let sources: Vec<TrackedSource> = addon_tracked_source(prepared).into_iter().collect();
     let record = record::build(
         prepared.game_id.clone(),
         AddonKind::RenoDx,
         &addon_path,
         &pending.receipt,
         sources,
-    )?;
+    )?
+    .with_renodx_config_receipt(config_receipt)
+    .map_err(|error| errors::invalid(error.to_string()))?;
     Ok((record, pending.commit))
 }
 
@@ -160,7 +190,7 @@ pub(super) fn build_vulkan_plan(
     game_dir: &Path,
 ) -> Result<InstallPlan, ServiceError> {
     let mut ops = vec![addon_op(prepared)];
-    if let Some(ini_op) = ini_op_for_game(game_dir, &prepared.ini_tweaks) {
+    if let Some(ini_op) = ini_op_for_game(game_dir, prepared)? {
         ops.push(ini_op);
     }
     Ok(InstallPlan {
@@ -180,7 +210,7 @@ pub(crate) fn build_vulkan_game_participants(
     game_dir: &Path,
 ) -> Result<GameParticipantPlan, ServiceError> {
     let plan = build_vulkan_plan(prepared, game_dir)?;
-    game_participants::build(game_dir, &plan)
+    game_participants::build(game_dir, plan)
 }
 
 /// Maps the exact Vulkan game participant receipt to the normal RenoDX record.
@@ -189,5 +219,12 @@ pub(crate) fn build_vulkan_record(
     game_dir: &Path,
     participants: &GameParticipantPlan,
 ) -> Result<InstalledAddon, ServiceError> {
-    build_record(prepared, game_dir, false, &[], participants.receipt())
+    build_record(
+        prepared,
+        game_dir,
+        false,
+        &[],
+        participants.receipt(),
+        participants.config_receipt(),
+    )
 }

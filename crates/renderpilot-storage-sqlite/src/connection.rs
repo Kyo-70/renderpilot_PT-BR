@@ -345,9 +345,10 @@ mod tests {
     use rusqlite::Connection;
 
     use super::SqliteStorage;
+    use crate::schema::CURRENT_SCHEMA_VERSION;
 
     #[test]
-    fn clean_v19_opens_and_unrelated_malformed_v19_keeps_rebuild_policy() {
+    fn clean_current_opens_and_unrelated_malformed_legacy_keeps_rebuild_policy() {
         let temporary = tempfile::tempdir().expect("temporary catalog directory");
         let fresh = temporary.path().join("fresh.db");
         SqliteStorage::open(&fresh).expect("fresh v19 catalog");
@@ -370,6 +371,6 @@ mod tests {
                     .map_err(crate::error::storage_error)
             })
             .expect("rebuilt schema version");
-        assert_eq!(version, 19);
+        assert_eq!(version, i64::from(CURRENT_SCHEMA_VERSION));
     }
 }

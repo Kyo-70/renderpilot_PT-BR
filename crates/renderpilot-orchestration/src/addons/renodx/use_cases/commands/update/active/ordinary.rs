@@ -45,6 +45,7 @@ pub(super) fn commit(
         }
         RenoDxActiveUpdateComposition::Physical(physical) => {
             let after = physical.after_peer().clone();
+            let reshade_ini_authority = lowered.reshade_ini_authority().cloned();
             let before_topology = phase1.topology().clone();
             let planned_topology = physical.planned_topology().clone();
             let game_root = phase3.root_seal().canonical_game_root().to_path_buf();
@@ -55,9 +56,7 @@ pub(super) fn commit(
                 &guard,
                 safety.game(),
                 || {
-                    let package =
-                        crate::addons::peer_lifecycle::package::PeerMutationPackage::plan_active(
-                            crate::addons::peer_lifecycle::package::PeerMutationRequest {
+                    let request = crate::addons::peer_lifecycle::package::PeerMutationRequest {
                                 peer_kind: AddonKind::RenoDx,
                                 before_peer: Some(phase1.record()),
                                 after_peer: Some(&after),
@@ -70,8 +69,11 @@ pub(super) fn commit(
                                 component_set: None,
                                 baseline_mutations: &[],
                                 catalog_claim: None,
-                            },
-                        )?;
+                            };
+                    let package = match reshade_ini_authority {
+                        Some(authority) => crate::addons::peer_lifecycle::package::PeerMutationPackage::plan_active_with_renodx_reshade_ini(request, authority)?,
+                        None => crate::addons::peer_lifecycle::package::PeerMutationPackage::plan_active(request)?,
+                    };
                     let prepared = context
                         .peer_mutation_executor()
                         .prepare_ordinary_file_peer(

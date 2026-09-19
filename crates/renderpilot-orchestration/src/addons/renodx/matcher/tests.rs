@@ -2,11 +2,12 @@ use renderpilot_domain::{Architecture, ExeGraphicsInfo, GraphicsApi, Launcher};
 use std::assert_matches;
 
 use super::*;
-use crate::addons::matching::{IncompatibilityReason, MatchConfidence, MatchFacts};
+use crate::addons::matching::{IncompatibilityReason, MatchConfidence, MatchFacts, UnrealVersion};
 use crate::addons::renodx::source;
 use crate::addons::renodx::test_support::{manifest, rule, title};
 use crate::addons::renodx::types::{
-    Engine, MatchKind, RenoDxCategory, RenoDxGeneric, RenoDxManifest, RenoDxTitle, Status,
+    Engine, MatchKind, RenoDxCategory, RenoDxGeneric, RenoDxGuidance, RenoDxGuidanceCondition,
+    RenoDxGuidanceKind, RenoDxManifest, RenoDxTitle, Status,
 };
 
 fn message(id: &str) -> crate::addons::CatalogMessage {
@@ -32,7 +33,10 @@ fn facts() -> MatchFacts {
         external_id: Some("1091500".to_owned()),
         exe_file_name: Some("Cyberpunk2077.exe".to_owned()),
         engine: None,
+        unreal_version: None,
         graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D12], Some(Architecture::X64)),
+        unreal_detection: None,
+        target_platform: None,
     }
 }
 
@@ -108,6 +112,10 @@ fn title_slug_matching_a_generic_uses_the_generics_explicit_url() {
         ),
         url32: None,
         message: message("renodx.generic.unity"),
+        profile_id: None,
+        generic_fallback: true,
+        guidance: Vec::new(),
+        processing_path: Default::default(),
     });
 
     match resolve(&m, &facts()) {
@@ -140,6 +148,10 @@ fn title_download_url_still_wins_over_a_matching_generic() {
         url64: Some("https://github.com/NotVoosh/renodx-unity/releases/download/snapshot/renodx-unityengine.addon64".to_owned()),
         url32: None,
         message: message("renodx.generic.unity"),
+        profile_id: None,
+        generic_fallback: true,
+        guidance: Vec::new(),
+        processing_path: Default::default(),
     });
 
     match resolve(&m, &facts()) {
@@ -347,6 +359,10 @@ fn engine_generic_fallback_is_untested() {
         url64: None,
         url32: None,
         message: message("renodx.generic.universal"),
+        profile_id: None,
+        generic_fallback: true,
+        guidance: Vec::new(),
+        processing_path: Default::default(),
     }];
     let mut facts = facts();
     facts.external_id = Some("999".to_owned());
@@ -368,6 +384,193 @@ fn engine_generic_fallback_is_untested() {
     }
 }
 
+fn ue_extended_manifest() -> RenoDxManifest {
+    let guidance = |id: &str,
+                    kind: RenoDxGuidanceKind,
+                    condition: Option<RenoDxGuidanceCondition>| RenoDxGuidance {
+        id: id.to_owned(),
+        kind,
+        message_id: id.to_owned(),
+        fallback_text: id.to_owned(),
+        code: None,
+        settings: Vec::new(),
+        engine_ini: None,
+        url: None,
+        condition,
+    };
+    let unreal = |major, minor_min| {
+        Some(RenoDxGuidanceCondition {
+            engine: Some(Engine::Unreal),
+            unreal_major: Some(major),
+            unreal_minor_min: minor_min,
+            unreal_minor_max: None,
+        })
+    };
+    let mut manifest = manifest(Vec::new());
+    manifest.schema_version = 2;
+    manifest.page_guidance = vec![guidance("page_warning", RenoDxGuidanceKind::Warning, None)];
+    manifest.generics = vec![RenoDxGeneric {
+        engine: Engine::Unreal,
+        status: Status::Unknown,
+        slug: Some("ue-extended".to_owned()),
+        url64: None,
+        url32: None,
+        message: message("renodx.generic.ue_extended"),
+        profile_id: Some("ue_extended".to_owned()),
+        generic_fallback: true,
+        guidance: vec![
+            guidance("native_hdr", RenoDxGuidanceKind::GameSetting, None),
+            guidance("hdr_ini", RenoDxGuidanceKind::EngineIni, unreal(5, None)),
+            guidance("lut_ini", RenoDxGuidanceKind::EngineIni, unreal(5, Some(3))),
+            guidance("ue4_warning", RenoDxGuidanceKind::Warning, unreal(4, None)),
+        ],
+        processing_path: Default::default(),
+    }];
+    manifest
+}
+
+fn resolved_guidance_ids(manifest: &RenoDxManifest, version: Option<UnrealVersion>) -> Vec<String> {
+    let mut facts = facts();
+    facts.external_id = Some("unknown".to_owned());
+    facts.engine = Some(Engine::Unreal);
+    facts.unreal_version = version;
+    match resolve(manifest, &facts) {
+        RenoDxResolution::Installable(plan) => {
+            plan.guidance.into_iter().map(|item| item.id).collect()
+        }
+        other => panic!("expected UE Extended generic, got {other:?}"),
+    }
+}
+
+#[test]
+fn ue_extended_guidance_is_materialized_for_the_detected_engine_version() {
+    let manifest = ue_extended_manifest();
+    assert_eq!(
+        resolved_guidance_ids(&manifest, None),
+        ["page_warning", "native_hdr"]
+    );
+    assert_eq!(
+        resolved_guidance_ids(
+            &manifest,
+            Some(UnrealVersion {
+                major: 4,
+                minor: 27,
+                patch: None,
+            })
+        ),
+        ["page_warning", "native_hdr", "ue4_warning"]
+    );
+    assert_eq!(
+        resolved_guidance_ids(
+            &manifest,
+            Some(UnrealVersion {
+                major: 5,
+                minor: 2,
+                patch: None,
+            })
+        ),
+        ["page_warning", "native_hdr", "hdr_ini"]
+    );
+    assert_eq!(
+        resolved_guidance_ids(
+            &manifest,
+            Some(UnrealVersion {
+                major: 5,
+                minor: 3,
+                patch: None,
+            })
+        ),
+        ["page_warning", "native_hdr", "hdr_ini", "lut_ini"]
+    );
+}
+
+#[test]
+fn exact_title_can_replace_page_guidance_without_losing_its_own_note() {
+    let mut exact_title = title(
+        "black-myth-wukong",
+        "ue-extended",
+        Architecture::X64,
+        Status::Working,
+        vec![rule(MatchKind::SteamAppid, "1091500", 100)],
+    );
+    exact_title.inherit_page_guidance = false;
+    let title_note = RenoDxGuidance {
+        id: "wukong_ini".to_owned(),
+        kind: RenoDxGuidanceKind::EngineIni,
+        message_id: "wukong_ini".to_owned(),
+        fallback_text: "Wukong-specific Engine.ini setting".to_owned(),
+        code: Some("r.HDR.EnableHDROutput=1".to_owned()),
+        settings: Vec::new(),
+        engine_ini: None,
+        url: None,
+        condition: None,
+    };
+    let page_note = RenoDxGuidance {
+        id: "page_warning".to_owned(),
+        kind: RenoDxGuidanceKind::Warning,
+        message_id: "page_warning".to_owned(),
+        fallback_text: "Global warning".to_owned(),
+        code: None,
+        settings: Vec::new(),
+        engine_ini: None,
+        url: None,
+        condition: None,
+    };
+    let mut manifest = manifest(vec![exact_title]);
+    manifest.page_guidance = vec![page_note];
+    manifest
+        .title_guidance
+        .insert("black-myth-wukong".to_owned(), vec![title_note]);
+
+    match resolve(&manifest, &facts()) {
+        RenoDxResolution::Installable(plan) => {
+            assert_eq!(
+                plan.guidance
+                    .iter()
+                    .map(|item| item.id.as_str())
+                    .collect::<Vec<_>>(),
+                ["wukong_ini"]
+            );
+            assert_eq!(
+                plan.guidance[0].code.as_deref(),
+                Some("r.HDR.EnableHDROutput=1")
+            );
+        }
+        other => panic!("expected exact Wukong plan, got {other:?}"),
+    }
+}
+
+#[test]
+fn ue3_never_uses_the_generic_but_an_exact_legacy_title_can_still_win() {
+    let generic = ue_extended_manifest();
+    let mut facts = facts();
+    facts.external_id = Some("unknown".to_owned());
+    facts.engine = Some(Engine::Unreal);
+    facts.unreal_version = Some(UnrealVersion {
+        major: 3,
+        minor: 0,
+        patch: None,
+    });
+    assert_matches!(resolve(&generic, &facts), RenoDxResolution::NoMatch);
+
+    let mut legacy_title = title(
+        "legacy-title",
+        "legacy-addon",
+        Architecture::X64,
+        Status::Working,
+        vec![rule(MatchKind::SteamAppid, "1091500", 100)],
+    );
+    legacy_title.profile_id = Some("unreal_legacy".to_owned());
+    let exact = manifest(vec![legacy_title]);
+    facts.external_id = Some("1091500".to_owned());
+    match resolve(&exact, &facts) {
+        RenoDxResolution::Installable(plan) => {
+            assert_eq!(plan.profile_id.as_deref(), Some("unreal_legacy"));
+        }
+        other => panic!("expected exact legacy title, got {other:?}"),
+    }
+}
+
 #[test]
 fn engine_generic_uses_manifest_slug_for_local_identity_with_explicit_url() {
     let mut m = manifest(vec![]);
@@ -378,6 +581,10 @@ fn engine_generic_uses_manifest_slug_for_local_identity_with_explicit_url() {
         url64: Some("https://example/renodx-unityengine.addon64".to_owned()),
         url32: Some("https://example/renodx-unityengine.addon32".to_owned()),
         message: message("renodx.generic.unity"),
+        profile_id: None,
+        generic_fallback: true,
+        guidance: Vec::new(),
+        processing_path: Default::default(),
     }];
     let mut facts = facts();
     facts.external_id = Some("999".to_owned());
@@ -410,6 +617,10 @@ fn engine_generic_installs_on_inconclusive_detection() {
         url64: None,
         url32: None,
         message: message("renodx.generic.universal"),
+        profile_id: None,
+        generic_fallback: true,
+        guidance: Vec::new(),
+        processing_path: Default::default(),
     }];
     let mut facts = facts();
     facts.engine = Some(Engine::Unreal);
@@ -435,6 +646,10 @@ fn engine_generic_installs_vulkan_and_declines_opengl() {
         url64: None,
         url32: None,
         message: message("renodx.generic.universal"),
+        profile_id: None,
+        generic_fallback: true,
+        guidance: Vec::new(),
+        processing_path: Default::default(),
     }];
     let mut facts = facts();
     facts.engine = Some(Engine::Unreal);

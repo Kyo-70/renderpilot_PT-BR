@@ -29,6 +29,7 @@ use renderpilot_domain::GameId;
 
 use crate::ServiceError;
 
+use crate::addons::renodx::types::RenoDxProcessingPath;
 use crate::addons::reshade::proxy::HostKind;
 use crate::addons::reshade::types::{ReshadeChannel, ReshadeIniTweaks};
 
@@ -82,6 +83,8 @@ pub struct PreparedInstall {
     pub reshade_digest: String,
     /// Effective channel for a recorded ReShade host artifact.
     pub reshade_channel: Option<ReshadeChannel>,
+    /// Closed RenoDX processing route resolved by the matcher.
+    pub processing_path: RenoDxProcessingPath,
     /// `ReShade.ini` tweaks RenoDX requires.
     pub ini_tweaks: ReshadeIniTweaks,
 }

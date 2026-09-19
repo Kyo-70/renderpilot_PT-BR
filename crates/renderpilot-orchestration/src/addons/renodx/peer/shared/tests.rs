@@ -515,26 +515,22 @@ fn update_rejects_cross_combination_matrix() {
         ))
     ));
     let authority =
-        RenoDxReshadeIniAuthority::new(RenoDxReshadeIniFeature::Install, path(game.path()))
+        RenoDxReshadeIniAuthority::new(RenoDxReshadeIniFeature::Update, path(game.path()))
             .expect("authority");
-    assert!(matches!(
-        validate_request!(
-            feature,
-            game.path(),
-            layer.path(),
-            &topology,
-            Some(&before),
-            &after,
-            &[],
-            &plan,
-            Some(&authority),
-            None,
-            Some(&record)
-        ),
-        Err(ActiveSharedMutationError::InvalidInput(
-            "shared update cannot carry ReShade.ini authority"
-        ))
-    ));
+    validate_request!(
+        feature,
+        game.path(),
+        layer.path(),
+        &topology,
+        Some(&before),
+        &after,
+        &[],
+        &plan,
+        Some(&authority),
+        None,
+        Some(&record)
+    )
+    .expect("shared update accepts matching ReShade.ini authority");
 }
 
 #[test]

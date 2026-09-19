@@ -17,5 +17,6 @@ mod tests;
 
 pub(crate) use compose::compose_active_update;
 pub(crate) use model::{
-    RenoDxActiveUpdateComposition, RenoDxActiveUpdateHostInput, RenoDxActiveUpdateInput,
+    RenoDxActiveUpdateComposition, RenoDxActiveUpdateConfigInput, RenoDxActiveUpdateHostInput,
+    RenoDxActiveUpdateInput,
 };

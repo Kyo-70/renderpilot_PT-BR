@@ -77,6 +77,30 @@ fn apply_op(
             });
             Ok(())
         }
+        super::FileOp::RenoDxSetPath {
+            name,
+            expected_before,
+            after,
+            receipt: _,
+        } => {
+            helpers::ensure_bare_file_name("RenoDX Set_Path file name", name)?;
+            let path = helpers::existing_case_insensitive(game_dir, name)
+                .unwrap_or_else(|| game_dir.join(name));
+            let original_bytes = read_prepared_regular_file(&path)?;
+            if &original_bytes != expected_before {
+                return Err(invalid(format!(
+                    "RenoDX ReShade.ini changed after preparation: {}",
+                    path.display()
+                )));
+            }
+            crate::fs::write_file_atomically(&path, after)?;
+            changes.actions.push(Action::Updated {
+                path,
+                original_bytes,
+                whole_file_owned: false,
+            });
+            Ok(())
+        }
         super::FileOp::Remove { name } => {
             let path = helpers::safe_join(game_dir, "file name", name)?;
             remove_file_with_backup(&path, changes)
@@ -91,6 +115,26 @@ fn apply_op(
             place_file(&path, bytes, changes)
         }
     }
+}
+
+/// Reads the exact regular-file state used by a prepared RenoDX operation.
+/// Symlinks/reparse points are rejected so the compare-and-write boundary does
+/// not follow a path that was not part of preparation.
+fn read_prepared_regular_file(path: &Path) -> Result<Option<Vec<u8>>, ServiceError> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(errors::io("read RenoDX config metadata", path, &error)),
+    };
+    if !metadata.file_type().is_file() {
+        return Err(invalid(format!(
+            "cannot update RenoDX config `{}`: not a regular file",
+            path.display()
+        )));
+    }
+    fs::read(path)
+        .map(Some)
+        .map_err(|error| errors::io("read RenoDX config", path, &error))
 }
 
 /// Writes `bytes` to `path`, first moving any pre-existing regular file aside to

@@ -27,8 +27,11 @@ fn directx_facts() -> MatchFacts {
         external_id: Some("1091500".to_owned()),
         exe_file_name: Some("game.exe".to_owned()),
         engine: None,
+        unreal_version: None,
         graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D11], Some(Architecture::X64))
             .with_graphics_dlls(vec!["dxgi.dll".to_owned()]),
+        unreal_detection: None,
+        target_platform: None,
     }
 }
 

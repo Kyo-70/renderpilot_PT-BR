@@ -301,7 +301,10 @@ mod tests {
             external_id: Some("49520".to_owned()),
             exe_file_name: Some("Borderlands2.exe".to_owned()),
             engine: None,
+            unreal_version: None,
             graphics: ExeGraphicsInfo::new(vec![GraphicsApi::D3D9], Some(Architecture::X86)),
+            unreal_detection: None,
+            target_platform: None,
         }
     }
 

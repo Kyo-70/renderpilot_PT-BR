@@ -7,37 +7,109 @@
 //! be resolved and installed without further structural checks.
 
 use renderpilot_domain::Architecture;
+use std::collections::HashSet;
 
 use crate::ServiceError;
 
 use super::errors;
 use super::source;
-use super::types::{RenoDxCategory, RenoDxGeneric, RenoDxManifest, RenoDxTitle};
+use super::types::{
+    RenoDxCategory, RenoDxEngineIniRecipe, RenoDxGeneric, RenoDxGuidance, RenoDxGuidanceKind,
+    RenoDxManifest, RenoDxTitle,
+};
 use crate::addons::manifest_validate::{
-    ensure_not_blank, ensure_safe_file_name, ensure_schema_version, ensure_unique_title_ids,
-    validate_match_rules,
+    ensure_not_blank, ensure_safe_file_name, ensure_unique_title_ids, validate_match_rules,
 };
 
 /// Schema version this build understands.
-const SUPPORTED_SCHEMA_VERSION: u32 = 1;
+const SUPPORTED_SCHEMA_VERSIONS: &[u32] = &[1, 2];
 
 /// Hosts a RenoDX add-on or ReShade build may be downloaded from.
-const DOWNLOAD_HOST_ALLOWLIST: &[&str] = &["renodx.com", "github.com", "nightly.link"];
+const DOWNLOAD_HOST_ALLOWLIST: &[&str] = &[
+    "renodx.com",
+    "github.com",
+    "nightly.link",
+    "marat569.github.io",
+];
 
 /// Validates an entire manifest.
 pub(super) fn validate_manifest(manifest: &RenoDxManifest) -> Result<(), ServiceError> {
-    ensure_schema_version("RenoDX", manifest.schema_version, SUPPORTED_SCHEMA_VERSION)?;
+    if !SUPPORTED_SCHEMA_VERSIONS.contains(&manifest.schema_version) {
+        return Err(errors::failed(format!(
+            "RenoDX schema version {} is unsupported",
+            manifest.schema_version
+        )));
+    }
     ensure_not_blank("manifest generated_at", &manifest.generated_at)?;
 
     for generic in &manifest.generics {
         validate_generic(generic)?;
     }
+    validate_profile_ids(manifest)?;
+    validate_generic_fallbacks(manifest)?;
 
     for title in &manifest.titles {
         validate_title(title)?;
     }
     ensure_unique_title_ids(manifest.titles.iter().map(|title| title.id.as_str()))?;
 
+    for guidance in &manifest.page_guidance {
+        validate_guidance(guidance, "page guidance")?;
+    }
+    for (id, guidance) in &manifest.title_guidance {
+        let context = format!("title `{id}` guidance");
+        for item in guidance {
+            validate_guidance(item, &context)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_profile_ids(manifest: &RenoDxManifest) -> Result<(), ServiceError> {
+    let mut profiles = HashSet::new();
+    for generic in &manifest.generics {
+        let Some(profile_id) = generic.profile_id.as_deref() else {
+            continue;
+        };
+        ensure_not_blank("generic profile_id", profile_id)?;
+        if !profiles.insert(profile_id) {
+            return Err(errors::failed(format!(
+                "duplicate RenoDX profile_id `{profile_id}`"
+            )));
+        }
+    }
+
+    for title in &manifest.titles {
+        if let Some(profile_id) = title.profile_id.as_deref()
+            && !profiles.contains(profile_id)
+        {
+            return Err(errors::failed(format!(
+                "title `{}` references unknown RenoDX profile_id `{profile_id}`",
+                title.id
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_generic_fallbacks(manifest: &RenoDxManifest) -> Result<(), ServiceError> {
+    let mut fallbacks = std::collections::HashMap::new();
+    for generic in &manifest.generics {
+        if generic.generic_fallback {
+            let identifier = generic
+                .profile_id
+                .as_deref()
+                .or(generic.slug.as_deref())
+                .unwrap_or_else(|| generic.engine.as_str());
+            if let Some(previous) = fallbacks.insert(generic.engine, identifier) {
+                return Err(errors::failed(format!(
+                    "duplicate RenoDX generic fallback for engine `{}`: conflicting profiles `{previous}` and `{identifier}`",
+                    generic.engine.as_str()
+                )));
+            }
+        }
+    }
     Ok(())
 }
 
@@ -92,6 +164,9 @@ fn validate_generic(generic: &RenoDxGeneric) -> Result<(), ServiceError> {
             "generic must define a slug or both url64 and url32".to_owned(),
         ));
     }
+    for guidance in &generic.guidance {
+        validate_guidance(guidance, "generic guidance")?;
+    }
     Ok(())
 }
 
@@ -120,6 +195,169 @@ fn validate_title(title: &RenoDxTitle) -> Result<(), ServiceError> {
     }
     ensure_compatibility_source(title)?;
     validate_category(&title.category)?;
+    if let Some(launch) = &title.launch
+        && (launch.arguments.is_empty() || launch.arguments.iter().any(|arg| arg.trim().is_empty()))
+    {
+        return Err(errors::failed(format!(
+            "title `{}` launch arguments must be non-empty",
+            title.id
+        )));
+    }
+    Ok(())
+}
+
+fn validate_guidance(guidance: &RenoDxGuidance, context: &str) -> Result<(), ServiceError> {
+    ensure_not_blank_lazy(&guidance.id, || format!("{context} id"))?;
+    ensure_not_blank_lazy(&guidance.message_id, || format!("{context} message_id"))?;
+    ensure_not_blank_lazy(&guidance.fallback_text, || {
+        format!("{context} fallback_text")
+    })?;
+    if matches!(guidance.kind, RenoDxGuidanceKind::EngineIni)
+        && guidance
+            .code
+            .as_deref()
+            .is_none_or(|code| code.trim().is_empty())
+    {
+        return Err(errors::failed(format!(
+            "{context} Engine.ini guidance requires code"
+        )));
+    }
+    if guidance.engine_ini.is_some() && !matches!(guidance.kind, RenoDxGuidanceKind::EngineIni) {
+        return Err(errors::failed(format!(
+            "{context} Engine.ini recipe is only valid for engine_ini guidance"
+        )));
+    }
+    if let Some(recipe) = &guidance.engine_ini {
+        validate_engine_ini_recipe(recipe, guidance.code.as_deref(), context)?;
+    }
+    if matches!(guidance.kind, RenoDxGuidanceKind::AddonSetting) && guidance.settings.is_empty() {
+        return Err(errors::failed(format!(
+            "{context} add-on setting requires settings"
+        )));
+    }
+    if guidance
+        .settings
+        .iter()
+        .any(|setting| setting.name.trim().is_empty() || setting.value.trim().is_empty())
+    {
+        return Err(errors::failed(format!("{context} has a blank setting")));
+    }
+    if let Some(url) = &guidance.url {
+        ensure_https(&format!("{context} url"), url)?;
+    }
+    if let Some(condition) = &guidance.condition {
+        if condition.unreal_major.is_some_and(|major| major < 4) {
+            return Err(errors::failed(format!(
+                "{context} Unreal major version must be at least 4"
+            )));
+        }
+        if condition
+            .unreal_minor_min
+            .zip(condition.unreal_minor_max)
+            .is_some_and(|(min, max)| min > max)
+        {
+            return Err(errors::failed(format!(
+                "{context} has an inverted Unreal minor-version range"
+            )));
+        }
+        if (condition.unreal_major.is_some()
+            || condition.unreal_minor_min.is_some()
+            || condition.unreal_minor_max.is_some())
+            && condition.engine != Some(super::types::Engine::Unreal)
+        {
+            return Err(errors::failed(format!(
+                "{context} Unreal version bounds require engine `unreal`"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_engine_ini_recipe(
+    recipe: &RenoDxEngineIniRecipe,
+    code: Option<&str>,
+    context: &str,
+) -> Result<(), ServiceError> {
+    if recipe.schema_version != 1 {
+        return Err(errors::failed(format!(
+            "{context} Engine.ini recipe schema_version must be 1"
+        )));
+    }
+    if recipe.revision == 0 {
+        return Err(errors::failed(format!(
+            "{context} Engine.ini recipe revision must be greater than zero"
+        )));
+    }
+    if recipe.sections.is_empty() {
+        return Err(errors::failed(format!(
+            "{context} Engine.ini recipe requires at least one section"
+        )));
+    }
+
+    let mut section_names = HashSet::new();
+    for (section_index, section) in recipe.sections.iter().enumerate() {
+        let section_context = format!("{context} Engine.ini section[{section_index}]");
+        validate_ini_scalar(
+            &format!("{section_context} name"),
+            &section.name,
+            Some(&['[', ']']),
+        )?;
+        let section_name = section.name.to_ascii_lowercase();
+        if !section_names.insert(section_name) {
+            return Err(errors::failed(format!(
+                "{context} Engine.ini recipe contains duplicate section names"
+            )));
+        }
+        if section.entries.is_empty() {
+            return Err(errors::failed(format!(
+                "{section_context} requires at least one entry"
+            )));
+        }
+
+        let mut section_keys = HashSet::new();
+        for (entry_index, entry) in section.entries.iter().enumerate() {
+            let entry_context = format!("{section_context} entry[{entry_index}]");
+            validate_ini_scalar(&format!("{entry_context} key"), &entry.key, Some(&['=']))?;
+            validate_ini_scalar(&format!("{entry_context} value"), &entry.value, None)?;
+            if !section_keys.insert(entry.key.to_ascii_lowercase()) {
+                return Err(errors::failed(format!(
+                    "{context} Engine.ini recipe contains duplicate section/key targets"
+                )));
+            }
+        }
+    }
+
+    let canonical = recipe.canonical_code();
+    if code != Some(canonical.as_str()) {
+        return Err(errors::failed(format!(
+            "{context} Engine.ini code does not match its structured recipe"
+        )));
+    }
+    Ok(())
+}
+
+#[inline]
+fn ensure_not_blank_lazy(value: &str, field: impl FnOnce() -> String) -> Result<(), ServiceError> {
+    if value.trim().is_empty() {
+        return Err(errors::failed(format!("`{}` cannot be blank", field())));
+    }
+    Ok(())
+}
+
+fn validate_ini_scalar(
+    field: &str,
+    value: &str,
+    forbidden: Option<&[char]>,
+) -> Result<(), ServiceError> {
+    ensure_not_blank(field, value)?;
+    if value.contains(['\r', '\n']) {
+        return Err(errors::failed(format!("`{field}` must be single-line")));
+    }
+    if forbidden.is_some_and(|characters| value.contains(characters)) {
+        return Err(errors::failed(format!(
+            "`{field}` contains a forbidden character"
+        )));
+    }
     Ok(())
 }
 
@@ -225,7 +463,9 @@ mod tests {
     use super::*;
     use crate::addons::renodx::test_support::{manifest, rule, title};
     use crate::addons::renodx::types::{
-        Engine, MatchKind, RenoDxCategory, RenoDxCompatibility, RenoDxGeneric, Status,
+        Engine, MatchKind, RenoDxCategory, RenoDxCompatibility, RenoDxEngineIniEntry,
+        RenoDxEngineIniRecipe, RenoDxEngineIniSection, RenoDxGeneric, RenoDxGuidance,
+        RenoDxGuidanceKind, Status,
     };
 
     fn one_title_manifest() -> RenoDxManifest {
@@ -241,6 +481,192 @@ mod tests {
     #[test]
     fn valid_manifest_passes() {
         assert!(validate_manifest(&one_title_manifest()).is_ok());
+    }
+
+    fn recipe() -> RenoDxEngineIniRecipe {
+        RenoDxEngineIniRecipe {
+            schema_version: 1,
+            revision: 1,
+            sections: vec![RenoDxEngineIniSection {
+                name: "SystemSettings".to_owned(),
+                entries: vec![RenoDxEngineIniEntry {
+                    key: "r.AllowHDR".to_owned(),
+                    value: "1".to_owned(),
+                }],
+            }],
+        }
+    }
+
+    fn engine_ini_guidance(
+        kind: RenoDxGuidanceKind,
+        recipe: Option<RenoDxEngineIniRecipe>,
+        code: Option<&str>,
+    ) -> RenoDxGuidance {
+        RenoDxGuidance {
+            id: "engine_ini".to_owned(),
+            kind,
+            message_id: "engine_ini".to_owned(),
+            fallback_text: "Apply this Engine.ini setting.".to_owned(),
+            code: code.map(str::to_owned),
+            settings: Vec::new(),
+            engine_ini: recipe,
+            url: None,
+            condition: None,
+        }
+    }
+
+    fn manifest_with_guidance(guidance: RenoDxGuidance) -> RenoDxManifest {
+        let mut manifest = one_title_manifest();
+        manifest.page_guidance = vec![guidance];
+        manifest
+    }
+
+    #[test]
+    fn structured_engine_ini_recipe_requires_canonical_code() {
+        let valid = recipe();
+        let code = valid.canonical_code();
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                Some(valid),
+                Some(&code),
+            )))
+            .is_ok()
+        );
+
+        let drifted = recipe();
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                Some(drifted),
+                Some("[SystemSettings]\nr.AllowHDR=0"),
+            )))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn manual_engine_ini_code_only_guidance_remains_valid() {
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                None,
+                Some("r.HDR.EnableHDROutput=1"),
+            )))
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn engine_ini_recipe_rejects_wrong_kind_and_invalid_metadata() {
+        let canonical = recipe().canonical_code();
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::Warning,
+                Some(recipe()),
+                Some(&canonical),
+            )))
+            .is_err()
+        );
+
+        for (schema_version, revision) in [(2, 1), (1, 0)] {
+            let mut invalid = recipe();
+            invalid.schema_version = schema_version;
+            invalid.revision = revision;
+            assert!(
+                validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                    RenoDxGuidanceKind::EngineIni,
+                    Some(invalid),
+                    Some("[SystemSettings]\nr.AllowHDR=1"),
+                )))
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn engine_ini_recipe_rejects_empty_invalid_and_duplicate_targets() {
+        let mut empty_sections = recipe();
+        empty_sections.sections.clear();
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                Some(empty_sections),
+                Some(""),
+            )))
+            .is_err()
+        );
+
+        let mut empty_entries = recipe();
+        empty_entries.sections[0].entries.clear();
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                Some(empty_entries),
+                Some(""),
+            )))
+            .is_err()
+        );
+
+        let mut duplicate_sections = recipe();
+        duplicate_sections.sections.push(RenoDxEngineIniSection {
+            name: "systemsettings".to_owned(),
+            entries: vec![RenoDxEngineIniEntry {
+                key: "other".to_owned(),
+                value: "1".to_owned(),
+            }],
+        });
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                Some(duplicate_sections),
+                Some(""),
+            )))
+            .is_err()
+        );
+
+        let mut duplicate_targets = recipe();
+        duplicate_targets.sections[0]
+            .entries
+            .push(RenoDxEngineIniEntry {
+                key: "R.ALLOWHDR".to_owned(),
+                value: "1".to_owned(),
+            });
+        assert!(
+            validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                RenoDxGuidanceKind::EngineIni,
+                Some(duplicate_targets),
+                Some(""),
+            )))
+            .is_err()
+        );
+
+        for (name, key, value) in [
+            ("System\nSettings", "r.AllowHDR", "1"),
+            ("[SystemSettings]", "r.AllowHDR", "1"),
+            ("SystemSettings", "r=AllowHDR", "1"),
+            ("SystemSettings", "r.AllowHDR", "1\n0"),
+        ] {
+            let invalid = RenoDxEngineIniRecipe {
+                schema_version: 1,
+                revision: 1,
+                sections: vec![RenoDxEngineIniSection {
+                    name: name.to_owned(),
+                    entries: vec![RenoDxEngineIniEntry {
+                        key: key.to_owned(),
+                        value: value.to_owned(),
+                    }],
+                }],
+            };
+            assert!(
+                validate_manifest(&manifest_with_guidance(engine_ini_guidance(
+                    RenoDxGuidanceKind::EngineIni,
+                    Some(invalid),
+                    Some(""),
+                )))
+                .is_err()
+            );
+        }
     }
 
     #[test]
@@ -291,6 +717,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
 
         assert!(validate_manifest(&m).is_ok());
@@ -313,6 +743,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
         assert!(validate_manifest(&generic_manifest).is_err());
     }
@@ -330,6 +764,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
 
         assert!(validate_manifest(&m).is_err());
@@ -348,6 +786,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
 
         assert!(validate_manifest(&m).is_err());
@@ -366,6 +808,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
 
         assert!(validate_manifest(&m).is_err());
@@ -384,6 +830,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
 
         assert!(validate_manifest(&m).is_err());
@@ -402,6 +852,10 @@ mod tests {
                 "renodx.generic.unity",
                 "Generic Unity profile",
             ),
+            profile_id: None,
+            generic_fallback: true,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
         }];
         assert!(validate_manifest(&m).is_ok());
 
@@ -464,5 +918,41 @@ mod tests {
             ..Default::default()
         };
         assert!(validate_manifest(&m).is_ok());
+    }
+
+    #[test]
+    fn duplicate_generic_fallback_for_same_engine_names_conflicting_profiles() {
+        let mut m = one_title_manifest();
+        m.generics = vec![
+            RenoDxGeneric {
+                engine: crate::addons::matching::Engine::Unreal,
+                status: Status::Working,
+                slug: Some("ue-generic".to_owned()),
+                url64: None,
+                url32: None,
+                message: crate::addons::CatalogMessage::new("m1", "Generic UE"),
+                profile_id: Some("profile-ue-generic".to_owned()),
+                generic_fallback: true,
+                guidance: Vec::new(),
+                processing_path: Default::default(),
+            },
+            RenoDxGeneric {
+                engine: crate::addons::matching::Engine::Unreal,
+                status: Status::Working,
+                slug: Some("ue-extended".to_owned()),
+                url64: None,
+                url32: None,
+                message: crate::addons::CatalogMessage::new("m2", "Generic UE Extended"),
+                profile_id: Some("profile-ue-extended".to_owned()),
+                generic_fallback: true,
+                guidance: Vec::new(),
+                processing_path: Default::default(),
+            },
+        ];
+        let error = validate_manifest(&m).expect_err("duplicate fallback must fail");
+        assert_eq!(
+            error.to_string(),
+            "duplicate RenoDX generic fallback for engine `unreal`: conflicting profiles `profile-ue-generic` and `profile-ue-extended`"
+        );
     }
 }

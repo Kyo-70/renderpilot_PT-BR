@@ -174,6 +174,8 @@ pub mod installed_addons {
     pub const HOST_KIND: &str = "host_kind";
     pub const RESHADE_CHANNEL: &str = "reshade_channel";
     pub const REGISTERED_EXE_PATH: &str = "registered_exe_path";
+    pub const RENODX_CONFIG_RECEIPT_JSON: &str = "renodx_config_receipt_json";
+    pub const ENGINE_CONFIG_JOURNAL_JSON: &str = "engine_config_journal_json";
     pub const CREATED_AT: &str = "created_at";
     pub const UPDATED_AT: &str = "updated_at";
 
@@ -189,6 +191,8 @@ pub mod installed_addons {
         HOST_KIND,
         RESHADE_CHANNEL,
         REGISTERED_EXE_PATH,
+        RENODX_CONFIG_RECEIPT_JSON,
+        ENGINE_CONFIG_JOURNAL_JSON,
         CREATED_AT,
         UPDATED_AT,
     ];

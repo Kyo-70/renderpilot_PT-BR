@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 
 use renderpilot_application::GameRepository;
 use renderpilot_domain::{
@@ -10,6 +11,7 @@ use tempfile::{TempDir, tempdir};
 use super::commit::authorize_update_commit;
 use super::prepare::prepare_update_artifacts;
 use super::snapshot::{UpdateSnapshot, ensure_update_snapshot_matches};
+use crate::addons::renodx::types::RenoDxProcessingPath;
 use crate::addons::reshade::types::ReshadeChannel;
 use crate::{Context, ServiceError};
 
@@ -25,6 +27,8 @@ fn record() -> InstalledAddon {
 fn snapshot(record: InstalledAddon, channel: Option<ReshadeChannel>) -> UpdateSnapshot {
     UpdateSnapshot {
         record,
+        game_dir: PathBuf::new(),
+        processing_path: RenoDxProcessingPath::Unmanaged,
         shared_vulkan_channel: channel,
         addon: None,
         host: None,
@@ -183,4 +187,5 @@ async fn generic_prepare_preserves_the_dlss_projection_without_network_or_writes
     assert_eq!(prepared.refreshed_sources, vec![dlss]);
     assert!(prepared.replacements.is_empty());
     assert!(prepared.host_install.is_none());
+    assert!(prepared.config.is_none());
 }

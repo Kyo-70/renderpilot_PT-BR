@@ -5,6 +5,7 @@ use renderpilot_domain::{
     AddonKind, Architecture, GameId, InstalledAddon, InstalledAddonHostKind, TrackedSourceRole,
 };
 
+use crate::addons::game_analysis::analyze_game;
 use crate::addons::records::{self, addon_label, source_with_role};
 use crate::addons::renodx::dto::update::RenoDxUpdateReport;
 use crate::addons::renodx::dto::vulkan::{LayerDiagnosticReason, VulkanLayerDetection};
@@ -80,12 +81,50 @@ async fn check_record(
     let addon = check_addon(record).await;
     let host_check = check_host(context, manifest, reshade_sources, record).await;
     let dlss_fix = check_dlss_fix(record).await;
-    RenoDxUpdateReport::with_vulkan_diagnostics(
+    let mut report = RenoDxUpdateReport::with_vulkan_diagnostics(
         addon,
         host_check.status,
         dlss_fix,
         host_check.vulkan_diagnostics,
-    )
+    );
+    if let Some(config) = config_update_status(context, manifest, record) {
+        report.overall = crate::addons::update::combine(report.overall, config);
+    }
+    report
+}
+
+/// ReShade.ini policy availability is derived only from the desired catalogue
+/// path and the durable Set_Path receipt. It deliberately does not read the
+/// live INI, so a user edit remains a reconcile decision for the explicit
+/// update command rather than a background/status mutation.
+fn config_update_status(
+    context: &Context,
+    manifest: &RenoDxManifest,
+    record: &InstalledAddon,
+) -> Option<UpdateStatus> {
+    let game = crate::addons::renodx::game_context::require_game(context, record.game_id()).ok()?;
+    let analysis = analyze_game(
+        &game,
+        crate::addons::renodx::game_context::executable_override(context, record.game_id())
+            .as_deref(),
+    );
+    let desired = match crate::addons::renodx::matcher::resolve(manifest, &analysis.facts) {
+        crate::addons::renodx::matcher::RenoDxResolution::Installable(plan) => {
+            plan.processing_path.desired_set_path()
+        }
+        crate::addons::renodx::matcher::RenoDxResolution::External {
+            file_install: Some(plan),
+            ..
+        } => plan.processing_path.desired_set_path(),
+        _ => None,
+    };
+    match (desired, record.renodx_config_receipt()) {
+        (Some(desired), Some(receipt)) if receipt.last_written == desired => {
+            Some(UpdateStatus::Current)
+        }
+        (Some(_), _) | (None, Some(_)) => Some(UpdateStatus::Available),
+        (None, None) => Some(UpdateStatus::Current),
+    }
 }
 
 /// Result of checking the ReShade host for updates, carrying both the update

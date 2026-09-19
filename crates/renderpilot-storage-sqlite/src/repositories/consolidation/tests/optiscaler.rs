@@ -1,6 +1,7 @@
 //! OptiScaler aggregate migration and inventory tests.
 
 use super::*;
+use renderpilot_application::InstalledAddonRepository;
 #[test]
 fn optiscaler_state_only_partial_is_blocked_and_unchanged() {
     let storage = SqliteStorage::in_memory().expect("storage");
@@ -299,4 +300,40 @@ fn optiscaler_inventory_includes_direct_paths_and_json_paths_from_both_tables() 
             "missing {expected}: {paths:?}"
         );
     }
+}
+
+#[test]
+fn renodx_inventory_extracts_only_the_typed_ini_path_from_a_receipt() {
+    let storage = SqliteStorage::in_memory().expect("storage");
+    let destination = game("game:destination", "C:/Games/Example");
+    let source = game("manual:child", "C:/Games/Example/D3D12");
+    storage.upsert_game(&destination).expect("destination");
+    storage.upsert_game(&source).expect("source");
+    let addon = renderpilot_domain::InstalledAddon::new(
+        source.id().clone(),
+        renderpilot_domain::AddonKind::RenoDx,
+        renderpilot_domain::PathRef::new("C:/Games/Example/D3D12/renodx.addon64")
+            .expect("addon path"),
+    )
+    .with_renodx_config_receipt(Some(renderpilot_domain::RenoDxConfigReceipt::new(
+        renderpilot_domain::PathRef::new("C:/Games/Example/D3D12/ReShade.ini").expect("ini path"),
+        renderpilot_domain::RenoDxSetPathBaseline::Present {
+            value: "C:/Users/user/secret.txt".to_owned(),
+        },
+        true,
+        renderpilot_domain::RenoDxSetPathValue::One,
+    )))
+    .expect("receipt");
+    storage.upsert_installed_addon(&addon).expect("addon");
+
+    let paths = storage
+        .list_consolidation_recovery_file_paths(&consolidation_plan(&destination, &[&source]))
+        .expect("inventory");
+    let matches_path = |expected: &str| {
+        paths
+            .iter()
+            .any(|path| path.to_string_lossy().replace('\\', "/") == expected)
+    };
+    assert!(matches_path("C:/Games/Example/D3D12/ReShade.ini"));
+    assert!(!matches_path("C:/Users/user/secret.txt"));
 }

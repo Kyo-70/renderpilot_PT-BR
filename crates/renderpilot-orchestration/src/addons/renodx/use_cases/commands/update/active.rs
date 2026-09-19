@@ -164,6 +164,12 @@ impl ActiveLoweredUpdate {
         self.addon_mtime.as_deref()
     }
 
+    pub(super) fn reshade_ini_authority(
+        &self,
+    ) -> Option<&renderpilot_domain::RenoDxReshadeIniAuthority> {
+        self.reshade_ini_authority.as_ref()
+    }
+
     pub(super) fn is_noop(&self) -> bool {
         matches!(
             self.composition,

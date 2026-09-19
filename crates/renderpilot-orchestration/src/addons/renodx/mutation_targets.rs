@@ -48,6 +48,7 @@ pub(crate) fn update_targets(
     record: &InstalledAddon,
     replacement_paths: &[PathBuf],
     host_install_path: Option<&Path>,
+    config_path: Option<&Path>,
 ) -> Result<MutationTargets, crate::ServiceError> {
     let binding = super::dlss_fix_binding::resolve(record);
     if binding.main_payload_collides() {
@@ -58,6 +59,9 @@ pub(crate) fn update_targets(
     let mut extra: Vec<PathBuf> = replacement_paths.to_vec();
     if let Some(host_path) = host_install_path {
         extra.push(host_path.to_path_buf());
+    }
+    if let Some(config_path) = config_path {
+        extra.push(config_path.to_path_buf());
     }
     Ok(MutationTargets::for_record_excluding(
         record,
@@ -107,7 +111,8 @@ mod tests {
                 managed_hash,
             )])
             .expect("managed files");
-        let targets = update_targets(&record, std::slice::from_ref(&addon), None).expect("targets");
+        let targets =
+            update_targets(&record, std::slice::from_ref(&addon), None, None).expect("targets");
         let keys: Vec<String> = targets
             .paths
             .iter()
@@ -144,6 +149,6 @@ mod tests {
             PathRef::new(main.to_string_lossy().into_owned()).expect("addon"),
         );
 
-        assert!(update_targets(&record, std::slice::from_ref(&main), None).is_err());
+        assert!(update_targets(&record, std::slice::from_ref(&main), None, None).is_err());
     }
 }

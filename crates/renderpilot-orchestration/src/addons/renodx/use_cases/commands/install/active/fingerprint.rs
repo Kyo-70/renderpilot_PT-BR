@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 use crate::ServiceError;
 use crate::addons::renodx::errors;
 use crate::addons::renodx::matcher::ResolvedInstall;
+use crate::addons::renodx::types::RenoDxProcessingPath;
 use crate::addons::reshade::proxy::HostKind;
 use crate::addons::reshade::types::ReshadeChannel;
 
@@ -37,6 +38,7 @@ pub(super) fn plan_fingerprint(plan: &ResolvedInstall) -> Result<Sha256Hash, Ser
     builder.field(architecture_label(plan.arch).as_bytes());
     builder.field(host_kind_label(plan.host_kind).as_bytes());
     builder.field(plan.proxy_dll_name.as_bytes());
+    builder.field(processing_path_label(plan.processing_path).as_bytes());
     builder.finish()
 }
 
@@ -51,6 +53,14 @@ fn host_kind_label(host_kind: HostKind) -> &'static str {
     match host_kind {
         HostKind::Proxy => "proxy",
         HostKind::Vulkan => "vulkan",
+    }
+}
+
+fn processing_path_label(path: RenoDxProcessingPath) -> &'static str {
+    match path {
+        RenoDxProcessingPath::Upgrade => "upgrade",
+        RenoDxProcessingPath::Native => "native",
+        RenoDxProcessingPath::Unmanaged => "unmanaged",
     }
 }
 
@@ -99,6 +109,10 @@ mod tests {
             proxy_dll_name: proxy_dll_name.to_owned(),
             confidence: MatchConfidence::Untested,
             generic_profile: None,
+            profile_id: None,
+            processing_path: RenoDxProcessingPath::Unmanaged,
+            guidance: Vec::new(),
+            launch: None,
         }
     }
 
@@ -200,6 +214,10 @@ mod tests {
                 base.host_kind,
                 "d3d12.dll",
             ),
+            ResolvedInstall {
+                processing_path: RenoDxProcessingPath::Upgrade,
+                ..base.clone()
+            },
         ];
         let expected = plan_fingerprint(&base).expect("base fingerprint");
         for variant in variants {

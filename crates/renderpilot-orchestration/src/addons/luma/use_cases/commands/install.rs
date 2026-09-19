@@ -13,6 +13,7 @@ mod tests;
 use renderpilot_application::ProxyTopologyRepository;
 use renderpilot_domain::{GameId, InstalledAddon};
 
+use super::engine_config;
 use crate::addons::reshade::types::ReshadeSourceCatalog;
 use crate::net::ProgressObserver;
 use crate::{Context, ServiceError};
@@ -39,6 +40,8 @@ pub struct InstallRequest<'a> {
 pub async fn install(request: InstallRequest<'_>) -> Result<InstalledAddon, ServiceError> {
     let context = request.context;
     let game_id = request.game_id;
+    let manifest = request.manifest;
+    let safety = request.safety.clone();
     let topology = {
         let _guard =
             crate::mutation_boundary::enter_game_mutation_boundary_async(context, game_id).await?;
@@ -53,6 +56,7 @@ pub async fn install(request: InstallRequest<'_>) -> Result<InstalledAddon, Serv
     if let Err(error) = crate::catalog::refresh_game_components(context, game_id).await {
         log::warn!("failed to refresh game components after Luma install: {error}");
     }
+    engine_config::reconcile_after_commit(context, manifest, game_id, safety).await?;
 
     Ok(installed)
 }

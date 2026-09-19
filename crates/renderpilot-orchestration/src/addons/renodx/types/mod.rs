@@ -6,12 +6,16 @@
 
 mod catalog;
 mod wire_v1;
+mod wire_v2;
 
 pub use crate::addons::matching::{Engine, MatchKind, MatchRule, Status};
 pub use crate::addons::reshade::types::{ReshadeChannel, ReshadeChannelParseError};
 pub(crate) use catalog::renodx_ini_defaults;
 pub use catalog::{
-    RenoDxCategory, RenoDxCompatibility, RenoDxGeneric, RenoDxGenericProfile, RenoDxManifest,
-    RenoDxTitle,
+    RenoDxCategory, RenoDxCompatibility, RenoDxEngineIniEntry, RenoDxEngineIniRecipe,
+    RenoDxEngineIniSection, RenoDxGeneric, RenoDxGenericProfile, RenoDxGuidance,
+    RenoDxGuidanceCondition, RenoDxGuidanceKind, RenoDxLaunchRequirement,
+    RenoDxLaunchRequirementLevel, RenoDxManifest, RenoDxProcessingPath, RenoDxSetting, RenoDxTitle,
 };
 pub(crate) use wire_v1::WireManifestV1;
+pub(crate) use wire_v2::WireManifestV2;

@@ -15,6 +15,31 @@ fn apply_resets_unknown_schema_version() {
 }
 
 #[test]
+fn apply_rebuilds_table_absent_v19_catalog_to_the_v20_contract() {
+    let mut connection = open_test_connection();
+    connection
+        .execute_batch("PRAGMA user_version = 19;")
+        .expect("schema version should be set");
+
+    apply(&mut connection).expect("v19 catalog should be rebuilt to v20");
+
+    assert_eq!(CURRENT_SCHEMA_VERSION, 20);
+    assert_eq!(user_version(&connection), 20);
+    super::super::validation::validate_catalog_schema(&connection)
+        .expect("rebuilt catalog should satisfy the canonical contract");
+    assert!(table_has_column(
+        &connection,
+        "installed_addons",
+        "renodx_config_receipt_json"
+    ));
+    assert!(table_has_column(
+        &connection,
+        "installed_addons",
+        "engine_config_journal_json"
+    ));
+}
+
+#[test]
 fn apply_restores_foreign_keys_state() {
     let mut connection = open_test_connection();
 

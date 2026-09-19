@@ -21,6 +21,17 @@ pub(super) fn ensure_column(
     })
 }
 
+pub(super) fn table_exists(connection: &Connection, table_name: &str) -> AppResult<bool> {
+    connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+            [table_name],
+            |row| row.get::<_, i64>(0),
+        )
+        .map(|count| count > 0)
+        .map_err(|error| storage_context("could not inspect sqlite tables", error))
+}
+
 pub(super) fn table_has_column(
     connection: &Connection,
     table_name: &str,

@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use renderpilot_domain::{
-    InstalledAddon, InstalledAddonHostKind, ManagedFileBaseline, ManagedFileMode, PathRef,
-    Sha256Hash,
+    InstalledAddon, InstalledAddonHostKind, ManagedFileBaseline, ManagedFileMode,
+    NormalizedPathRelation, PathRef, Sha256Hash, normalized_path_relation,
 };
 use sha2::{Digest, Sha256};
 
@@ -46,6 +46,7 @@ enum RenoDxUninstallOperation {
     },
     RewriteIni {
         path: PathBuf,
+        expected_before: Vec<u8>,
         bytes: Vec<u8>,
     },
     RemoveIni {
@@ -178,10 +179,14 @@ impl PreparedRenoDxUninstall {
                     operations.push(RenoDxUninstallOperation::RemoveIni { path });
                 }
             }
-            Some(ini_ref) => append_ini_rewrite(&mut operations, Path::new(ini_ref.as_str())),
+            Some(ini_ref) => append_ini_rewrite(
+                &mut operations,
+                Path::new(ini_ref.as_str()),
+                record.renodx_config_receipt(),
+            ),
             None => {
                 if let Some(path) = locate_untracked_ini(record, game_dir_hint) {
-                    append_ini_rewrite(&mut operations, &path);
+                    append_ini_rewrite(&mut operations, &path, record.renodx_config_receipt());
                 }
             }
         }
@@ -291,9 +296,13 @@ impl PreparedRenoDxUninstall {
                         after: None,
                     });
                 }
-                RenoDxUninstallOperation::RewriteIni { path, bytes } => {
+                RenoDxUninstallOperation::RewriteIni {
+                    path,
+                    expected_before,
+                    bytes,
+                } => {
                     intents.push(crate::addons::shared_vulkan_mutation::FileIntent {
-                        before: read_regular_file(&path)?,
+                        before: Some(expected_before),
                         live_path: path,
                         after: Some(bytes),
                     });
@@ -388,7 +397,23 @@ impl PreparedRenoDxUninstall {
                     })?;
                     insert_parent(&mut touched_dirs, live);
                 }
-                RenoDxUninstallOperation::RewriteIni { path, bytes } => {
+                RenoDxUninstallOperation::RewriteIni {
+                    path,
+                    expected_before,
+                    bytes,
+                } => {
+                    let current = read_regular_file(path)?.ok_or_else(|| {
+                        crate::failed(format!(
+                            "RenoDX ReShade.ini disappeared before rewrite: {}",
+                            path.display()
+                        ))
+                    })?;
+                    if current != *expected_before {
+                        return Err(crate::failed(format!(
+                            "RenoDX ReShade.ini changed after uninstall preparation: {}",
+                            path.display()
+                        )));
+                    }
                     crate::fs::write_file_atomically(path, bytes)?;
                     insert_parent(&mut touched_dirs, path);
                 }
@@ -543,15 +568,53 @@ fn permits_restore(live: &Path, backup: &Path) -> bool {
     false
 }
 
-fn append_ini_rewrite(operations: &mut Vec<RenoDxUninstallOperation>, path: &Path) {
+fn append_ini_rewrite(
+    operations: &mut Vec<RenoDxUninstallOperation>,
+    path: &Path,
+    receipt: Option<&renderpilot_domain::RenoDxConfigReceipt>,
+) {
     match observe(path) {
         V2DiskObservation::Absent => {}
-        V2DiskObservation::Regular { .. } => match std::fs::read_to_string(path) {
-            Ok(existing) => {
-                let stripped = ini_remove_renodx_strategy().apply(&existing);
-                if stripped != existing {
+        V2DiskObservation::Regular { .. } => match std::fs::read(path) {
+            Ok(existing_bytes) => {
+                let owned_set_path = receipt.filter(|receipt| {
+                    receipt.is_supported()
+                        && path.to_str().is_some_and(|path| {
+                            matches!(
+                                normalized_path_relation(receipt.ini_path.as_str(), path),
+                                NormalizedPathRelation::Equal
+                            )
+                        })
+                });
+                let planned_after = owned_set_path.and_then(|receipt| {
+                    match super::super::reshade_ini::plan_set_path_removal(&existing_bytes, receipt)
+                    {
+                        Ok(plan) => plan.after,
+                        Err(error) => {
+                            log::warn!(
+                                "RenoDX uninstall: cannot plan Set_Path removal for `{}`: {error}",
+                                path.display()
+                            );
+                            None
+                        }
+                    }
+                });
+                let set_path_bytes: &[u8] = planned_after.as_deref().unwrap_or(&existing_bytes);
+                // A malformed/non-UTF8 file is never rewritten through the
+                // text cleanup path. In particular, a receipt CAS failure
+                // must preserve the user's current Set_Path bytes exactly.
+                let Ok(existing) = std::str::from_utf8(set_path_bytes) else {
+                    log::warn!(
+                        "RenoDX uninstall: skipping non-UTF8 ReShade.ini `{}`",
+                        path.display()
+                    );
+                    return;
+                };
+                let stripped = ini_remove_renodx_strategy().apply(existing);
+                if stripped.as_bytes() != existing_bytes.as_slice() {
                     operations.push(RenoDxUninstallOperation::RewriteIni {
                         path: path.to_path_buf(),
+                        expected_before: existing_bytes,
                         bytes: stripped.into_bytes(),
                     });
                 }
@@ -592,7 +655,8 @@ fn insert_parent(target: &mut HashSet<PathBuf>, path: &Path) {
 mod tests {
     use super::*;
     use renderpilot_domain::{
-        AddonKind, GameId, ManagedAddonFile, ManagedFileBaseline, Sha256Hash,
+        AddonKind, GameId, ManagedAddonFile, ManagedFileBaseline, RenoDxConfigReceipt,
+        RenoDxSetPathBaseline, RenoDxSetPathValue, Sha256Hash,
     };
     use tempfile::tempdir;
 
@@ -733,6 +797,66 @@ mod tests {
         plan.apply().expect("apply");
         assert_eq!(std::fs::read(&host).expect("restored"), b"original");
         assert!(!backup.exists());
+    }
+
+    #[test]
+    fn prepared_ini_rewrite_rejects_drift_without_overwriting_the_user() {
+        let root = tempdir().expect("root");
+        let addon = root.path().join("renodx-game.addon64");
+        let ini = root.path().join(reshade::RESHADE_INI_FILE_NAME);
+        let original = b"[renodx]\nSet_Path=1\n";
+        std::fs::write(&addon, b"addon").expect("addon");
+        std::fs::write(&ini, original).expect("ini");
+        let receipt = RenoDxConfigReceipt::new(
+            PathRef::new(ini.to_string_lossy()).expect("ini path"),
+            RenoDxSetPathBaseline::Absent,
+            true,
+            RenoDxSetPathValue::One,
+        );
+        let record = record(&addon)
+            .with_created_file(PathRef::new(ini.to_string_lossy()).expect("ini"))
+            .with_renodx_config_receipt(Some(receipt))
+            .expect("receipt");
+        let plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
+        std::fs::write(&ini, b"[renodx]\nSet_Path=user-value\n").expect("user edit");
+
+        assert!(plan.apply().is_err());
+        assert_eq!(
+            std::fs::read(&ini).expect("ini remains"),
+            b"[renodx]\nSet_Path=user-value\n"
+        );
+    }
+
+    #[test]
+    fn shared_ini_intent_keeps_prepared_before_image_after_drift() {
+        let root = tempdir().expect("root");
+        let addon = root.path().join("renodx-game.addon64");
+        let ini = root.path().join(reshade::RESHADE_INI_FILE_NAME);
+        let original = b"[renodx]\nSet_Path=1\n";
+        std::fs::write(&addon, b"addon").expect("addon");
+        std::fs::write(&ini, original).expect("ini");
+        let receipt = RenoDxConfigReceipt::new(
+            PathRef::new(ini.to_string_lossy()).expect("ini path"),
+            RenoDxSetPathBaseline::Absent,
+            true,
+            RenoDxSetPathValue::One,
+        );
+        let record = record(&addon)
+            .with_created_file(PathRef::new(ini.to_string_lossy()).expect("ini"))
+            .with_renodx_config_receipt(Some(receipt))
+            .expect("receipt");
+        let mut plan = PreparedRenoDxUninstall::prepare(&record, None).expect("plan");
+        std::fs::write(&ini, b"[renodx]\nSet_Path=user-value\n").expect("user edit");
+        let intents = plan.take_file_intents().expect("intents");
+        let ini_intent = intents
+            .into_iter()
+            .find(|intent| intent.live_path == ini)
+            .expect("ini intent");
+        assert_eq!(ini_intent.before, Some(original.to_vec()));
+        assert_ne!(
+            ini_intent.after,
+            Some(b"[renodx]\nSet_Path=user-value\n".to_vec())
+        );
     }
 
     #[test]

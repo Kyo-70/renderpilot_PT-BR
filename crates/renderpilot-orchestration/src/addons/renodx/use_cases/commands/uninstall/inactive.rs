@@ -51,7 +51,14 @@ pub(super) fn uninstall_shared_locked(
     if shared_plan.unregister_outcome
         == Some(renderpilot_platform_windows::vulkan_layer::AppUnregisterOutcome::TargetAbsent)
     {
-        return commit_game_uninstall(context, guards.game(), game_id, &plan, scope.as_ref());
+        return commit_game_uninstall(
+            context,
+            guards.game(),
+            game_id,
+            record,
+            &plan,
+            scope.as_ref(),
+        );
     }
 
     let game_intents = plan.take_file_intents()?;
@@ -96,6 +103,17 @@ pub(super) fn uninstall_shared_locked(
         Some(registry),
     );
     let projection = crate::addons::shared_vulkan_mutation::CatalogProjection::new(shared_artifact);
+    crate::addons::engine_config::service::release_record(
+        context.storage(),
+        game_id,
+        record,
+        &format!("renodx-release-{}", ulid::Ulid::generate()),
+    )
+    .map_err(|error| {
+        ServiceError::command_failed(format!(
+            "RenoDX Engine.ini release blocked uninstall: {error}"
+        ))
+    })?;
     crate::addons::shared_vulkan_mutation::execute(
         crate::addons::shared_vulkan_mutation::Request::new(
             context, identity, physical, projection,
@@ -128,7 +146,7 @@ pub(super) fn uninstall_locked(
         plan.retain_reachable(Some(&scope));
         let affected_paths = plan.affected_paths();
         if affected_paths.is_empty() {
-            commit_prepared_uninstall(context, game_id, &plan, None)?;
+            commit_prepared_uninstall(context, game_id, &record, &plan, None)?;
         } else {
             crate::file_mutation::run_durable_mutation(
                 crate::file_mutation::DurableMutation {
@@ -139,14 +157,16 @@ pub(super) fn uninstall_locked(
                     subject_id: Some(game_id.as_str()),
                     paths: affected_paths,
                 },
-                |mutation_id| commit_prepared_uninstall(context, game_id, &plan, Some(mutation_id)),
+                |mutation_id| {
+                    commit_prepared_uninstall(context, game_id, &record, &plan, Some(mutation_id))
+                },
                 |()| {},
                 || {},
             )?;
         }
     } else {
         plan.retain_reachable(None);
-        commit_prepared_uninstall(context, game_id, &plan, None)?;
+        commit_prepared_uninstall(context, game_id, &record, &plan, None)?;
     }
     plan.remove_logs_best_effort();
     Ok(())
@@ -155,9 +175,21 @@ pub(super) fn uninstall_locked(
 fn commit_prepared_uninstall(
     context: &Context,
     game_id: &GameId,
+    record: &InstalledAddon,
     plan: &PreparedRenoDxUninstall,
     mutation_id: Option<&str>,
 ) -> Result<(), ServiceError> {
+    crate::addons::engine_config::service::release_record(
+        context.storage(),
+        game_id,
+        record,
+        &format!("renodx-release-{}", ulid::Ulid::generate()),
+    )
+    .map_err(|error| {
+        ServiceError::command_failed(format!(
+            "RenoDX Engine.ini release blocked uninstall: {error}"
+        ))
+    })?;
     plan.apply()?;
     context
         .storage()
@@ -175,6 +207,7 @@ fn commit_game_uninstall(
     context: &Context,
     guard: &crate::game_mutation_lock::GameMutationGuard,
     game_id: &GameId,
+    record: &InstalledAddon,
     plan: &PreparedRenoDxUninstall,
     scope: Option<&crate::file_mutation::MutationScope>,
 ) -> Result<(), ServiceError> {
@@ -190,12 +223,14 @@ fn commit_game_uninstall(
                     subject_id: Some(game_id.as_str()),
                     paths: affected_paths,
                 },
-                |mutation_id| commit_prepared_uninstall(context, game_id, plan, Some(mutation_id)),
+                |mutation_id| {
+                    commit_prepared_uninstall(context, game_id, record, plan, Some(mutation_id))
+                },
                 |()| {},
                 || {},
             )?;
         }
-        _ => commit_prepared_uninstall(context, game_id, plan, None)?,
+        _ => commit_prepared_uninstall(context, game_id, record, plan, None)?,
     }
     plan.remove_logs_best_effort();
     Ok(())

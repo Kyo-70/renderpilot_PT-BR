@@ -80,6 +80,8 @@ pub mod capabilities;
 mod catalog_message;
 pub(crate) mod durable;
 pub mod engine;
+/// Shared typed Unreal Engine.ini resolution, editing, ownership, and release.
+pub mod engine_config;
 pub(crate) mod errors;
 pub(crate) mod exclusivity;
 pub(crate) mod file_update;
