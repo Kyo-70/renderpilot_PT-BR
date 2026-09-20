@@ -119,7 +119,10 @@ export const NOT_INSTALLED_SAFE: AvailabilityReport = availability({
     kind: 'installable',
     confidence: 'verified',
     generic_profile: null,
+    profile_id: null,
     host_kind: 'proxy',
+    guidance: [],
+    launch: null,
   },
   manual_install: null,
 });

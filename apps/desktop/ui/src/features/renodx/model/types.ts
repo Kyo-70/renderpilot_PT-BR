@@ -15,6 +15,7 @@ import type {
   MatchConfidence,
   ReshadeChannel,
   UpdateStatus,
+  EngineConfigAvailability,
 } from '@entities/addon';
 
 /**
@@ -185,6 +186,36 @@ export type RenoDxEngine = 'unreal' | 'unreal_extended' | 'unity';
 export type RenoDxGenericProfile = {
   engine: RenoDxEngine;
   message: CatalogMessage;
+  profile_id: string | null;
+};
+
+export type RenoDxGuidanceKind =
+  | 'game_setting'
+  | 'addon_setting'
+  | 'engine_ini'
+  | 'warning'
+  | 'compatibility'
+  | 'external_tool';
+
+export type RenoDxSetting = {
+  name: string;
+  value: string;
+};
+
+/** Reviewed RenoDX recommendation. Engine/version conditions are resolved by the backend. */
+export type RenoDxGuidance = {
+  id: string;
+  kind: RenoDxGuidanceKind;
+  message_id: string;
+  fallback_text: string;
+  code: string | null;
+  settings: RenoDxSetting[];
+  url: string | null;
+};
+
+export type RenoDxLaunchRequirement = {
+  arguments: string[];
+  requirement: 'required' | 'recommended';
 };
 
 /** Installability verdict (`AvailabilityOutcome`, tag `kind`). */
@@ -195,8 +226,12 @@ export type AvailabilityOutcome =
       confidence: MatchConfidence;
       /** Present when this install comes from an engine-level generic profile. */
       generic_profile: RenoDxGenericProfile | null;
+      /** Stable manifest profile selected for this title/profile. */
+      profile_id: string | null;
       /** Proxy DLL or the shared Vulkan layer. */
       host_kind: HostKind;
+      guidance: RenoDxGuidance[];
+      launch: RenoDxLaunchRequirement | null;
     })
   /**
    * The add-on is distributed off-GitHub (Discord/Nexus): link the user out, and
@@ -212,6 +247,9 @@ export type AvailabilityOutcome =
         /** Proxy DLL or the shared Vulkan layer. */
         host_kind: HostKind;
         generic_profile: RenoDxGenericProfile | null;
+        profile_id: string | null;
+        guidance: RenoDxGuidance[];
+        launch: RenoDxLaunchRequirement | null;
       } | null;
     }
   /** The game already has native HDR; RenoDX is not offered. */
@@ -233,6 +271,7 @@ export type ManualFileInstall = {
 
 /** Read-only preview returned by `renodx_availability`. */
 export type AvailabilityReport = {
+  engine_config?: EngineConfigAvailability;
   state: RenoDxInstallState;
   host_detection: HostDetection;
   host_facts: HostFacts;

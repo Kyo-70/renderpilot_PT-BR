@@ -80,6 +80,46 @@ describe('createRenoDxStore', () => {
     expect(api.install).toHaveBeenCalledWith('steam:1091500', 'stable', 'game-token', undefined);
   });
 
+  it('uses only game safety for Engine.ini apply', async () => {
+    const requireSafetyTokens = vi.fn(() =>
+      Promise.resolve({
+        gameContextToken: 'game-token',
+        sharedVulkanContextToken: 'must-not-leak',
+      }),
+    );
+    const api = fakeApi({
+      applyEngineConfig: vi.fn(() => Promise.resolve(INSTALLED.state)),
+    });
+    const store = createRenoDxStore({ api, requireSafetyTokens });
+
+    await expect(store.applyEngineConfig('steam:1091500')).resolves.toBe('ok');
+
+    expect(requireSafetyTokens).toHaveBeenCalledWith('steam:1091500', 'game');
+    expect(api.applyEngineConfig).toHaveBeenCalledWith('steam:1091500', 'game-token');
+  });
+
+  it('keeps Engine.ini apply as a sidecar without update probes or lifecycle invalidation', async () => {
+    const checkUpdate = vi.fn(() =>
+      Promise.resolve({
+        addon: null,
+        host: null,
+        dlssFix: null,
+        overall: 'current',
+      } as RenoDxUpdateReport),
+    );
+    const onGameDetailsInvalidate = vi.fn();
+    const api = fakeApi({
+      checkUpdate,
+      applyEngineConfig: vi.fn(() => Promise.resolve(INSTALLED.state)),
+    });
+    const store = createRenoDxStore({ api, onGameDetailsInvalidate });
+
+    await expect(store.applyEngineConfig('steam:1091500')).resolves.toBe('ok');
+
+    expect(checkUpdate).not.toHaveBeenCalled();
+    expect(onGameDetailsInvalidate).not.toHaveBeenCalled();
+  });
+
   it('install() refreshes state after the mutation', async () => {
     // The refresh after install must observe the new installed state.
     let installed = false;
@@ -404,6 +444,9 @@ describe('createRenoDxStore', () => {
           confidence: 'verified',
           host_kind: 'proxy',
           generic_profile: null,
+          profile_id: null,
+          guidance: [],
+          launch: null,
         },
       },
       manual_install: null,
@@ -708,8 +751,12 @@ describe('createRenoDxStore', () => {
             id: 'renodx.generic.universal',
             fallback_text: 'Uses the shared Unreal Engine profile.',
           },
+          profile_id: 'ue_extended',
         },
+        profile_id: 'ue_extended',
         host_kind: 'proxy',
+        guidance: [],
+        launch: null,
       },
       manual_install: {
         host_kind: 'proxy',

@@ -7,6 +7,7 @@ import {
   type MatchConfidence,
   type ReshadeChannel,
   type MutationSafetyTokens,
+  type AddonMutationResult,
 } from '@entities/addon';
 
 import { renodxApi, type RenoDxApi } from '../api/desktop';
@@ -23,7 +24,10 @@ import type {
   AvailabilityOutcome,
   AvailabilityReport,
   ManualFileInstall,
+  RenoDxGenericProfile,
+  RenoDxGuidance,
   RenoDxInstallState,
+  RenoDxLaunchRequirement,
   RenoDxUpdateReport,
   VulkanLayerReport,
 } from './types';
@@ -62,6 +66,11 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
   const requireSafetyTokens = options.requireSafetyTokens;
 
   let availabilitySnapshot = $state<AvailabilitySnapshot>({
+    engineConfig: {
+      status: 'not_applicable',
+      path: null,
+      can_apply: false,
+    },
     hostDetection: 'absent',
     hostFacts: defaultHostFacts(),
     actions: {},
@@ -71,11 +80,28 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
   });
   let selectedReshadeChannel = $state<ReshadeChannel>('stable');
   let outcome = $state<AvailabilityOutcome | null>(null);
+  type RetainedInstallMeta = {
+    genericProfile: RenoDxGenericProfile | null;
+    profileId: string | null;
+    guidance: RenoDxGuidance[];
+    launch: RenoDxLaunchRequirement | null;
+  };
+  let retainedInstallMeta = $state<RetainedInstallMeta | null>(null);
+  let lastLoadGameId: string | null = null;
   let manualInstall = $state<ManualFileInstall | null>(null);
   let vulkanLayer = $state<VulkanLayerReport | null>(null);
 
+  function clearRetainedInstallMeta(): void {
+    retainedInstallMeta = null;
+  }
+
   function resetAvailabilityPresentation(): void {
     availabilitySnapshot = {
+      engineConfig: {
+        status: 'not_applicable',
+        path: null,
+        can_apply: false,
+      },
       hostDetection: 'absent',
       hostFacts: defaultHostFacts(),
       actions: {},
@@ -87,6 +113,26 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
     outcome = null;
     manualInstall = null;
     vulkanLayer = null;
+  }
+
+  function applyOutcome(report: AvailabilityReport): void {
+    outcome = report.outcome;
+    const install =
+      report.outcome.kind === 'installable'
+        ? report.outcome
+        : report.outcome.kind === 'external'
+          ? report.outcome.file_install
+          : null;
+    if (install) {
+      retainedInstallMeta = {
+        genericProfile: install.generic_profile,
+        profileId: install.profile_id,
+        guidance: install.guidance,
+        launch: install.launch,
+      };
+    } else if (report.state.status !== 'installed') {
+      clearRetainedInstallMeta();
+    }
   }
 
   function applyAvailabilitySnapshot(
@@ -119,23 +165,28 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
     postMutationProbe: 'never',
     applyLoadReport: (report) => {
       applyAvailabilitySnapshot(report, 'resetSelection');
-      outcome = report.outcome;
+      applyOutcome(report);
       manualInstall = report.manual_install;
       vulkanLayer = report.vulkan_layer;
     },
     applyHostRefresh: (report) => {
       applyAvailabilitySnapshot(report, 'preserveSelection');
-      outcome = report.outcome;
+      applyOutcome(report);
       manualInstall = report.manual_install;
       vulkanLayer = report.vulkan_layer;
     },
     invalidateAvailabilityForCommittedState: (state) => {
       if (state.status === 'not_installed') {
         resetAvailabilityPresentation();
+        clearRetainedInstallMeta();
       }
     },
-    resetToolState: (_gameId) => {
+    resetToolState: (gameId) => {
       resetAvailabilityPresentation();
+      if (gameId === null || (lastLoadGameId !== null && lastLoadGameId !== gameId)) {
+        clearRetainedInstallMeta();
+      }
+      lastLoadGameId = gameId;
     },
     buildUpdateReportForInstall: (nextState) => {
       if (nextState.status !== 'installed') {
@@ -178,8 +229,32 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
   const externalConfidence = $derived<MatchConfidence | null>(
     externalFileInstall?.confidence ?? null,
   );
+  const activeInstall = $derived(
+    outcome?.kind === 'installable'
+      ? outcome
+      : outcome?.kind === 'external'
+        ? outcome.file_install
+        : null,
+  );
   const genericProfile = $derived(
-    outcome?.kind === 'installable' ? (outcome.generic_profile ?? null) : null,
+    activeInstall?.generic_profile ??
+      (core.state?.status === 'installed' ? retainedInstallMeta?.genericProfile : null) ??
+      null,
+  );
+  const profileId = $derived(
+    activeInstall?.profile_id ??
+      (core.state?.status === 'installed' ? retainedInstallMeta?.profileId : null) ??
+      null,
+  );
+  const guidance = $derived<RenoDxGuidance[]>(
+    activeInstall?.guidance ??
+      (core.state?.status === 'installed' ? retainedInstallMeta?.guidance : null) ??
+      [],
+  );
+  const launch = $derived<RenoDxLaunchRequirement | null>(
+    activeInstall?.launch ??
+      (core.state?.status === 'installed' ? retainedInstallMeta?.launch : null) ??
+      null,
   );
   const vulkanUpdateDiagnostics = $derived(core.updateReport?.vulkan_diagnostics ?? []);
   const dlssFix = $derived(
@@ -236,6 +311,21 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
     selectedReshadeChannel = channel;
   }
 
+  async function applyEngineConfig(gameId: string): Promise<AddonMutationResult> {
+    const apply = api.applyEngineConfig;
+    if (!apply) {
+      return 'skipped';
+    }
+    return core.runSidecarMutation(
+      gameId,
+      async () => {
+        const tokens = await requireSafetyTokens?.(gameId, 'game');
+        return tokens ? apply(gameId, tokens.gameContextToken) : apply(gameId);
+      },
+      { errorKey: 'gameDetails.renodx.engineConfigApplyError', safetyScope: 'game' },
+    );
+  }
+
   return mergeAddonApis(
     addonCoreApi(core),
     commonOutcomeApi(() => outcome),
@@ -244,6 +334,9 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       deactivate,
       get reshadeChannel() {
         return currentHostChannel(availabilitySnapshot);
+      },
+      get engineConfig() {
+        return availabilitySnapshot.engineConfig;
       },
       get reshadeStableSupported() {
         return availabilitySnapshot.reshadeStableSupported;
@@ -284,6 +377,15 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       get genericProfile() {
         return genericProfile;
       },
+      get profileId() {
+        return profileId;
+      },
+      get guidance() {
+        return guidance;
+      },
+      get launch() {
+        return launch;
+      },
       get vulkanLayer() {
         return vulkanLayer;
       },
@@ -298,6 +400,7 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       },
       load: companion.load,
       retry: companion.retry,
+      refreshAvailability: companion.refreshAvailability,
       checkForUpdates: companion.checkForUpdates,
       install: mutations.install,
       installFromFile: mutations.installFromFile,
@@ -309,6 +412,7 @@ export function createRenoDxStore(options: RenoDxStoreOptions = {}) {
       updateDlssFix: dlssFixMutations.updateDlssFix,
       retryDlssFixRecovery: dlssFixMutations.retryDlssFixRecovery,
       uninstallDlssFix: dlssFixMutations.uninstallDlssFix,
+      applyEngineConfig,
     },
   );
 }

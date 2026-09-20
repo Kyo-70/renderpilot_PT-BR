@@ -12,6 +12,7 @@ import type {
   HostFacts,
   MatchConfidence,
   UpdateStatus,
+  EngineConfigAvailability,
 } from '@entities/addon';
 
 /**
@@ -121,6 +122,7 @@ export type AvailabilityOutcome =
 
 /** Read-only preview returned by `luma_availability`. */
 export type AvailabilityReport = {
+  engine_config?: EngineConfigAvailability;
   state: LumaInstallState;
   host_detection: HostDetection;
   host_facts: HostFacts;

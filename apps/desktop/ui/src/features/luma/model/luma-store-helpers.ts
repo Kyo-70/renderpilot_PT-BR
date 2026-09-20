@@ -6,8 +6,16 @@ import {
 } from '@entities/addon';
 
 import type { AvailabilityReport, LumaActions } from './types';
+import type { EngineConfigAvailability } from '@entities/addon';
+
+const DEFAULT_ENGINE_CONFIG: EngineConfigAvailability = {
+  status: 'not_applicable',
+  path: null,
+  can_apply: false,
+};
 
 export type AvailabilitySnapshot = {
+  engineConfig: NonNullable<AvailabilityReport['engine_config']>;
   hostDetection: AvailabilityReport['host_detection'];
   hostFacts: HostFacts;
   actions: LumaActions;
@@ -19,6 +27,7 @@ export type AvailabilitySnapshot = {
 
 export type AvailabilitySnapshotSource = Pick<
   AvailabilityReport,
+  | 'engine_config'
   | 'host_detection'
   | 'host_facts'
   | 'actions'
@@ -37,6 +46,7 @@ export function availabilitySnapshotFromReport(
   report: AvailabilitySnapshotSource,
 ): AvailabilitySnapshot {
   return mapAvailabilitySnapshot(report, {
+    engineConfig: report.engine_config ?? DEFAULT_ENGINE_CONFIG,
     vcredistPresent: report.vcredist_present,
     vcredistInstallerUrl: report.vcredist_installer_url,
     installTorn: report.install_torn,

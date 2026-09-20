@@ -22,7 +22,10 @@ describe('createRenoDxStore', () => {
         kind: 'installable',
         confidence: 'untested',
         generic_profile: null,
+        profile_id: null,
         host_kind: 'vulkan',
+        guidance: [],
+        launch: null,
       },
       manual_install: null,
     });

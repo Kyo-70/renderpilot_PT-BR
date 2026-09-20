@@ -18,10 +18,10 @@
   } from '@shared/ui';
 
   import { AddonStateMessage } from '@entities/addon';
-  import type { LumaGuidance, LumaGuidanceKind } from '../model/types';
+  import type { RenoDxGuidance, RenoDxGuidanceKind } from '../model/types';
 
   type Props = {
-    guidance?: LumaGuidance[];
+    guidance?: RenoDxGuidance[];
     presentation?: 'callouts' | 'engine-ini-dialog';
   };
 
@@ -35,42 +35,60 @@
   );
 
   const TITLE_KEYS = {
-    game_setting: 'gameDetails.luma.guidance.gameSetting',
-    engine_ini: 'gameDetails.luma.guidance.engineIni',
-    warning: 'gameDetails.luma.guidance.warning',
-    compatibility: 'gameDetails.luma.guidance.compatibility',
-    external_tool: 'gameDetails.luma.guidance.externalTool',
-  } as const satisfies Record<LumaGuidanceKind, MessageKeyWithoutParams>;
+    game_setting: 'gameDetails.renodx.guidance.gameSetting',
+    addon_setting: 'gameDetails.renodx.guidance.addonSetting',
+    engine_ini: 'gameDetails.renodx.guidance.engineIni',
+    warning: 'gameDetails.renodx.guidance.warning',
+    compatibility: 'gameDetails.renodx.guidance.compatibility',
+    external_tool: 'gameDetails.renodx.guidance.externalTool',
+  } as const satisfies Record<RenoDxGuidanceKind, MessageKeyWithoutParams>;
 
   const ICONS = {
     game_setting: Settings2Icon,
+    addon_setting: Settings2Icon,
     engine_ini: FileCode2Icon,
     warning: TriangleAlertIcon,
     compatibility: InfoIcon,
     external_tool: WrenchIcon,
   } as const;
 
-  function textFor(item: LumaGuidance): string {
-    return translateExternalMessage({ key: item.id, fallback: item.fallback_text });
+  function textFor(item: RenoDxGuidance): string {
+    return translateExternalMessage({
+      key: item.message_id || item.id,
+      fallback: item.fallback_text,
+    });
   }
 
-  function isPlainCompatibility(item: LumaGuidance): boolean {
-    return item.kind === 'compatibility' && !item.code;
+  function isPlainCompatibility(item: RenoDxGuidance): boolean {
+    return item.kind === 'compatibility' && !item.code && item.settings.length === 0 && !item.url;
   }
 
-  async function copy(item: LumaGuidance): Promise<void> {
+  async function copy(item: RenoDxGuidance): Promise<void> {
     if (!item.code) {
       return;
     }
+
     await copyWithFeedback(item.code, {
-      copied: 'gameDetails.luma.guidance.copied',
-      copyFailed: 'gameDetails.luma.guidance.copyFailed',
+      copied: 'gameDetails.renodx.guidance.copied',
+      copyFailed: 'gameDetails.renodx.guidance.copyFailed',
     });
   }
 </script>
 
-{#snippet guidanceContent(item: LumaGuidance)}
+{#snippet guidanceContent(item: RenoDxGuidance)}
   <span>{textFor(item)}</span>
+  {#if item.settings.length > 0}
+    <dl class="mt-2 grid gap-1.5 text-xs">
+      {#each item.settings as setting (`${item.id}:${setting.name}`)}
+        <div
+          class="flex min-w-0 items-baseline justify-between gap-3 rounded-sm bg-muted px-2 py-1"
+        >
+          <dt class="truncate text-muted-foreground">{setting.name}</dt>
+          <dd><code>{setting.value}</code></dd>
+        </div>
+      {/each}
+    </dl>
+  {/if}
   {#if item.code}
     <div class="relative min-w-0">
       <pre class="overflow-x-auto rounded-sm bg-muted p-2 pe-10 text-xs"><code>{item.code}</code
@@ -79,7 +97,7 @@
         <TooltipTrigger
           type="button"
           onclick={() => copy(item)}
-          aria-label={t('gameDetails.luma.guidance.copy')}
+          aria-label={t('gameDetails.renodx.guidance.copy')}
         >
           {#snippet child({ props })}
             <Button {...props} variant="ghost" size="icon" class="absolute inset-e-1 top-1 size-6">
@@ -87,9 +105,19 @@
             </Button>
           {/snippet}
         </TooltipTrigger>
-        <TooltipContent>{t('gameDetails.luma.guidance.copy')}</TooltipContent>
+        <TooltipContent>{t('gameDetails.renodx.guidance.copy')}</TooltipContent>
       </Tooltip>
     </div>
+  {/if}
+  {#if item.url}
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noreferrer"
+      class="mt-2 block w-fit text-sm font-medium underline underline-offset-2"
+    >
+      {t('gameDetails.renodx.guidance.openLink')}
+    </a>
   {/if}
 {/snippet}
 

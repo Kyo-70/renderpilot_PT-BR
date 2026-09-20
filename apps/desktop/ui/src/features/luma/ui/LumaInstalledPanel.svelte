@@ -4,6 +4,7 @@
     AddonComponentRow,
     AddonInstalledPanel,
     AddonStateMessage,
+    EngineConfigStatusRow,
     createInstalledLabels,
     isReshadeChannel,
   } from '@entities/addon';
@@ -73,6 +74,14 @@
   function handleRepair(): void {
     void store.repair(gameId);
   }
+
+  function handleEngineConfigApply(): void {
+    void store.applyEngineConfig(gameId);
+  }
+
+  function handleEngineConfigRefresh(): void {
+    void store.refreshAvailability(gameId);
+  }
 </script>
 
 <AddonInstalledPanel
@@ -116,6 +125,18 @@
   {/snippet}
 
   {#snippet extraComponentRows()}
+    <EngineConfigStatusRow
+      availability={store.engineConfig}
+      {busy}
+      refreshing={store.loading}
+      onApply={handleEngineConfigApply}
+      onRefresh={handleEngineConfigRefresh}
+    >
+      {#snippet manualGuidance()}
+        <LumaGuidanceCallouts guidance={store.guidance} presentation="engine-ini-dialog" />
+      {/snippet}
+    </EngineConfigStatusRow>
+
     {#if showDgVoodoo}
       <AddonComponentRow
         icon="addon"

@@ -44,6 +44,41 @@ describe('createLumaStore', () => {
     expect(api.install).toHaveBeenCalledWith('steam:403640', 'game-token');
   });
 
+  it('uses game safety for Engine.ini apply', async () => {
+    const requireSafetyTokens = vi.fn(() => Promise.resolve({ gameContextToken: 'game-token' }));
+    const api = fakeApi({
+      applyEngineConfig: vi.fn(() => Promise.resolve(INSTALLED.state)),
+    });
+    const store = createLumaStore({ api, requireSafetyTokens });
+
+    await expect(store.applyEngineConfig('steam:403640')).resolves.toBe('ok');
+
+    expect(requireSafetyTokens).toHaveBeenCalledWith('steam:403640', 'game');
+    expect(api.applyEngineConfig).toHaveBeenCalledWith('steam:403640', 'game-token');
+  });
+
+  it('keeps Engine.ini apply as a sidecar without update probes or lifecycle invalidation', async () => {
+    const checkUpdate = vi.fn(() =>
+      Promise.resolve({
+        addon: null,
+        host: null,
+        dgvoodoo: null,
+        overall: 'current',
+      } as LumaUpdateReport),
+    );
+    const onGameDetailsInvalidate = vi.fn();
+    const api = fakeApi({
+      checkUpdate,
+      applyEngineConfig: vi.fn(() => Promise.resolve(INSTALLED.state)),
+    });
+    const store = createLumaStore({ api, onGameDetailsInvalidate });
+
+    await expect(store.applyEngineConfig('steam:403640')).resolves.toBe('ok');
+
+    expect(checkUpdate).not.toHaveBeenCalled();
+    expect(onGameDetailsInvalidate).not.toHaveBeenCalled();
+  });
+
   it('reports safety acquisition failures through the mutation notification path', async () => {
     vi.mocked(publishPresentedErrorNotification).mockClear();
     const failure = Object.assign(new Error('safety context is stale'), {

@@ -16,6 +16,7 @@ import { publishPresentedErrorNotification } from '@shared/notifications';
 import { isMutationSuccess } from './busy-mutation';
 import { createAddonStore } from './create-addon-store.svelte';
 import type { AddonInstallStateBase, FreshnessSource } from './store-helpers';
+import type { MutationSafetyScope } from './types';
 
 type TestState = AddonInstallStateBase;
 type TestUpdateReport = FreshnessSource;
@@ -67,6 +68,11 @@ function baseApi() {
 function createTestStore(
   api = fakeApi(),
   resetToolState: (gameId: string | null) => void = vi.fn(),
+  options: {
+    onMutationSideEffect?: (gameId: string, token: number) => void | Promise<void>;
+    invalidateAvailabilityForCommittedState?: (state: TestState) => void;
+    onMutationError?: (error: unknown, scope: MutationSafetyScope) => void;
+  } = {},
 ) {
   let label = 'initial';
   const store = createAddonStore<TestState, TestUpdateReport, TestAvailabilityReport>({
@@ -78,12 +84,15 @@ function createTestStore(
     applyHostRefresh: (report) => {
       label = `${report.label}-refreshed`;
     },
+    invalidateAvailabilityForCommittedState: options.invalidateAvailabilityForCommittedState,
     resetToolState,
     buildUpdateReportForInstall: (nextState) =>
       nextState.status === 'installed'
         ? { addon: 'current', host: 'current', overall: 'current' }
         : null,
     buildProbeFailureReport: () => ({ addon: null, host: null, overall: 'unknown' }),
+    onMutationSideEffect: options.onMutationSideEffect,
+    onMutationError: options.onMutationError,
   });
   return { store, getLabel: () => label, resetToolState };
 }
@@ -118,6 +127,99 @@ describe('createAddonStore', () => {
     expect(getLabel()).toBe('installed');
     expect(api.checkUpdate).toHaveBeenCalledWith('game1', 'passive');
     expect(store.freshness).toBe('current');
+  });
+
+  it('refreshAvailability() re-reads local availability without checking updates', async () => {
+    const api = fakeApi({
+      getAvailability: vi
+        .fn()
+        .mockResolvedValueOnce(NOT_INSTALLED_AVAILABILITY)
+        .mockResolvedValueOnce(INSTALLED_AVAILABILITY),
+    });
+    const { store } = createTestStore(api);
+
+    await store.load('game1');
+    api.checkUpdate.mockClear();
+    api.getAvailability.mockClear();
+
+    await store.refreshAvailability('game1');
+
+    expect(api.getAvailability).toHaveBeenCalledWith('game1');
+    expect(api.checkUpdate).not.toHaveBeenCalled();
+    expect(store.isInstalled).toBe(true);
+  });
+
+  it('sidecar mutations refresh locally without lifecycle side effects', async () => {
+    const checkUpdate = vi.fn(() => Promise.resolve(CURRENT_REPORT));
+    const onMutationSideEffect = vi.fn();
+    const invalidateAvailabilityForCommittedState = vi.fn();
+    const api = fakeApi({
+      checkUpdate,
+      getAvailability: vi.fn(() => Promise.resolve(INSTALLED_AVAILABILITY)),
+    });
+    const { store } = createTestStore(api, vi.fn(), {
+      onMutationSideEffect,
+      invalidateAvailabilityForCommittedState,
+    });
+
+    await store.load('game1');
+    checkUpdate.mockClear();
+    api.getAvailability.mockClear();
+
+    await expect(
+      store.runSidecarMutation('game1', () => Promise.resolve(), {
+        errorKey: 'addon.availability.loadFailed',
+      }),
+    ).resolves.toBe('ok');
+
+    expect(api.getAvailability).toHaveBeenCalledWith('game1');
+    expect(checkUpdate).not.toHaveBeenCalled();
+    expect(invalidateAvailabilityForCommittedState).not.toHaveBeenCalled();
+    expect(onMutationSideEffect).not.toHaveBeenCalled();
+    expect(store.busy).toBe(false);
+  });
+
+  it('suppresses a stale sidecar completion after a newer load starts', async () => {
+    const pending = Promise.withResolvers<undefined>();
+    const api = fakeApi({
+      getAvailability: vi.fn(() => Promise.resolve(NOT_INSTALLED_AVAILABILITY)),
+    });
+    const { store } = createTestStore(api);
+    await store.load('game1');
+    api.getAvailability.mockClear();
+
+    const sidecar = store.runSidecarMutation('game1', () => pending.promise, {
+      errorKey: 'addon.availability.loadFailed',
+    });
+    await store.load('game2');
+    pending.resolve(undefined);
+
+    await expect(sidecar).resolves.toBe('ok');
+    expect(api.getAvailability).toHaveBeenCalledTimes(1);
+    expect(api.getAvailability).toHaveBeenCalledWith('game2');
+    expect(store.busy).toBe(false);
+  });
+
+  it('reports sidecar safety failures without changing lifecycle state', async () => {
+    const failure = Object.assign(new Error('stale safety context'), {
+      code: 'safety_context_stale',
+    });
+    const onMutationError = vi.fn();
+    const api = fakeApi();
+    const { store } = createTestStore(api, vi.fn(), { onMutationError });
+
+    await expect(
+      store.runSidecarMutation('game1', () => Promise.reject(failure), {
+        errorKey: 'addon.availability.loadFailed',
+        safetyScope: 'game',
+      }),
+    ).resolves.toBe('failed');
+
+    expect(publishPresentedErrorNotification).toHaveBeenCalledWith(expect.any(String), failure);
+    expect(onMutationError).toHaveBeenCalledWith(failure, 'game');
+    expect(store.safetyContextError).toBe(failure);
+    expect(store.state).toBeNull();
+    expect(store.busy).toBe(false);
   });
 
   it('discards a stale load when a newer load starts', async () => {

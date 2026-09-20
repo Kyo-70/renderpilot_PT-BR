@@ -32,6 +32,8 @@ export type { CommonAvailabilityOutcome } from './model/outcome-helpers';
 export type {
   ActionDescriptor,
   CatalogMessage,
+  EngineConfigAvailability,
+  EngineConfigStatus,
   HostActions,
   HostDetection,
   HostFacts,
@@ -57,5 +59,6 @@ export {
   AddonStateMessage,
   AddonToolStatusBadge,
   AddonUninstallAction,
+  EngineConfigStatusRow,
 } from './ui';
 export type { AddonAttributionProps, AddonBadgeTone, AddonToolI18nPrefix } from './ui/types';

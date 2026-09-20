@@ -20,6 +20,8 @@
     gameId: string;
     /** Global busy flag: any exclusive page-level operation is in flight. */
     busy?: boolean;
+    /** The game's launcher, for curated launch-argument instructions. */
+    launcher?: string;
     /**
      * Optional externally owned store.
      *
@@ -35,6 +37,7 @@
   const {
     gameId,
     busy: pageBusy = false,
+    launcher = '',
     store: injectedStore,
     onOpenRenoDxSettings,
     onPreloadRenoDxSettings = () => undefined,
@@ -151,7 +154,7 @@
   {#if showDlssFixRecovery}
     <RenoDxDlssRecoveryView {gameId} {store} busy={combinedBusy} />
   {:else if view === 'installed'}
-    <RenoDxInstalledPanel {gameId} {store} busy={combinedBusy} />
+    <RenoDxInstalledPanel {gameId} {store} busy={combinedBusy} {launcher} />
   {:else if view === 'blocked-by-other-addon'}
     <AddonBlockedView
       blockedAddon="renodx"
@@ -172,7 +175,7 @@
   {:else if view === 'incompatible'}
     <RenoDxManualFallbackView {gameId} {store} busy={combinedBusy} variant="incompatible" />
   {:else if view === 'installable'}
-    <RenoDxInstallableView {gameId} {store} busy={combinedBusy} />
+    <RenoDxInstallableView {gameId} {store} busy={combinedBusy} {launcher} />
   {:else if combinedBusy}
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
       <Spinner class="size-4" />

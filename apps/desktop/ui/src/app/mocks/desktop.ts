@@ -219,6 +219,9 @@ async function dispatchCommand(command: DesktopCommand, payload: unknown): Promi
       readStringField(command, payload, 'gameId');
       return mockUnsupportedLumaAvailability();
 
+    case 'luma_apply_engine_config':
+      return mockAddonWriteUnsupported();
+
     case 'luma_check_update':
       readStringField(command, payload, 'gameId');
       return mockLumaUpdateReport();
@@ -231,6 +234,9 @@ async function dispatchCommand(command: DesktopCommand, payload: unknown): Promi
     case 'renodx_availability':
       readStringField(command, payload, 'gameId');
       return mockUnsupportedRenoDxAvailability();
+
+    case 'renodx_apply_engine_config':
+      return mockAddonWriteUnsupported();
 
     case 'renodx_check_update':
       readStringField(command, payload, 'gameId');

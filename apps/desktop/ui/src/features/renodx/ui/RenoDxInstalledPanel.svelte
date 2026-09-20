@@ -4,10 +4,11 @@
     AddonComponentRow,
     AddonInstalledPanel,
     AddonStateMessage,
+    EngineConfigStatusRow,
     createInstalledLabels,
   } from '@entities/addon';
   import { t } from '@shared/i18n';
-  import { Badge, Button } from '@shared/ui';
+  import { Badge, Button, LaunchArgumentsCallout } from '@shared/ui';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
   import type { RenoDxStore } from '../model/create-renodx-store.svelte';
@@ -20,14 +21,16 @@
     getAddonDescriptionKey,
   } from '../model/reshade-presenters';
   import RenoDxChannelControl from './RenoDxChannelControl.svelte';
+  import RenoDxGuidanceCallouts from './RenoDxGuidanceCallouts.svelte';
 
   type Props = {
     gameId: string;
     store: RenoDxStore;
     busy: boolean;
+    launcher: string;
   };
 
-  const { gameId, store, busy }: Props = $props();
+  const { gameId, store, busy, launcher }: Props = $props();
 
   const RENODX_INSTALLED_LABELS = createInstalledLabels('gameDetails.renodx');
 
@@ -59,6 +62,14 @@
 
   function handleRepair(): void {
     void store.install(gameId, store.selectedReshadeChannel);
+  }
+
+  function handleEngineConfigApply(): void {
+    void store.applyEngineConfig(gameId);
+  }
+
+  function handleEngineConfigRefresh(): void {
+    void store.refreshAvailability(gameId);
   }
 
   function handleSwitchChannel(channel: ReshadeChannel): void {
@@ -111,6 +122,11 @@
     {/if}
   {/snippet}
 
+  {#snippet afterDateCallouts()}
+    <RenoDxGuidanceCallouts guidance={store.guidance} />
+    <LaunchArgumentsCallout launch={store.launch} {launcher} />
+  {/snippet}
+
   {#snippet reshadeActions()}
     {#if showChannelControl}
       <RenoDxChannelControl
@@ -126,6 +142,18 @@
   {/snippet}
 
   {#snippet extraComponentRows()}
+    <EngineConfigStatusRow
+      availability={store.engineConfig}
+      {busy}
+      refreshing={store.loading}
+      onApply={handleEngineConfigApply}
+      onRefresh={handleEngineConfigRefresh}
+    >
+      {#snippet manualGuidance()}
+        <RenoDxGuidanceCallouts guidance={store.guidance} presentation="engine-ini-dialog" />
+      {/snippet}
+    </EngineConfigStatusRow>
+
     {#if dlssFix.kind === 'component'}
       {@const primaryAction = dlssFix.primaryAction}
       <AddonComponentRow

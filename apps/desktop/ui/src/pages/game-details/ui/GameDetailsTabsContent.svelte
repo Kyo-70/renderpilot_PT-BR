@@ -162,6 +162,7 @@
           <RenoDxCard
             {gameId}
             busy={exclusiveBusy}
+            {launcher}
             store={renodx}
             {onOpenRenoDxSettings}
             {onPreloadRenoDxSettings}

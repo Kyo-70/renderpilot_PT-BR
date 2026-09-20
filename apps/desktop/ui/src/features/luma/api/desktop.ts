@@ -10,6 +10,17 @@ export async function getLumaAvailability(gameId: string): Promise<AvailabilityR
   });
 }
 
+/** Applies/reapplies backend-resolved typed Unreal Engine.ini guidance. */
+export async function applyLumaEngineConfig(
+  gameId: string,
+  gameContextToken?: string,
+): Promise<LumaInstallState> {
+  return invokeDesktop<LumaInstallState>('luma_apply_engine_config', {
+    gameId: requireNonBlankString(gameId, 'gameId'),
+    ...(gameContextToken === undefined ? {} : { gameContextToken }),
+  });
+}
+
 /**
  * Installs Luma into a game and returns the resulting install state. Progress is
  * reported via `download-progress` events keyed by the game id. Unlike RenoDX,
@@ -76,6 +87,7 @@ export async function updateLuma(
 /** The set of Luma backend calls, injectable for testing. */
 export type LumaApi = {
   getAvailability: typeof getLumaAvailability;
+  applyEngineConfig?: typeof applyLumaEngineConfig;
   install: typeof installLuma;
   uninstall: typeof uninstallLuma;
   checkUpdate: typeof checkLumaUpdate;
@@ -85,6 +97,7 @@ export type LumaApi = {
 /** The default API bound to the real Tauri commands. */
 export const lumaApi: LumaApi = {
   getAvailability: getLumaAvailability,
+  applyEngineConfig: applyLumaEngineConfig,
   install: installLuma,
   uninstall: uninstallLuma,
   checkUpdate: checkLumaUpdate,

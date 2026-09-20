@@ -12,3 +12,4 @@ export { default as AddonInstalledPanel } from './AddonInstalledPanel.svelte';
 export { default as AddonStateMessage } from './AddonStateMessage.svelte';
 export { default as AddonToolStatusBadge } from './AddonToolStatusBadge.svelte';
 export { default as AddonUninstallAction } from './AddonUninstallAction.svelte';
+export { default as EngineConfigStatusRow } from './EngineConfigStatusRow.svelte';

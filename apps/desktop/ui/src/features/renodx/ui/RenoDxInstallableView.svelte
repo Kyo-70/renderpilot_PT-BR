@@ -7,21 +7,29 @@
     createInstallableLabels,
   } from '@entities/addon';
   import { t, translateExternalMessage } from '@shared/i18n';
-  import { Badge, Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui';
+  import {
+    Badge,
+    LaunchArgumentsCallout,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+  } from '@shared/ui';
   import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 
   import type { RenoDxStore } from '../model/create-renodx-store.svelte';
   import { RENODX_ATTRIBUTION } from '../model/attribution';
   import type { ReshadeChannel } from '@entities/addon';
   import RenoDxChannelControl from './RenoDxChannelControl.svelte';
+  import RenoDxGuidanceCallouts from './RenoDxGuidanceCallouts.svelte';
 
   type Props = {
     gameId: string;
     store: RenoDxStore;
     busy: boolean;
+    launcher: string;
   };
 
-  const { gameId, store, busy }: Props = $props();
+  const { gameId, store, busy, launcher }: Props = $props();
 
   const RENODX_INSTALLABLE_LABELS = createInstallableLabels('gameDetails.renodx');
   const CONFIDENCE_LABEL_KEY = createConfidenceLabelKeys('gameDetails.renodx');
@@ -71,6 +79,8 @@
   {/snippet}
 
   {#snippet midCallouts()}
+    <RenoDxGuidanceCallouts guidance={store.guidance} />
+    <LaunchArgumentsCallout launch={store.launch} {launcher} />
     {#if store.installTorn}
       <AddonStateMessage
         tone="warning"

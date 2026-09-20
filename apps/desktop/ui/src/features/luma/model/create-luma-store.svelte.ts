@@ -69,6 +69,11 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
   };
 
   let availabilitySnapshot = $state<AvailabilitySnapshot>({
+    engineConfig: {
+      status: 'not_applicable',
+      path: null,
+      can_apply: false,
+    },
     hostDetection: 'absent',
     hostFacts: defaultHostFacts(),
     actions: {},
@@ -126,6 +131,11 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
     },
     resetToolState: (gameId) => {
       availabilitySnapshot = {
+        engineConfig: {
+          status: 'not_applicable',
+          path: null,
+          can_apply: false,
+        },
         hostDetection: 'absent',
         hostFacts: defaultHostFacts(),
         actions: {},
@@ -284,6 +294,21 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
     });
   }
 
+  async function applyEngineConfig(gameId: string): Promise<AddonMutationResult> {
+    const apply = api.applyEngineConfig;
+    if (!apply) {
+      return 'skipped';
+    }
+    return core.runSidecarMutation(
+      gameId,
+      async () => {
+        const tokens = await requireSafetyTokens?.(gameId, 'game');
+        return tokens ? apply(gameId, tokens.gameContextToken) : apply(gameId);
+      },
+      { errorKey: 'gameDetails.luma.engineConfigApplyError', safetyScope: 'game' },
+    );
+  }
+
   return mergeAddonApis(
     addonCoreApi(core),
     commonOutcomeApi(() => outcome),
@@ -291,9 +316,13 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
     {
       load: core.load,
       retry: core.retry,
+      refreshAvailability: core.refreshAvailability,
       checkForUpdates: core.checkForUpdates,
       get vcredistPresent() {
         return availabilitySnapshot.vcredistPresent;
+      },
+      get engineConfig() {
+        return availabilitySnapshot.engineConfig;
       },
       get vcredistInstallerUrl() {
         return availabilitySnapshot.vcredistInstallerUrl;
@@ -329,6 +358,7 @@ export function createLumaStore(options: LumaStoreOptions = {}) {
       update,
       repair,
       uninstall,
+      applyEngineConfig,
     },
   );
 }

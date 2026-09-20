@@ -1,12 +1,11 @@
 <script lang="ts">
   import { TooltipProvider } from '@shared/ui';
 
-  import type { LumaGuidance } from '../model/types';
-
-  import LumaGuidanceCallouts from './LumaGuidanceCallouts.svelte';
+  import type { RenoDxGuidance } from '../model/types';
+  import RenoDxGuidanceCallouts from './RenoDxGuidanceCallouts.svelte';
 
   type Props = {
-    guidance: LumaGuidance[];
+    guidance: RenoDxGuidance[];
     presentation?: 'callouts' | 'engine-ini-dialog';
   };
 
@@ -14,5 +13,5 @@
 </script>
 
 <TooltipProvider>
-  <LumaGuidanceCallouts {guidance} {presentation} />
+  <RenoDxGuidanceCallouts {guidance} {presentation} />
 </TooltipProvider>

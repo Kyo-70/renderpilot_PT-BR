@@ -8,8 +8,16 @@ import {
 } from '@entities/addon';
 
 import type { AvailabilityReport, RenoDxActions, RenoDxAddonState } from './types';
+import type { EngineConfigAvailability } from '@entities/addon';
+
+const DEFAULT_ENGINE_CONFIG: EngineConfigAvailability = {
+  status: 'not_applicable',
+  path: null,
+  can_apply: false,
+};
 
 export type AvailabilitySnapshot = {
+  engineConfig: NonNullable<AvailabilityReport['engine_config']>;
   hostDetection: HostDetection;
   hostFacts: HostFacts;
   actions: RenoDxActions;
@@ -20,6 +28,7 @@ export type AvailabilitySnapshot = {
 
 export type AvailabilitySnapshotSource = Pick<
   AvailabilityReport,
+  | 'engine_config'
   | 'host_detection'
   | 'host_facts'
   | 'actions'
@@ -38,6 +47,7 @@ export function availabilitySnapshotFromReport(
   report: AvailabilitySnapshotSource,
 ): AvailabilitySnapshot {
   return mapAvailabilitySnapshot(report, {
+    engineConfig: report.engine_config ?? DEFAULT_ENGINE_CONFIG,
     reshadeStableSupported: report.reshade_stable_supported,
     renodxAddon: report.renodx_addon,
     installTorn: report.install_torn,

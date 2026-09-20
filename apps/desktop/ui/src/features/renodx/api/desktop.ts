@@ -19,6 +19,17 @@ export async function getRenoDxAvailability(gameId: string): Promise<Availabilit
   });
 }
 
+/** Applies/reapplies backend-resolved typed Unreal Engine.ini guidance. */
+export async function applyRenoDxEngineConfig(
+  gameId: string,
+  gameContextToken?: string,
+): Promise<RenoDxInstallState> {
+  return invokeDesktop<RenoDxInstallState>('renodx_apply_engine_config', {
+    gameId: requireNonBlankString(gameId, 'gameId'),
+    ...(gameContextToken === undefined ? {} : { gameContextToken }),
+  });
+}
+
 /**
  * Installs RenoDX into a game and returns the resulting install state. Progress
  * is reported via `download-progress` events keyed by the game id. The requested
@@ -196,6 +207,7 @@ export async function removeVulkanLayer(): Promise<VulkanLayerReport> {
 /** The set of RenoDX backend calls, injectable for testing. */
 export type RenoDxApi = {
   getAvailability: typeof getRenoDxAvailability;
+  applyEngineConfig?: typeof applyRenoDxEngineConfig;
   install: typeof installRenoDx;
   installFromFile: typeof installRenoDxFromFile;
   uninstall: typeof uninstallRenoDx;
@@ -216,6 +228,7 @@ export type RenoDxApi = {
 /** The default API bound to the real Tauri commands. */
 export const renodxApi: RenoDxApi = {
   getAvailability: getRenoDxAvailability,
+  applyEngineConfig: applyRenoDxEngineConfig,
   install: installRenoDx,
   installFromFile: installRenoDxFromFile,
   uninstall: uninstallRenoDx,

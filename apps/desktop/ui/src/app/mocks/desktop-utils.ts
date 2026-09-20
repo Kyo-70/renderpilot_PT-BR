@@ -78,12 +78,17 @@ export type DesktopCommandPayloadMap = {
   delete_library_package: { packageId: string };
   // Luma — preview stubs (see commands/addon-tools.ts)
   luma_availability: { gameId: string };
+  luma_apply_engine_config: { gameId: string; gameContextToken?: string };
   luma_check_update: { gameId: string; deep?: boolean };
   luma_install: { gameId: string; gameContextToken?: string };
   luma_uninstall: { gameId: string };
   luma_update: { gameId: string; forceFull?: boolean };
   // RenoDX — preview stubs
   renodx_availability: { gameId: string };
+  renodx_apply_engine_config: {
+    gameId: string;
+    gameContextToken?: string;
+  };
   renodx_check_update: { gameId: string };
   renodx_install: {
     gameId: string;
@@ -174,11 +179,13 @@ export type DesktopCommandResultMap = {
   // Wire DTOs for Luma/RenoDX live in feature slices; mock results stay untyped
   // so `app` does not import feature internals (FSD boundaries).
   luma_availability: unknown;
+  luma_apply_engine_config: unknown;
   luma_check_update: unknown;
   luma_install: unknown;
   luma_uninstall: unknown;
   luma_update: unknown;
   renodx_availability: unknown;
+  renodx_apply_engine_config: unknown;
   renodx_check_update: unknown;
   renodx_install: unknown;
   renodx_install_from_file: unknown;
@@ -242,11 +249,13 @@ const ALL_DESKTOP_COMMANDS = [
   'download_artifact',
   'delete_library_package',
   'luma_availability',
+  'luma_apply_engine_config',
   'luma_check_update',
   'luma_install',
   'luma_uninstall',
   'luma_update',
   'renodx_availability',
+  'renodx_apply_engine_config',
   'renodx_check_update',
   'renodx_install',
   'renodx_install_from_file',

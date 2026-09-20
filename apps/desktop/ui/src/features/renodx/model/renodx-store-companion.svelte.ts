@@ -11,7 +11,13 @@ import type {
 
 type RenoDxCore = Pick<
   ReturnType<typeof createAddonStore<RenoDxInstallState, RenoDxUpdateReport, AvailabilityReport>>,
-  'load' | 'retry' | 'checkForUpdates' | 'requestToken' | 'loadError' | 'isCurrentRequest'
+  | 'load'
+  | 'retry'
+  | 'refreshAvailability'
+  | 'checkForUpdates'
+  | 'requestToken'
+  | 'loadError'
+  | 'isCurrentRequest'
 >;
 
 export type RenoDxCompanionStoreOptions = {
@@ -67,6 +73,10 @@ export function createRenoDxCompanionStore(options: RenoDxCompanionStoreOptions)
     if (core.isCurrentRequest(token) && !core.loadError) {
       await probeDlssFixAvailability(gameId, token);
     }
+  }
+
+  async function refreshAvailability(gameId: string): Promise<void> {
+    await core.refreshAvailability(gameId);
   }
 
   async function checkForUpdates(gameId: string): Promise<void> {
@@ -131,6 +141,7 @@ export function createRenoDxCompanionStore(options: RenoDxCompanionStoreOptions)
     },
     load,
     retry,
+    refreshAvailability,
     checkForUpdates,
     clear,
     afterInstallLikeCommit,

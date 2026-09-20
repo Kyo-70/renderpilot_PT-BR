@@ -1,3 +1,4 @@
+import { isFileSafetyContextError } from '@shared/errors';
 import { formatPresentedError } from '@shared/error-presentation';
 import { parseHttpDateTimestamp } from '@shared/date';
 import { t, type MessageKeyWithoutParams } from '@shared/i18n';
@@ -19,7 +20,9 @@ import {
   withLoadError,
   withLoadSuccess,
   withLoading,
+  withMutationBegin,
   withMutationCommit,
+  withBusy,
   withProbeBegin,
   withProbeEnd,
   withProbeFailure,
@@ -40,6 +43,11 @@ export type AddonStoreApi<
 
 export type AddonStoreMessages = {
   loadFailed: MessageKeyWithoutParams;
+};
+
+export type SidecarMutationOptions = {
+  errorKey: MessageKeyWithoutParams;
+  safetyScope?: MutationSafetyScope;
 };
 
 export type CreateAddonStoreConfig<
@@ -161,7 +169,11 @@ export function createAddonStore<
     onExclusivityChange?.(gameId);
   }
 
-  async function loadAvailability(gameId: string, preserveLoadError: boolean): Promise<void> {
+  async function loadAvailability(
+    gameId: string,
+    preserveLoadError: boolean,
+    probeUpdates = true,
+  ): Promise<void> {
     const normalizedGameId = gameId.trim();
     const isSameGame = loadedGameId !== null && loadedGameId === normalizedGameId;
     loadedGameId = normalizedGameId;
@@ -199,7 +211,9 @@ export function createAddonStore<
     if (!succeeded) {
       return;
     }
-    await probeUpdateStatus(normalizedGameId, token, 'passive');
+    if (probeUpdates) {
+      await probeUpdateStatus(normalizedGameId, token, 'passive');
+    }
   }
 
   async function load(gameId: string): Promise<void> {
@@ -216,6 +230,11 @@ export function createAddonStore<
   /** Keeps the previous failure visible while this explicit retry is in progress. */
   async function retry(gameId: string): Promise<void> {
     await loadAvailability(gameId, true);
+  }
+
+  /** Re-reads local availability without performing an update/network probe. */
+  async function refreshAvailability(gameId: string): Promise<void> {
+    await loadAvailability(gameId, true, false);
   }
 
   /**
@@ -308,6 +327,48 @@ export function createAddonStore<
     return runBusyMutationImpl(mutationCtx, gameId, fn, options);
   }
 
+  /**
+   * Runs a narrow auxiliary mutation that does not change the install
+   * lifecycle. It owns only busy/request-token state, then refreshes local
+   * availability without update probes or normal mutation side effects.
+   */
+  async function runSidecarMutation(
+    gameId: string,
+    fn: () => Promise<unknown>,
+    options: SidecarMutationOptions,
+  ): Promise<'ok' | 'skipped' | 'failed'> {
+    if (core.busy) {
+      return 'skipped';
+    }
+    safetyContextError = null;
+    const { next, token } = withMutationBegin(core);
+    core = next;
+    try {
+      try {
+        await fn();
+      } catch (error) {
+        if (token !== core.requestId) {
+          return 'skipped';
+        }
+        publishPresentedErrorNotification(t(options.errorKey), error);
+        if (isFileSafetyContextError(error)) {
+          safetyContextError = error;
+          onMutationError?.(error, options.safetyScope ?? 'game');
+        }
+        return 'failed';
+      }
+      if (token !== core.requestId) {
+        return 'ok';
+      }
+      await refreshAvailability(gameId);
+      return 'ok';
+    } finally {
+      if (token === core.requestId) {
+        core = withBusy(core, false);
+      }
+    }
+  }
+
   return {
     get state() {
       return core.state;
@@ -367,11 +428,13 @@ export function createAddonStore<
       return safetyContextError;
     },
     load,
+    refreshAvailability,
     deactivate,
     retry,
     checkForUpdates,
     isCurrentRequest,
     runBusyMutation,
+    runSidecarMutation,
     notifyExclusivityChange,
   };
 }

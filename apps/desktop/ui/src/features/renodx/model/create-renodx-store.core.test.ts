@@ -89,6 +89,7 @@ describe('createRenoDxStore', () => {
         id: 'renodx.generic.universal',
         fallback_text: 'Uses the shared Unreal Engine profile.',
       },
+      profile_id: 'ue_extended',
     };
     const report = availability({
       state: { status: 'not_installed' },
@@ -96,7 +97,10 @@ describe('createRenoDxStore', () => {
         kind: 'installable',
         confidence: 'verified',
         generic_profile: genericProfile,
+        profile_id: 'ue_extended',
         host_kind: 'proxy',
+        guidance: [],
+        launch: null,
       },
       manual_install: null,
     });
@@ -107,6 +111,99 @@ describe('createRenoDxStore', () => {
     await store.load('steam:1091500');
 
     expect(store.genericProfile).toEqual(genericProfile);
+  });
+
+  it('retains resolved guidance and launch arguments for the same installed game', async () => {
+    const guidance = [
+      {
+        id: 'renodx.test.ini',
+        kind: 'engine_ini' as const,
+        message_id: 'renodx.test.ini',
+        fallback_text: 'Add the reviewed setting.',
+        code: 'r.HDR.EnableHDROutput=1',
+        settings: [],
+        url: null,
+      },
+    ];
+    const first = availability({
+      ...INSTALLED,
+      outcome: {
+        kind: 'installable',
+        confidence: 'verified',
+        generic_profile: null,
+        profile_id: 'ue_extended',
+        host_kind: 'proxy',
+        guidance,
+        launch: { arguments: ['-force-d3d11'], requirement: 'recommended' },
+      },
+    });
+    const drifted = availability({
+      ...INSTALLED,
+      outcome: { kind: 'unsupported' },
+      manual_install: null,
+    });
+    const getAvailability = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(drifted);
+    const store = createRenoDxStore({ api: fakeApi({ getAvailability }) });
+
+    await store.load('steam:2358720');
+    await store.load('steam:2358720');
+
+    expect(store.outcome?.kind).toBe('unsupported');
+    expect(store.guidance).toEqual(guidance);
+    expect(store.profileId).toBe('ue_extended');
+    expect(store.launch).toEqual({
+      arguments: ['-force-d3d11'],
+      requirement: 'recommended',
+    });
+  });
+
+  it('drops retained guidance, launch arguments, and profile_id when switching to a different game', async () => {
+    const guidance = [
+      {
+        id: 'renodx.test.ini',
+        kind: 'engine_ini' as const,
+        message_id: 'renodx.test.ini',
+        fallback_text: 'Add the reviewed setting.',
+        code: 'r.HDR.EnableHDROutput=1',
+        settings: [],
+        url: null,
+      },
+    ];
+    const gameAInstalled = availability({
+      ...INSTALLED,
+      outcome: {
+        kind: 'installable',
+        confidence: 'verified',
+        generic_profile: null,
+        profile_id: 'ue_extended',
+        host_kind: 'proxy',
+        guidance,
+        launch: { arguments: ['-force-d3d11'], requirement: 'recommended' },
+      },
+    });
+    const gameBUnsupported = availability({
+      ...INSTALLED,
+      outcome: { kind: 'unsupported' },
+      manual_install: null,
+    });
+    const getAvailability = vi
+      .fn()
+      .mockResolvedValueOnce(gameAInstalled)
+      .mockResolvedValueOnce(gameBUnsupported);
+    const store = createRenoDxStore({ api: fakeApi({ getAvailability }) });
+
+    await store.load('steam:game-a');
+    expect(store.guidance).toEqual(guidance);
+    expect(store.profileId).toBe('ue_extended');
+    expect(store.launch).toEqual({
+      arguments: ['-force-d3d11'],
+      requirement: 'recommended',
+    });
+
+    await store.load('steam:game-b');
+    expect(store.guidance).toEqual([]);
+    expect(store.profileId).toBeNull();
+    expect(store.launch).toBeNull();
   });
 
   it('does not silently remap an unavailable selected Stable channel', async () => {
@@ -245,7 +342,10 @@ describe('createRenoDxStore', () => {
         kind: 'installable',
         confidence: 'untested',
         generic_profile: null,
+        profile_id: null,
         host_kind: 'proxy',
+        guidance: [],
+        launch: null,
       },
       manual_install: null,
     });
@@ -266,7 +366,10 @@ describe('createRenoDxStore', () => {
         kind: 'installable',
         confidence: 'verified',
         generic_profile: null,
+        profile_id: null,
         host_kind: 'proxy',
+        guidance: [],
+        launch: null,
       },
       manual_install: null,
     });
@@ -280,6 +383,9 @@ describe('createRenoDxStore', () => {
           confidence: 'experimental',
           host_kind: 'proxy',
           generic_profile: null,
+          profile_id: null,
+          guidance: [],
+          launch: null,
         },
       },
       manual_install: null,
@@ -308,7 +414,10 @@ describe('createRenoDxStore', () => {
         kind: 'installable',
         confidence: 'verified',
         generic_profile: null,
+        profile_id: null,
         host_kind: 'proxy',
+        guidance: [],
+        launch: null,
       },
     });
 

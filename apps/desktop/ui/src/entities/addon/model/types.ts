@@ -59,6 +59,23 @@ export type ActionDisabledReason =
   | 'unsupported'
   | 'validation_required';
 
+/** Shared typed Unreal Engine.ini automation state. */
+export type EngineConfigStatus =
+  | 'not_applicable'
+  | 'manual_only'
+  | 'pending_first_launch'
+  | 'ready'
+  | 'configured'
+  | 'needs_repair'
+  | 'conflict'
+  | 'recovery_required';
+
+export type EngineConfigAvailability = {
+  status: EngineConfigStatus;
+  path: string | null;
+  can_apply: boolean;
+};
+
 /** Backend-authored action rights and disablement (`ActionDescriptor`). */
 export type ActionDescriptor = {
   enabled: boolean;
