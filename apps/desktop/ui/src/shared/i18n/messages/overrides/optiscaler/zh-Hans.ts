@@ -238,4 +238,13 @@ export const optiscalerOverrides = defineLocalizedCatalog<'zh-Hans', OptiScalerS
   'optiscaler-resident-evil-7-reframework-upscalerbase-plugin':
     '此游戏需要 REFramework（pd-upscaler 分支）和 PureDark 的 UpscalerBasePlugin 1.1.2 版才能运行。',
   'optiscaler-resident-evil-requiem-reframework': '此游戏需要 REFramework 才能运行。',
+  'optiscaler-assassins-creed-origins-dlss-mod':
+    '此游戏需要第三方 DLSS 模组才能与 OptiScaler 配合使用。',
+  'optiscaler-ghost-recon-wildlands-dlss-mod':
+    '此游戏需要第三方 DLSS 模组才能与 OptiScaler 配合使用。',
+  'optiscaler-elden-ring-erss-fg-mod': '需要使用 ERSS-FG 模组作为缩放和帧生成的基础。',
+  'optiscaler-sekiro-shadows-die-twice-sekirotsr-mod':
+    '需要使用 SekiroTSR 模组作为 DLSS 输入的基础。',
+  'optiscaler-devil-may-cry-5-reframework-pdperfplugin':
+    '此游戏需要 REFramework（pd-upscaler 分支）和 PDPerfPlugin 才能运行。',
 });

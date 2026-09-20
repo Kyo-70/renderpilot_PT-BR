@@ -53,8 +53,7 @@ export const lumaOverrides = defineLocalizedCatalog<'ru', LumaSourceCatalog>()({
   'luma.goat-simulator-3.game_setting': 'В настройках игры выберите High AA.',
   'luma.greedfall.warning':
     'Этот профиль добавляет только поддержку DLSS; HDR сейчас не поддерживается.',
-  'luma.guilty-gear-strive.warning':
-    'Сглаживание не работает на экране выбора персонажа. В игре: AA «Temporal Anti Aliasing». В Engine.ini в секции [SystemSettings] добавьте: r.DefaultFeature.AntiAliasing=2 и r.PostProcessAAQuality=4.',
+  'luma.guilty-gear-strive.warning': 'Сглаживание не работает на экране выбора персонажа.',
   'luma.hatsune-miku-project-diva-mega-mix-plus.warning':
     'При проблемах с отображением избегайте эксклюзивного полноэкранного режима. Чтобы переключить режим, нажмите Alt+Enter.',
   'luma.heavy-rain.warning': 'Ультраширокий режим может работать только при запуске через Steam.',
@@ -78,8 +77,7 @@ export const lumaOverrides = defineLocalizedCatalog<'ru', LumaSourceCatalog>()({
   'luma.middle-earth-shadow-of-war.dlss-only':
     'Этот профиль добавляет только поддержку DLSS; HDR сейчас не поддерживается.',
   'luma.mothergunship.engine_ini': 'Вручную добавьте в Engine.ini следующие настройки.',
-  'luma.mutant-year-zero-road-to-eden.game_setting':
-    'В настройках игры выберите AA «High». Для лучшей чёткости в движении задайте r.motionblur.amount=0 в Engine.ini.',
+  'luma.mutant-year-zero-road-to-eden.game_setting': 'В настройках игры выберите AA «High».',
   'luma.narutotoborutoshinobistriker.compatibility': 'Заблокировано системой Easy Anti-Cheat.',
   'luma.no-more-heroes-3.engine_ini': 'Вручную добавьте в Engine.ini следующие настройки.',
   'luma.octopath-traveler.engine_ini': 'Вручную добавьте в Engine.ini следующие настройки.',
@@ -125,4 +123,16 @@ export const lumaOverrides = defineLocalizedCatalog<'ru', LumaSourceCatalog>()({
     'Вручную добавьте в Engine.ini следующие настройки.',
   'luma.what-remains-of-edith-finch.warning':
     'Игра работает нестабильно в разрешении 4K. Перед внесением настроек в Engine.ini установите Effects на Low.',
+  'luma.guilty-gear-strive.game_setting': 'В настройках игры выберите AA «Temporal Anti Aliasing».',
+  'luma.guilty-gear-strive.engine_ini': 'Вручную добавьте в Engine.ini следующие настройки.',
+  'luma.mutant-year-zero-road-to-eden.engine_ini':
+    'Для лучшей чёткости в движении добавьте в Engine.ini следующую настройку.',
+  'luma.gylt.game_setting': 'В настройках игры установите Upscaling Method: «TAAU, 100%».',
+  'luma.gylt.engine_ini':
+    'Для лучшей чёткости в движении добавьте в Engine.ini следующую настройку.',
+  'luma.song-of-nunu.game_setting': 'В настройках игры выберите AA «High».',
+  'luma.song-of-nunu.engine_ini':
+    'Чтобы уменьшить временное дрожание изображения, добавьте в Engine.ini следующую настройку.',
+  'luma.song-of-nunu.warning':
+    'На растительности и очень мелких деталях может быть заметно дрожание изображения.',
 });

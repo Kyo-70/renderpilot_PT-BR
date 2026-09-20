@@ -114,6 +114,19 @@ describe('i18n', () => {
       expect(translateExternalMessage({ key, fallback })).toBe(fallback);
     });
 
+    it('uses the RenoDX message translation in Russian and the manifest fallback in English', async () => {
+      const key = 'renodx.black_myth_wukong.hdr';
+      const fallback = 'In Engine.ini, add this setting for the UE Extended HDR path.';
+
+      await setLanguageMode('ru');
+      expect(translateExternalMessage({ key, fallback })).toBe(
+        'В Engine.ini добавьте этот параметр для расширенного HDR-пути Unreal Engine.',
+      );
+
+      await setLanguageMode('en');
+      expect(translateExternalMessage({ key, fallback })).toBe(fallback);
+    });
+
     it('fails closed when a known producer changes its source text', async () => {
       await setLanguageMode('ru');
       expect(

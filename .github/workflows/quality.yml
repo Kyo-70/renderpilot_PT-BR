@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  RENDERPILOT_LIBRARIES_CONTRACT_REF: 92438d1595a1afd8c98909f9e222a9df2ac042eb
+  RENDERPILOT_LIBRARIES_CONTRACT_REF: 54baeb3bc83d8f9448098413622e0c0c2a0dde10
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   # Deny rustc warnings for workspace packages (Cargo 1.97+). Prefer this over
@@ -223,7 +223,7 @@ jobs:
           runtime: node@24
           cache: true
           require-lockfile: true
-      - name: Verify Luma and NVAPI localization sources
+      - name: Verify external localization sources
         working-directory: apps/desktop
         run: >-
           node scripts/check-external-source-contracts.mjs

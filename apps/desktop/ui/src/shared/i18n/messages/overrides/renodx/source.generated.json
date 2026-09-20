@@ -1,0 +1,3155 @@
+{
+  "schemaVersion": 1,
+  "messages": [
+    {
+      "id": "renodx.black_myth_wukong.hdr",
+      "sourceText": "In Engine.ini, add this setting for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.external.discord",
+      "sourceText": "Get the add-on from Discord, then install the downloaded file.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.external.nexus",
+      "sourceText": "Get the add-on from Nexus Mods, then install the downloaded file.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.generic.ue_extended",
+      "sourceText": "Uses the shared Unreal Engine Extended profile.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.generic.unity",
+      "sourceText": "Uses the shared Unity engine profile.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.generic.unreal_legacy",
+      "sourceText": "Uses a title-specific legacy Unreal Engine profile.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.assassin.s.creed.iv.black.flagtm.1",
+      "sourceText": "The mod is playable, but some graphics issues remain unresolved.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.atelier.yumia.the.alchemist.of.memories.the.envisioned.land.1",
+      "sourceText": "The mod is considered playable but still needs broader playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.atlas.fallen.dx12.1",
+      "sourceText": "Install ReShade in the game's Atlas Fallen\\bin directory.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.atlas.fallen.dx12.2",
+      "sourceText": "FSR 2 can cause crashes with this mod.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.main.clive.barker.s.jericho.1",
+      "sourceText": "ACES output is currently broken in this build.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.main.crimson.desert.1",
+      "sourceText": "Frequent game updates can break the mod; re-check compatibility after each update.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.days.gone.1",
+      "sourceText": "This dedicated build is functional, but its HDR result may still need refinement.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.dead.island.riptide.definitive.edition.1",
+      "sourceText": "The current dedicated mod build is broken.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.main.dragon.s.dogma.2.1",
+      "sourceText": "After installing the mod, delete shader.cache2 from the game directory to avoid shader stutter.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.main.forza.horizon.6.1",
+      "sourceText": "The game's native HDR already works well; this mod offers an alternative presentation rather than an HDR fix.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.ninja.gaiden.4.1",
+      "sourceText": "This mod requires Lyall's NinjaGaidenMCFix.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.main.ninja.gaiden.sigma.1",
+      "sourceText": "This mod requires Lyall's NinjaGaidenMCFix.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.main.ninja.gaiden.sigma.2.1",
+      "sourceText": "This mod requires Lyall's NinjaGaidenMCFix.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.main.opus.echo.of.starsong.full.bloom.edition.1",
+      "sourceText": "Disable the Steam overlay. If problems remain, disable other overlays as well.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.main.raidou.remastered.the.mystery.of.the.soulless.army.1",
+      "sourceText": "The mod needs more playtesting; shaders may be missing in later areas.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.s.t.a.l.k.e.r.2.heart.of.chornobyl.1",
+      "sourceText": "Apply these in-game display settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.main.sonic.unleashed.recompiled.1",
+      "sourceText": "Disable motion blur before using this mod.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.main.sonic.unleashed.recompiled.2",
+      "sourceText": "The current mod build does not work on GeForce RTX 50-series GPUs.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.main.steelrising.1",
+      "sourceText": "The current dedicated mod build is broken.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.main.the.evil.within.2.1",
+      "sourceText": "The mod is considered playable but still needs broader playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.trackmania.1",
+      "sourceText": "HDR works well, but some customization menus are broken.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.main.yakuza.kiwami.1.1",
+      "sourceText": "This build was primarily designed for Yakuza 0; Yakuza Kiwami support is secondary.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.page.hdr.disable-double-tonemapping",
+      "sourceText": "If the image looks washed out, disable Auto HDR and RTX HDR to avoid double tonemapping.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.the_first_berserker_khazan.tonemapping",
+      "sourceText": "Tonemapping issues remain; testing was limited.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue_extended.hdr_engine_ini",
+      "sourceText": "For the UE5 HDR path, add these settings to Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue_extended.lut_update",
+      "sourceText": "For UE5.3 and newer, add this setting to enable real-time sliders.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue_extended.native_hdr",
+      "sourceText": "Use Native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.ue_extended.ue4_engine_ini_warning",
+      "sourceText": "General Engine.ini HDR tweaks are not recommended for Unreal Engine 4 games.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.a.way.out.1",
+      "sourceText": "This configuration has limited playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.abiotic.factor.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.abzu.1",
+      "sourceText": "Choose the B8G8R8A8_TYPELESS upgrade according to the game's render-resolution scale.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.assetto.corsa.rally.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.astroneer.1",
+      "sourceText": "Color-grading errors and flickering may still occur.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.bodycam.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.borderlands.4.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.chained.together.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.chained.together.2",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.choo.choo.charles.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.chromatic.conundrum.1",
+      "sourceText": "Upgrade Path is incompatible with this title and causes broken rendering.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.ue.extended.conan.exiles.enhanced.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.crab.champions.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.dead.as.disco.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.deep.rock.galactic.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.deep.rock.galactic.rogue.core.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.deep.rock.galactic.rogue.core.2",
+      "sourceText": "Keep the game's native HDR disabled; its native HDR path is broken.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.ue.extended.escape.the.backrooms.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.escape.the.backrooms.2",
+      "sourceText": "This configuration has limited playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.everwind.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.far.far.west.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.frostpunk.2.1",
+      "sourceText": "The RenoDX UI brightness slider controls paper white in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.grounded.2.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.hellblade.ii.senua.s.saga.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.hellblade.ii.senua.s.saga.2",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.hellblade.ii.senua.s.saga.3",
+      "sourceText": "This configuration has limited playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.hi.fi.rush.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.hi.fi.rush.2",
+      "sourceText": "The Engine.ini HDR path overexposes shading; this title uses the compatible Upgrade Path.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.hi.fi.rush.3",
+      "sourceText": "Gameplay highlights are clamped to the UI brightness setting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.inzoi.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.jusant.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.lego.batmantm.legacy.of.the.dark.knight.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.lego.batmantm.legacy.of.the.dark.knight.2",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.lego.batmantm.legacy.of.the.dark.knight.3",
+      "sourceText": "This configuration has limited playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.lies.of.p.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.lies.of.p.2",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.lies.of.p.3",
+      "sourceText": "This configuration has limited playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.little.nightmares.ii.1",
+      "sourceText": "Color-grading issues remain.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.mafia.the.old.country.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.meccha.chameleon.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.mortal.shell.ii.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.motor.town.behind.the.wheel.1",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.nobody.wants.to.die.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.pacific.drive.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.quarantine.zone.the.last.check.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.ready.or.not.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.ready.or.not.2",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.ready.or.not.3",
+      "sourceText": "This configuration has limited playtesting.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.rv.there.yet.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.s.t.a.l.k.e.r.2.heart.of.chornobyl.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.satisfactory.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.sifu.1",
+      "sourceText": "Peak brightness remains limited in some content.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.solarpunk.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.star.wars.zero.companytm.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.subnautica.2.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.the.blood.of.dawnwalker.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.the.enjenir.the.engineering.physics.building.simulator.1",
+      "sourceText": "Add these settings to Engine.ini for the UE Extended HDR path.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "renodx.ue.extended.the.idolm.ster.starlit.season.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.the.idolm.ster.starlit.season.2",
+      "sourceText": "Some communication and stage lighting remain clamped or do not produce HDR highlights.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.ue.extended.tokyo.xtreme.racer.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.until.dawn.1",
+      "sourceText": "Enable the game's native HDR.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.ue.extended.what.remains.of.edith.finch.1",
+      "sourceText": "If HDR is clamped with high-DPI scaling, temporarily set Windows scaling to 100%, launch the game once, then restore the preferred scaling.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.60.parsecs.1",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.7.days.to.die.1",
+      "sourceText": "Enable Swapchain Proxy when using Dynamic Resolution or render scaling.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.advanced_restart",
+      "sourceText": "Switch RenoDX from Simple to Advanced, then restart the game to unlock all sliders.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.aeterna.noctis.1",
+      "sourceText": "Upgrade R8G8B8A8_TYPELESS to Output Ratio or Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.afterparty.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.agatha.christie.death.on.the.nile.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.agent.a.a.puzzle.in.disguise.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.akiba.s.trip.hellbound.debriefed.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.all.we.need.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.altheia.the.wrath.of.aferi.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.american.fugitive.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.american.fugitive.2",
+      "sourceText": "Set the game's Graphics Quality to Medium or higher.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.amerzone.the.explorer.s.legacy.2025.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.anodyne.2.return.to.dust.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.aragami.1",
+      "sourceText": "Tonemapping and color grading update after restarting the level.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.aragami.2.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.arkham.horror.mother.s.embrace.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.assault.android.cactus.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.atlyss.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.atomic.owl.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.autonauts.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.autonauts.vs.piratebots.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ball.x.pit.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.batbarian.testament.of.the.primordials.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.battlestar.galactica.deadlock.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.before.your.eyes.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.beholder.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.beholder.2.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ben.10.power.trip.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bendy.and.the.ink.machine.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bendy.and.the.ink.machine.2",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.bendy.secrets.of.the.machine.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.besiege.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.beyond.galaxyland.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bionic.bay.1",
+      "sourceText": "The game is not yet fully playable with this profile.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unity.biped.1",
+      "sourceText": "Load a save point to refresh tonemapping and color grading after changing sliders.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.blazblue.entropy.effect.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bloody.hell.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bo.path.of.the.teal.lotus.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bounty.star.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.breachway.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.bubsy.4d.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.cakey.s.twisted.bakery.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.cat.quest.iii.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.children.of.morta.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.children.of.the.sun.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.circuit.superstars.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.cloudpunk.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.cloverpit.1",
+      "sourceText": "Launch the game's DirectX 11 option.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.copycat.1",
+      "sourceText": "Upgrade the R10G10B10A2_TYPELESS resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.coridden.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.creature.kitchen.1",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ctrl.alt.ego.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.cuphead.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dave.the.diver.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.deadcore.redux.demo.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.deadcore.redux.demo.2",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.deep.rock.survivor.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.digimon.world.next.order.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dino.topia.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dracomaton.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dragon.quest.builders.1",
+      "sourceText": "Enable in-game bloom; it can be disabled later in RenoDX.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.dread.templar.1",
+      "sourceText": "Applying or saving RenoDX settings crashes the game, but the settings are still saved.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unity.dreamfall.chapters.the.final.cut.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dreamfall.chapters.the.final.cut.2",
+      "sourceText": "Save-preview images are broken.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.drova.forsaken.kin.1",
+      "sourceText": "Use Borderless Windowed mode.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.drova.forsaken.kin.2",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dungeons.2.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dungeons.2.2",
+      "sourceText": "The main menu is black; rendering returns to normal after loading into the game.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unity.dungeons.3.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.dungeons.4.1",
+      "sourceText": "Change the game's Brightness or Gamma control to refresh the LUT after adjusting RenoDX.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.dystopika.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.eastern.exorcist.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.eastshade.1",
+      "sourceText": "Open the game's Brightness control and save it to refresh the LUT.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.egging.on.1",
+      "sourceText": "Upgrade the R10G10B10A2_TYPELESS resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.eiyuden.chronicle.hundred.heroes.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.eiyuden.chronicle.rising.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.el.paso.elsewhere.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.encased.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.end.transmission.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.enigma.of.fear.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.enter.the.gungeon.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.epistory.typing.chronicles.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ereban.shadow.legacy.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.exit.the.gungeon.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.fabledom.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.fabledom.2",
+      "sourceText": "When in-game anti-aliasing is enabled, set Compatibility Blit Copy to Scaling only.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.fallen.aces.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.fantasy.general.ii.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.far.lone.sails.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.fe.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.firewatch.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.five.nights.at.freddy.s.into.the.pit.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.flashback.2.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.for.the.king.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.for.the.king.ii.1",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.forgotten.23.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.front.mission.2.remake.1",
+      "sourceText": "Upgrade the R10G10B10A2_TYPELESS resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.gatekeeper.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ghost.of.a.tale.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ghost.of.a.tale.2",
+      "sourceText": "Enable in-game bloom; it can be disabled later in RenoDX.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.giggleland.terry.s.vegetable.patch.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.great.god.grove.1",
+      "sourceText": "Upgrade R11G11B10_FLOAT to Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.halve.demo.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.have.a.nice.death.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.heart.of.the.machine.1",
+      "sourceText": "Set Compatibility Scaling Offset to +1.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.herdling.1",
+      "sourceText": "Disable the game's native HDR in its configuration file.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.hollow.cocoon.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.hollow.cocoon.2",
+      "sourceText": "Set the game's Rendering Quality to 100%.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.hordelord.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.house.flipper.2.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.house.flipper.2.2",
+      "sourceText": "Change the game's Saturation control to refresh tonemapping and color grading.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.human.fall.flat.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.hunter.hunter.nen.impact.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.icey.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.in.sound.mind.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.incision.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.jotunnslayer.hordes.of.hel.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.jotunnslayer.hordes.of.hel.2",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.katamari.damacy.reroll.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.kaze.and.the.wild.masks.1",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.keep.talking.and.nobody.explodes.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.keywe.1",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.kill.knight.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.killer.frequency.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.kona.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.lego.voyagers.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.little.kitty.big.city.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.little.noah.scion.of.paradise.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.little.witch.in.the.woods.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.lost.in.random.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.lost.in.vivo.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.lumines.arise.1",
+      "sourceText": "Set the R11G11B10_FLOAT resource upgrade to Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.lysfanga.the.time.shift.warrior.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.mages.of.mystralia.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.mai.child.of.ages.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.maid.of.sker.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.metal.hellsinger.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.monument.valley.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.monument.valley.2.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.mouthwashing.1",
+      "sourceText": "Use Borderless display mode.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.mouthwashing.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.my.friend.pedro.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.my.friend.pedro.2",
+      "sourceText": "Restart the level to refresh tonemapping and color grading.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.my.friendly.neighborhood.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.necropolis.brutal.edition.1",
+      "sourceText": "Load ReShade through Ultimate ASI Loader for this 32-bit game.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.unity.neon.abyss.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.neoverse.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.new.super.lucky.s.tale.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.nocturnal.1",
+      "sourceText": "Upgrade the R10G10B10A2_TYPELESS resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.node.the.last.favor.of.the.antarii.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.nottolot.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.observation.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.oddworld.soulstorm.enhanced.edition.1",
+      "sourceText": "Upgrade the R10G10B10A2_TYPELESS resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.oddworld.soulstorm.enhanced.edition.2",
+      "sourceText": "Restart a checkpoint or level to refresh tonemapping and color grading.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.operation.wolf.returns.first.mission.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.order.13.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.order.13.2",
+      "sourceText": "Change the in-game Brightness setting to refresh tonemapping and color grading.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.outer.wilds.1",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.overcooked.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.overcooked.2.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.overcooked.all.you.can.eat.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.oxenfree.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.oxenfree.ii.lost.signals.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.party.club.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.peak.1",
+      "sourceText": "Launch the game with DirectX 11.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.pillars.of.eternity.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.pillars.of.eternity.ii.deadfire.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.playing.kafka.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.praey.for.the.gods.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.prince.of.persia.the.lost.crown.1",
+      "sourceText": "RenoDX cannot affect color grading beyond Peak and UI Brightness in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.prince.of.persia.the.lost.crown.2",
+      "sourceText": "Use the dedicated Luma Framework mod for full correction.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.unity.quern.undying.thoughts.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.r.e.p.o.1",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.reka.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.reset_display_controls",
+      "sourceText": "Keep the game's brightness, contrast, and gamma controls at their default values unless a title note says otherwise.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.reveil.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.road.96.mile.0.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.road.redemption.1",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.ruined.king.a.league.of.legends.storytm.1",
+      "sourceText": "The pause-menu background is broken.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.sektori.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.shadow.labyrinth.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.shadow.of.the.road.demo.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.shadows.awakening.1",
+      "sourceText": "Tonemapping and color-grading changes do not appear in real time.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.shadows.of.doubt.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.shape.of.dreams.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.shift.87.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.skate.story.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.skate.story.2",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.sker.ritual.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.sker.ritual.2",
+      "sourceText": "Open the game's graphics settings and select Apply to refresh tonemapping and color grading.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.songs.of.silence.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.soulstone.survivors.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.space.crew.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.spacebase.startopia.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.spiritfall.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.spooky.s.jump.scare.mansion.hd.renovation.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.stick.fight.the.game.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.streets.of.rogue.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.summoner.s.war.chronicles.1",
+      "sourceText": "Enable bloom in the game settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.super.crazy.rhythm.castle.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.superhot.1",
+      "sourceText": "Set Swapchain Encoding to Gamma.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.superhot.mind.control.delete.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.sworn.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.syberia.remastered.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.syberia.the.world.before.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.tainted.grail.conquest.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.tales.of.berseria.remastered.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.tales.of.berseria.remastered.2",
+      "sourceText": "The correction also affects animated FMV cutscenes.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.tales.of.the.shire.a.the.lord.of.the.ringstm.game.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.tales.of.xillia.remastered.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.teenage.mutant.ninja.turtles.mutants.unleashed.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.terratech.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.the.first.tree.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.the.karters.2.turbo.charged.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.the.knightling.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.the.pedestrian.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.the.rogue.prince.of.persia.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.the.upturned.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.tin.can.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.tinykin.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.touhou.dystopian.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.towa.and.the.guardians.of.the.sacred.tree.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.towaga.among.shadows.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.towaga.among.shadows.2",
+      "sourceText": "Enable post-processing in the game settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.trailmakers.1",
+      "sourceText": "Enable post-processing at any quality level.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.trailmakers.2",
+      "sourceText": "Enable Internal HDR in the game settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.turbo.golf.racing.1",
+      "sourceText": "Enable post-processing in the game's graphics settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.two.point.hospital.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.ultros.1",
+      "sourceText": "Enable color grading in the game settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.undying.1",
+      "sourceText": "When using FSR 1, set the R11G11B10_FLOAT resource upgrade to at least Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.unruly.heroes.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.v.rising.1",
+      "sourceText": "In solo play, toggle the Pause or Options menu to refresh the LUT.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.v.rising.2",
+      "sourceText": "In multiplayer, stand in sunlight or open Graphics > Calibrate Brightness and confirm the default value of 50 to refresh the LUT.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.valley.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.viewfinder.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.viewfinder.2",
+      "sourceText": "Enable post-processing in the game settings.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unity.void.crew.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.void.crew.2",
+      "sourceText": "DLSS clamps colors to BT.709.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.wasteland.2.directors.cut.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.wasteland.3.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.wavetale.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.we.were.here.expeditions.the.friendship.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.windblown.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.windowed",
+      "sourceText": "Avoid Exclusive Fullscreen; use Borderless or Windowed mode.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.witchspring.r.the.story.of.pieberry.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.wizard.with.a.gun.1",
+      "sourceText": "Enable RenoDX Swapchain Proxy.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unity.wizard.with.a.gun.2",
+      "sourceText": "Increase the Highlights slider substantially because the default highlights are dim.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unity.yooka.replaylee.1",
+      "sourceText": "Upgrade the R11G11B10_FLOAT resource format.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal_legacy.advanced_restart",
+      "sourceText": "Switch RenoDX from Simple to Advanced, then restart the game to unlock all sliders.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal_legacy.slider_refresh",
+      "sourceText": "In many Unreal games, slider changes appear only after changing scenes or returning from the menu.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.age.of.darkness.final.stand.1",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.aliens.dark.descent.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.aphelion.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.ashen.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.asterigos.curse.of.the.stars.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.atomic.heart.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.banishers.ghosts.of.new.eden.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.bloodstained.ritual.of.the.night.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.borderlands.3.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.bramble.the.mountain.king.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.bright.memory.infinite.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.bright.memory.infinite.2",
+      "sourceText": "Use DirectX 12.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.call.of.the.sea.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.cepheus.protocol.1",
+      "sourceText": "Use this upgrade when resolution scale or screen percentage differs from 100%.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.chernobylite.1",
+      "sourceText": "Use DirectX 12.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.chernobylite.2",
+      "sourceText": "Changing DLSS quality can temporarily disable the game's excessive sharpening, but the workaround must be repeated each session.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.chernobylite.3",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.chorus.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.clash.artifacts.of.chaos.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.colony.ship.a.post.earth.role.playing.game.1",
+      "sourceText": "Some menus and the loading screen still need fixes.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.crisis.core.ff7.reunion.1",
+      "sourceText": "RenoDX automatically upgrades B8G8R8A8_TYPELESS to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.daemon.x.machina.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.dahlia.view.1",
+      "sourceText": "Disable the game's broken native HDR, especially when using DirectX 12.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.dahlia.view.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.darksiders.3.1",
+      "sourceText": "Non-boss enemy health bars do not update correctly.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.darksiders.genesis.1",
+      "sourceText": "Some loading-screen text can render as solid blocks.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.darksiders.genesis.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.daymare.1994.sandcastle.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.deadlink.1",
+      "sourceText": "Use DirectX 12.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.deadlink.2",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.demon.slayer.kny.hinokami.chronicles.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.dnf.duel.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.dragon.ball.z.kakarot.1",
+      "sourceText": "Some colors remain inaccurate.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.dragon.ball.z.kakarot.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.dragon.quest.iii.hd.2d.remake.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.echo.point.nova.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.en.garde.1",
+      "sourceText": "DirectX 12 crashes; use DirectX 11.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unreal.enotria.the.last.song.1",
+      "sourceText": "Slider changes apply only after a scene change or after returning from the main menu.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.escape.from.ever.after.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.everspace.1",
+      "sourceText": "Use the 64-bit RSG-Win64-Shipping.exe. This configuration was tested only with the GOG release.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.everspace.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.everspace.2.1",
+      "sourceText": "Use DirectX 12.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.everspace.2.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.evil.west.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.flyknight.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.flyknight.filter_warning",
+      "sourceText": "In-game filters can alter HDR presentation.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.flyknight.limited_testing",
+      "sourceText": "This configuration has limited testing.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.forgive.me.father.1",
+      "sourceText": "Some text can render as solid blocks.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.forgive.me.father.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.fort.solis.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.ghostrunner-2.limited_testing",
+      "sourceText": "Tonemapping issues remain; testing was limited.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.ghostrunner.2.1",
+      "sourceText": "Output remains limited to BT.709.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.ghostrunner.2.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.gothic.1.remake.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.granblue.fantasy.versus.1",
+      "sourceText": "Character and map highlights are clamped to the UI brightness level.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.granblue.fantasy.versus.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.grounded.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.guilty.gear.strive.1",
+      "sourceText": "Health bars do not update, character selection can show corruption, and the tension meter is excessively bright.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unreal.guilty.gear.strive.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.hell.is.us.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.hell.is.us.2",
+      "sourceText": "This profile was tested only with the demo.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.hell.is.us.3",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.hogwarts.legacy.1",
+      "sourceText": "Use the build published in the RenoDX Unreal Engine channel.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.unreal.hyper.light.breaker.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.indika.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.industria.1",
+      "sourceText": "Use DirectX 12.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.industria.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.infinity.nikki.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.islands.of.insight.1",
+      "sourceText": "Output remains limited to BT.709.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.islands.of.insight.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.jdm.japanese.drift.master.1",
+      "sourceText": "Slider changes require a scene change before they appear.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.jdm.japanese.drift.master.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.journey.to.the.savage.planet.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.just.die.already.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.kena.bridge.of.spirits.1",
+      "sourceText": "Cutscene brightness is clamped to the UI brightness level.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.kingdom.hearts.iii.1",
+      "sourceText": "Texture flickering can occur.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.kingdom.hearts.iii.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.kitten.burst.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.lay.of.the.land.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.lego.2k.drive.1",
+      "sourceText": "The mod works without resource upgrades, although some vehicle headlights may still be clamped.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.life.is.strange.true.colors.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.lightyear.frontier.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.little.nightmares.iii.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.lords.of.the.fallen.2023.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.lords.of.the.fallen.2023.2",
+      "sourceText": "Disable Easy Anti-Cheat before using the mod.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.lords.of.the.fallen.2023.3",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.lost.soul.aside.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.lost.soul.aside.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.marvel.s.midnight.suns.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.marvel.s.midnight.suns.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.master.detective.archives.rain.code.plus.1",
+      "sourceText": "RenoDX automatically upgrades B8G8R8A8_TYPELESS to Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.metal.eden.1",
+      "sourceText": "The main menu and respawn screen can show corruption.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.metal.eden.2",
+      "sourceText": "This profile was tested only with the demo.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.metal.eden.3",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.metro.gravity.1",
+      "sourceText": "Use the SDR Grading Bypass color-grading preset.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.metro.gravity.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.miasma.chronicles.1",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.motorslice.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.murky.divers.1",
+      "sourceText": "Gamut clamping may be required.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.murky.divers.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.necromunda.hired.gun.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.neverness.to.everness.1",
+      "sourceText": "Follow the game's detailed RenoDX setup instructions.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.unreal.ninja.gaiden.2.black.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.ninja.gaiden.2.black.2",
+      "sourceText": "RenoDX slider changes do not apply in real time in this game.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.octopath.traveler.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.octopath.traveler.ii.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.outriders.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.palworld.1",
+      "sourceText": "Disable DLSS because it clamps output to SDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.palworld.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.palworld.limited_testing",
+      "sourceText": "This configuration has limited testing.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.police.simulator.patrol.officer.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.police.simulator.patrol.officer.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.psychonauts.2.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.reanimal.1",
+      "sourceText": "The game already provides a proper custom HDR implementation; RenoDX is generally unnecessary.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.redout.2.1",
+      "sourceText": "The game may crash with this profile.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unreal.redout.2.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.remnant.2.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.returnal.1",
+      "sourceText": "Disable the game's native HDR after every launch.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.returnal.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.runescape.dragonwilds.1",
+      "sourceText": "If the game is unstable, switch to DirectX 11 in its graphics settings.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.runescape.dragonwilds.2",
+      "sourceText": "Slider changes apply only after a scene change or after returning from the main menu.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.sackboy.a.big.adventure.1",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.scarlet.nexus.1",
+      "sourceText": "Visual-novel scenes are broken.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "renodx.unreal.scarlet.nexus.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.severed.steel.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.six.days.in.fallujah.1",
+      "sourceText": "A dark artifact can appear around the sun, and smoke may render too dark.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.six.days.in.fallujah.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.solar.ash.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.sonic.racing.crossworlds.1",
+      "sourceText": "Slider changes apply after restarting the track.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.sonic.racing.crossworlds.2",
+      "sourceText": "Bright elements are clamped to UI brightness, and the Water Palace sky remains excessively bright.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.sonic.racing.crossworlds.3",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.soulstice.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.south.of.midnight.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Ratio.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.split.fiction.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.split.fiction.2",
+      "sourceText": "Slider changes may require a scene change before they appear.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.spongebob.squarepants.battle.for.bikini.bottom.rehydrated.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.squirrel.with.a.gun.1",
+      "sourceText": "Set RenoDX Swap Chain Format to scRGB.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.stellar.blade.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.stellar.blade.2",
+      "sourceText": "On ultrawide displays, use the in-game Auto aspect ratio to avoid NIKKE minigame problems.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.styx.shards.of.darkness.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.sword.and.fairy.7.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.system.shock.remake.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.tales.of.arise.1",
+      "sourceText": "Bloom can occasionally render incorrectly.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.tales.of.arise.2",
+      "sourceText": "SMAA and SMAA + TAA are unsupported; use TAA or disable anti-aliasing.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.tales.of.kenzera.zau.1",
+      "sourceText": "Update libxess.dll before using XeSS to prevent crashes.",
+      "kind": "external_tool",
+      "context": "guidance.external_tool"
+    },
+    {
+      "id": "renodx.unreal.tales.of.kenzera.zau.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.tekken.7.1",
+      "sourceText": "Some stages are clamped to the UI brightness level.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.tekken.7.2",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.terminator.resistance.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.ascent.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.awesome.adventures.of.captain.spirit.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.cabin.factory.1",
+      "sourceText": "The mod works without resource upgrades, but color grading is not corrected.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.the.forgotten.city.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.invincible.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.medium.1",
+      "sourceText": "Disable the game's native HDR.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.the.medium.2",
+      "sourceText": "Highlights in the spirit world are clamped to the UI brightness level.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.the.medium.3",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.midnight.walk.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.occupation.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.outer.worlds.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.outer.worlds.spacer.s.choice.edition.1",
+      "sourceText": "This optional upgrade prevents HDR from being disabled in some scenes but breaks FMVs.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.outlast.trials.1",
+      "sourceText": "Set the R8G8B8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.smurfs.dreams.1",
+      "sourceText": "The RenoDX UI brightness slider also affects FMVs.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.the.smurfs.dreams.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.the.thaumaturge.1",
+      "sourceText": "Some scenes remain brightness-clamped.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.the.thaumaturge.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.threshold.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Any Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.thymesia.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.tiny.tina.s.wonderlands.1",
+      "sourceText": "Disable the game's FidelityFX Sharpening.",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "renodx.unreal.tiny.tina.s.wonderlands.2",
+      "sourceText": "Apply these RenoDX settings for this game.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.trek.to.yomi.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.vampire.the.masquerade.bloodlines.2.1",
+      "sourceText": "Cutscenes remain brightness-clamped.",
+      "kind": "compatibility",
+      "context": "guidance.compatibility"
+    },
+    {
+      "id": "renodx.unreal.vampire.the.masquerade.bloodlines.2.2",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.vampyr.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.warhammer.40.000.boltgun.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.we.happy.few.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.weird.west.1",
+      "sourceText": "Set the B8G8R8A8_TYPELESS resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    },
+    {
+      "id": "renodx.unreal.witchfire.1",
+      "sourceText": "Set the R10G10B10A2_UNORM resource upgrade to Output Size.",
+      "kind": "addon_setting",
+      "context": "guidance.addon_setting"
+    }
+  ]
+}

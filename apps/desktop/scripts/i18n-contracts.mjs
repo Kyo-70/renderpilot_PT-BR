@@ -16,6 +16,7 @@ import {
   validateLumaContract,
   validateNvapiContract,
   validateOptiscalerContract,
+  validateRenodxContract,
   validateExternalCatalogBoundaries,
   validateEditorialPolicy,
   validatePluralCategories,
@@ -27,6 +28,7 @@ import {
   renderLumaContract,
   renderNvapiContract,
   renderOptiscalerContract,
+  renderRenodxContract,
 } from './i18n-contracts/renderer.mjs';
 
 const APP_ROOT = path.resolve(import.meta.dirname, '..');
@@ -37,6 +39,7 @@ const INPUTS = {
   english: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/en.ts'),
   messageModel: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/model.ts'),
   luma: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma/source.generated.json'),
+  renodx: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/renodx/source.generated.json'),
   optiscaler: path.join(
     APP_ROOT,
     'ui/src/shared/i18n/messages/overrides/optiscaler/source.generated.json',
@@ -53,6 +56,7 @@ const INPUTS = {
 const OUTPUTS = {
   contractVersion: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/generated/contract-version.ts'),
   luma: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/luma/contract.generated.ts'),
+  renodx: path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/renodx/contract.generated.ts'),
   optiscaler: path.join(
     APP_ROOT,
     'ui/src/shared/i18n/messages/overrides/optiscaler/contract.generated.ts',
@@ -100,6 +104,10 @@ export function parseLumaContract(value) {
   return withInputContext(INPUTS.luma, () => validateLumaContract(value));
 }
 
+export function parseRenodxContract(value) {
+  return withInputContext(INPUTS.renodx, () => validateRenodxContract(value));
+}
+
 export function parseOptiscalerContract(value) {
   return withInputContext(INPUTS.optiscaler, () => validateOptiscalerContract(value));
 }
@@ -129,6 +137,7 @@ export {
   validateExternalCatalogBoundaries,
   validateLumaContract,
   validateOptiscalerContract,
+  validateRenodxContract,
 };
 
 export function formatGeneratedSource(filePath, source, configPath = FORMAT_CONFIG) {
@@ -140,6 +149,7 @@ export async function createI18nContractOutputs() {
     englishText,
     messageModelText,
     lumaText,
+    renodxText,
     optiscalerText,
     nvapiText,
     desktopCommandErrorsText,
@@ -149,6 +159,7 @@ export async function createI18nContractOutputs() {
     readFile(INPUTS.english, 'utf8'),
     readFile(INPUTS.messageModel, 'utf8'),
     readFile(INPUTS.luma, 'utf8'),
+    readFile(INPUTS.renodx, 'utf8'),
     readFile(INPUTS.optiscaler, 'utf8'),
     readFile(INPUTS.nvapi, 'utf8'),
     readFile(INPUTS.desktopCommandErrors, 'utf8'),
@@ -159,6 +170,9 @@ export async function createI18nContractOutputs() {
   const english = parseEnglishContract(englishText);
   const pluralCategories = parsePluralCategories(messageModelText);
   const luma = parseLumaContract(withInputContext(INPUTS.luma, () => parseJsonSource(lumaText)));
+  const renodx = parseRenodxContract(
+    withInputContext(INPUTS.renodx, () => parseJsonSource(renodxText)),
+  );
   const optiscaler = parseOptiscalerContract(
     withInputContext(INPUTS.optiscaler, () => parseJsonSource(optiscalerText)),
   );
@@ -176,13 +190,14 @@ export async function createI18nContractOutputs() {
   const editorialPolicy = withInputContext(INPUTS.editorialPolicy, () =>
     validateEditorialPolicy(parseJsonSource(editorialPolicyText), { english, nvapi }),
   );
-  validateExternalCatalogBoundaries(english, luma, nvapi, optiscaler);
+  validateExternalCatalogBoundaries(english, luma, nvapi, optiscaler, renodx);
   const contract = createSemanticContract({
     english,
     pluralCategories,
     luma,
     nvapi,
     optiscaler,
+    renodx,
   });
 
   return new Map(
@@ -190,6 +205,7 @@ export async function createI18nContractOutputs() {
       [
         [OUTPUTS.contractVersion, renderContractVersion(createContractVersion(contract))],
         [OUTPUTS.luma, renderLumaContract(luma)],
+        [OUTPUTS.renodx, renderRenodxContract(renodx)],
         [OUTPUTS.optiscaler, renderOptiscalerContract(optiscaler)],
         [
           OUTPUTS.nvapi,

@@ -46,8 +46,7 @@ export const lumaOverrides = defineLocalizedCatalog<'zh-Hant', LumaSourceCatalog
   'luma.filament.game_setting': '在遊戲設定中選擇 AA 「High」 或 「Very High」。',
   'luma.goat-simulator-3.game_setting': '在遊戲設定中選擇 High AA。',
   'luma.greedfall.warning': '此設定檔僅支援 DLSS，目前不支援 HDR。',
-  'luma.guilty-gear-strive.warning':
-    '反鋸齒在角色選擇畫面無效。遊戲內設定：AA 「Temporal Anti Aliasing」。在 Engine.ini 的 [SystemSettings] 下新增：r.DefaultFeature.AntiAliasing=2 與 r.PostProcessAAQuality=4。',
+  'luma.guilty-gear-strive.warning': '反鋸齒在角色選擇畫面無效。',
   'luma.hatsune-miku-project-diva-mega-mix-plus.warning':
     '若出現顯示異常，請避免使用獨佔全螢幕。按 Alt+Enter 可切換視窗模式。',
   'luma.heavy-rain.warning': '超寬螢幕支援可能僅在 Steam 上有效。',
@@ -69,8 +68,7 @@ export const lumaOverrides = defineLocalizedCatalog<'zh-Hant', LumaSourceCatalog
   'luma.metro-2033-redux.windowed_borderless_only': '請使用無邊框視窗模式。',
   'luma.middle-earth-shadow-of-war.dlss-only': '此設定檔僅支援 DLSS，目前不支援 HDR。',
   'luma.mothergunship.engine_ini': '請在 Engine.ini 中手動套用以下設定。',
-  'luma.mutant-year-zero-road-to-eden.game_setting':
-    '在遊戲設定中選擇：AA 「High」。為了獲得更清晰的動態畫面，建議在 Engine.ini 中設定 r.motionblur.amount=0。',
+  'luma.mutant-year-zero-road-to-eden.game_setting': '在遊戲設定中選擇：AA 「High」。',
   'luma.narutotoborutoshinobistriker.compatibility': '被 Easy Anti-Cheat 攔截。',
   'luma.no-more-heroes-3.engine_ini': '請在 Engine.ini 中手動套用以下設定。',
   'luma.octopath-traveler.engine_ini': '請在 Engine.ini 中手動套用以下設定。',
@@ -110,4 +108,13 @@ export const lumaOverrides = defineLocalizedCatalog<'zh-Hant', LumaSourceCatalog
   'luma.what-remains-of-edith-finch.engine_ini': '請在 Engine.ini 中手動套用以下設定。',
   'luma.what-remains-of-edith-finch.warning':
     '該遊戲在 4K 解析度下運作不穩定。在手動套用 Engine.ini 設定前，請將 Effects 設為 Low。',
+  'luma.guilty-gear-strive.game_setting': '在遊戲設定中選擇：AA 「Temporal Anti Aliasing」。',
+  'luma.guilty-gear-strive.engine_ini': '請在 Engine.ini 中手動套用以下設定。',
+  'luma.mutant-year-zero-road-to-eden.engine_ini':
+    '為了獲得更清晰的動態畫面，請在 Engine.ini 中套用以下設定。',
+  'luma.gylt.game_setting': '在遊戲設定中將 Upscaling Method 設為「TAAU, 100%」。',
+  'luma.gylt.engine_ini': '為了獲得更清晰的動態畫面，請在 Engine.ini 中套用以下設定。',
+  'luma.song-of-nunu.game_setting': '在遊戲設定中選擇：AA 「High」。',
+  'luma.song-of-nunu.engine_ini': '為減少時間抖動，請在 Engine.ini 中套用以下設定。',
+  'luma.song-of-nunu.warning': '植被與非常細小的細節可能出現明顯抖動。',
 });

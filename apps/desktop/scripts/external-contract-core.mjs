@@ -2,6 +2,17 @@ import { analyzeMessageTemplate } from '../ui/src/shared/i18n/messages/template.
 
 const LUMA_CONTEXT_PATTERN = /^(?:guidance\.[a-z][a-z0-9_]*|availability\.blocked)$/;
 const LUMA_MESSAGE_ID_PATTERN = /^luma\.[a-z0-9-]+\.[a-z0-9_-]+$/;
+const RENODX_CONTEXT_PATTERN = /^guidance\.[a-z][a-z0-9_]*$/;
+const RENODX_MESSAGE_ID_PATTERN = /^renodx\.[a-z0-9_-]+(?:\.[a-z0-9_-]+)*$/;
+export const RENODX_KINDS = Object.freeze([
+  'engine_ini',
+  'compatibility',
+  'warning',
+  'external_tool',
+  'game_setting',
+  'addon_setting',
+]);
+const RENODX_KIND_SET = new Set(RENODX_KINDS);
 const OPTISCALER_MESSAGE_ID_PATTERN = /^optiscaler-[a-z0-9-]+$/u;
 const OPTISCALER_KINDS = new Set(['compatibility', 'game_setting']);
 const NVAPI_IDENTIFIER_PATTERN = /^[a-z0-9_]+$/;
@@ -151,6 +162,58 @@ export function validateOptiscalerContract(value) {
     contexts[id] = context;
   }
 
+  return {
+    sourceCatalog: sortRecord(sourceCatalog),
+    contexts: sortRecord(contexts),
+  };
+}
+
+/** Validates the checked-in, reviewed RenoDX translation contract. */
+export function validateRenodxContract(value) {
+  assertExactKeys(value, ['schemaVersion', 'messages'], 'RenoDX contract');
+  if (value.schemaVersion !== 1) {
+    fail(`RenoDX contract has unsupported schemaVersion ${JSON.stringify(value.schemaVersion)}`);
+  }
+  if (!Array.isArray(value.messages)) {
+    fail('RenoDX contract messages must be an array');
+  }
+
+  const sourceCatalog = {};
+  const contexts = {};
+
+  for (const message of value.messages) {
+    assertExactKeys(message, ['id', 'sourceText', 'kind', 'context'], 'RenoDX message');
+    const id = nonEmptyString(message.id, 'RenoDX message ID');
+    if (!RENODX_MESSAGE_ID_PATTERN.test(id)) {
+      fail(`RenoDX message has invalid message ID ${JSON.stringify(id)}`);
+    }
+    if (Object.hasOwn(sourceCatalog, id)) {
+      fail(`duplicate RenoDX message ID ${id}`);
+    }
+    const sourceText = assertExternalSourceText(
+      message.sourceText,
+      `RenoDX message ${id} sourceText`,
+    );
+    const kind = nonEmptyString(message.kind, `RenoDX message ${id} kind`);
+    if (!RENODX_KIND_SET.has(kind)) {
+      fail(`RenoDX message ${id} has invalid kind ${JSON.stringify(kind)}`);
+    }
+    const context = nonEmptyString(message.context, `RenoDX message ${id} context`);
+    if (!RENODX_CONTEXT_PATTERN.test(context)) {
+      fail(`RenoDX message ${id} has invalid context ${JSON.stringify(context)}`);
+    }
+    if (context !== `guidance.${kind}`) {
+      fail(
+        `RenoDX message ${id} kind ${JSON.stringify(kind)} does not match context ${JSON.stringify(context)}`,
+      );
+    }
+    sourceCatalog[id] = sourceText;
+    contexts[id] = context;
+  }
+
+  if (Object.keys(sourceCatalog).length === 0) {
+    fail('RenoDX contract must contain at least one message');
+  }
   return {
     sourceCatalog: sortRecord(sourceCatalog),
     contexts: sortRecord(contexts),

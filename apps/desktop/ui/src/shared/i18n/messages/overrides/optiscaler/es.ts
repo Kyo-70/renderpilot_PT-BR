@@ -277,4 +277,14 @@ export const optiscalerOverrides = defineLocalizedCatalog<'es', OptiScalerSource
   'optiscaler-resident-evil-7-reframework-upscalerbase-plugin':
     'Este juego requiere REFramework (pd-upscaler branch) y UpscalerBasePlugin de PureDark versión 1.1.2.',
   'optiscaler-resident-evil-requiem-reframework': 'Este juego requiere REFramework.',
+  'optiscaler-assassins-creed-origins-dlss-mod':
+    'Este juego requiere un mod de DLSS de terceros para funcionar con OptiScaler.',
+  'optiscaler-ghost-recon-wildlands-dlss-mod':
+    'Este juego requiere un mod de DLSS de terceros para funcionar con OptiScaler.',
+  'optiscaler-elden-ring-erss-fg-mod':
+    'Se requiere el mod ERSS-FG como base para el escalado y la generación de fotogramas.',
+  'optiscaler-sekiro-shadows-die-twice-sekirotsr-mod':
+    'Se requiere el mod SekiroTSR como base para las entradas DLSS.',
+  'optiscaler-devil-may-cry-5-reframework-pdperfplugin':
+    'Este juego requiere REFramework (pd-upscaler branch) y PDPerfPlugin.',
 });

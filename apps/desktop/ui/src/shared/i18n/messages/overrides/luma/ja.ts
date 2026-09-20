@@ -55,8 +55,7 @@ export const lumaOverrides = defineLocalizedCatalog<'ja', LumaSourceCatalog>()({
   'luma.goat-simulator-3.game_setting': 'ゲーム設定で High AA を選択してください。',
   'luma.greedfall.warning':
     'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
-  'luma.guilty-gear-strive.warning':
-    'キャラクター選択画面ではアンチエイリアスが機能しません。ゲーム内設定: AA「Temporal Anti Aliasing」。Engine.ini の [SystemSettings] に追加: r.DefaultFeature.AntiAliasing=2 および r.PostProcessAAQuality=4。',
+  'luma.guilty-gear-strive.warning': 'キャラクター選択画面ではアンチエイリアスが機能しません。',
   'luma.hatsune-miku-project-diva-mega-mix-plus.warning':
     '表示に問題が生じる場合は排他的フルスクリーンを避けてください。Alt+Enter で表示モードを切り替えられます。',
   'luma.heavy-rain.warning': 'ウルトラワイド対応は Steam でのみ動作する可能性があります。',
@@ -80,8 +79,7 @@ export const lumaOverrides = defineLocalizedCatalog<'ja', LumaSourceCatalog>()({
   'luma.middle-earth-shadow-of-war.dlss-only':
     'このプロファイルは DLSS のみをサポートしています（現在 HDR には非対応）。',
   'luma.mothergunship.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
-  'luma.mutant-year-zero-road-to-eden.game_setting':
-    'ゲーム設定: AA「High」。動きの鮮明さを向上させるには、Engine.ini で r.motionblur.amount=0 を設定することを推奨します。',
+  'luma.mutant-year-zero-road-to-eden.game_setting': 'ゲーム設定: AA「High」。',
   'luma.narutotoborutoshinobistriker.compatibility': 'Easy Anti-Cheat によりブロックされます。',
   'luma.no-more-heroes-3.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
   'luma.octopath-traveler.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
@@ -126,4 +124,15 @@ export const lumaOverrides = defineLocalizedCatalog<'ja', LumaSourceCatalog>()({
   'luma.what-remains-of-edith-finch.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
   'luma.what-remains-of-edith-finch.warning':
     'ゲームは 4K 解像度で動作が不安定になります。手動で Engine.ini の設定を適用する前に Effects を Low に設定してください。',
+  'luma.guilty-gear-strive.game_setting': 'ゲーム設定: AA「Temporal Anti Aliasing」。',
+  'luma.guilty-gear-strive.engine_ini': '次の設定を Engine.ini に手動で適用してください。',
+  'luma.mutant-year-zero-road-to-eden.engine_ini':
+    '動きをより鮮明にするには、次の設定を Engine.ini に適用してください。',
+  'luma.gylt.game_setting': 'ゲーム設定の Upscaling Method を「TAAU, 100%」に設定してください。',
+  'luma.gylt.engine_ini': '動きをより鮮明にするには、次の設定を Engine.ini に適用してください。',
+  'luma.song-of-nunu.game_setting': 'ゲーム設定: AA「High」。',
+  'luma.song-of-nunu.engine_ini':
+    '時間的なちらつきを減らすには、次の設定を Engine.ini に適用してください。',
+  'luma.song-of-nunu.warning':
+    '植生や非常に細かいディテールで目立つちらつきが発生する場合があります。',
 });

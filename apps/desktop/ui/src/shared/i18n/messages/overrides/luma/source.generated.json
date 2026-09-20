@@ -219,7 +219,7 @@
     },
     {
       "id": "luma.guilty-gear-strive.warning",
-      "sourceText": "Anti-aliasing does not work on the character selection screen. In-game: AA \"Temporal Anti Aliasing\". In Engine.ini under [SystemSettings], add: r.DefaultFeature.AntiAliasing=2 and r.PostProcessAAQuality=4.",
+      "sourceText": "Anti-aliasing does not work on the character selection screen.",
       "kind": "warning",
       "context": "guidance.warning"
     },
@@ -327,7 +327,7 @@
     },
     {
       "id": "luma.mutant-year-zero-road-to-eden.game_setting",
-      "sourceText": "In the game settings, use: AA \"High\". For improved motion clarity, set r.motionblur.amount=0 in Engine.ini.",
+      "sourceText": "In the game settings, use: AA \"High\".",
       "kind": "game_setting",
       "context": "guidance.game_setting"
     },
@@ -538,6 +538,54 @@
     {
       "id": "luma.what-remains-of-edith-finch.warning",
       "sourceText": "The game is unstable at 4K resolution. Set Effects to Low before applying manual Engine.ini settings.",
+      "kind": "warning",
+      "context": "guidance.warning"
+    },
+    {
+      "id": "luma.guilty-gear-strive.game_setting",
+      "sourceText": "In the game settings, use: AA \"Temporal Anti Aliasing\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.guilty-gear-strive.engine_ini",
+      "sourceText": "Apply the following settings manually in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.mutant-year-zero-road-to-eden.engine_ini",
+      "sourceText": "For improved motion clarity, apply the following setting in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.gylt.game_setting",
+      "sourceText": "In the game settings, set Upscaling Method to \"TAAU, 100%\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.gylt.engine_ini",
+      "sourceText": "For improved motion clarity, apply the following setting in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.song-of-nunu.game_setting",
+      "sourceText": "In the game settings, use: AA \"High\".",
+      "kind": "game_setting",
+      "context": "guidance.game_setting"
+    },
+    {
+      "id": "luma.song-of-nunu.engine_ini",
+      "sourceText": "To reduce temporal jitter, apply the following setting in Engine.ini.",
+      "kind": "engine_ini",
+      "context": "guidance.engine_ini"
+    },
+    {
+      "id": "luma.song-of-nunu.warning",
+      "sourceText": "Visible jittering may occur in foliage and very small details.",
       "kind": "warning",
       "context": "guidance.warning"
     }

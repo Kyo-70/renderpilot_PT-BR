@@ -8,6 +8,8 @@ export const OPTISCALER_SOURCE_CATALOG = {
     'In the game settings, change the DLSS mode and apply the change.',
   'optiscaler-apocalypse-2-0-display-res-mv':
     'Disable Display Res.MV in the game settings to fix shimmer.',
+  'optiscaler-assassins-creed-origins-dlss-mod':
+    'A third-party DLSS mod is required for this game to work with OptiScaler.',
   'optiscaler-assassins-creed-shadows-overlay-hdr':
     'Disable the Ubisoft Connect in-game overlay and HDR while using OptiScaler to avoid severe ghosting.',
   'optiscaler-assetto-corsa-evo-fsr4-autoexposure':
@@ -64,6 +66,8 @@ export const OPTISCALER_SOURCE_CATALOG = {
   'optiscaler-deliver-us-mars-dx12': 'Run the game in DirectX 12 mode.',
   'optiscaler-deliver-us-the-moon-dx12': 'Run the game in DirectX 12 mode.',
   'optiscaler-destroy-all-humans-2-reprobed-dx12': 'Run the game in DirectX 12 mode.',
+  'optiscaler-devil-may-cry-5-reframework-pdperfplugin':
+    'REFramework (pd-upscaler branch) and PDPerfPlugin are required for this game to work.',
   'optiscaler-diablo-iv-dx12': 'Run the game in DirectX 12 mode.',
   'optiscaler-dream-eaters-fsr4-color-space':
     'When using FSR 4 with DLSS input, select the Non-Linear input color space.',
@@ -71,6 +75,8 @@ export const OPTISCALER_SOURCE_CATALOG = {
     'FSR Frame Generation is unavailable in this game.',
   'optiscaler-echoes-of-the-end-fsr4-color-space':
     'When using FSR 4, select the Non-Linear sRGB input color space to fix screen flicker.',
+  'optiscaler-elden-ring-erss-fg-mod':
+    'The ERSS-FG mod is required as a basis for upscaling and Frame Generation.',
   'optiscaler-escape-simulator-2-demo-dynamic-resolution':
     "Select DLSS in the Dynamic Resolution setting. Use OptiScaler's scale override to choose a different upscaling preset.",
   'optiscaler-evil-west-dx12': 'DirectX 11 can have lower performance and severe shimmer.',
@@ -93,6 +99,8 @@ export const OPTISCALER_SOURCE_CATALOG = {
   'optiscaler-frozenheim-dx12': "Use the game's DX12 mode.",
   'optiscaler-funko-fusion-fsr4-color-space':
     'Use FSR input. If FSR 4 flickers at the Balanced preset, select the Non-Linear sRGB input color space.',
+  'optiscaler-ghost-recon-wildlands-dlss-mod':
+    'A third-party DLSS mod is required for this game to work with OptiScaler.',
   'optiscaler-ghostrunner-2-dx12-performance':
     'For better performance, prefer FSR or XeSS mode, or use OptiPatcher.',
   'optiscaler-gothic-1-remake-sharpening':
@@ -192,6 +200,8 @@ export const OPTISCALER_SOURCE_CATALOG = {
   'optiscaler-scathe-dx12-fsr-input': 'FSR mode can crash the game.',
   'optiscaler-scp-secret-files-dx12':
     'Do not select an FSR 2 input; it can crash. DirectX 11 has lower performance and severe shimmer.',
+  'optiscaler-sekiro-shadows-die-twice-sekirotsr-mod':
+    'The SekiroTSR mod is required as a basis for DLSS inputs.',
   'optiscaler-shadow-warrior-3-dx12': 'DirectX 11 has lower performance and severe shimmer.',
   'optiscaler-shatterline-dx11-upscaler-quality':
     'In DX11, upscaler image quality can be worse than native.',
@@ -264,6 +274,7 @@ export const OPTISCALER_MESSAGE_CONTEXTS = {
   'optiscaler-akimbot-taa-dlss': 'game_setting',
   'optiscaler-alone-in-the-dark-2024-dx12-dlss': 'compatibility',
   'optiscaler-apocalypse-2-0-display-res-mv': 'game_setting',
+  'optiscaler-assassins-creed-origins-dlss-mod': 'compatibility',
   'optiscaler-assassins-creed-shadows-overlay-hdr': 'game_setting',
   'optiscaler-assetto-corsa-evo-fsr4-autoexposure': 'game_setting',
   'optiscaler-asterigos-fsr2-detection': 'game_setting',
@@ -296,10 +307,12 @@ export const OPTISCALER_MESSAGE_CONTEXTS = {
   'optiscaler-deliver-us-mars-dx12': 'compatibility',
   'optiscaler-deliver-us-the-moon-dx12': 'compatibility',
   'optiscaler-destroy-all-humans-2-reprobed-dx12': 'compatibility',
+  'optiscaler-devil-may-cry-5-reframework-pdperfplugin': 'compatibility',
   'optiscaler-diablo-iv-dx12': 'compatibility',
   'optiscaler-dream-eaters-fsr4-color-space': 'game_setting',
   'optiscaler-duskfade-demo-fsr-frame-generation': 'compatibility',
   'optiscaler-echoes-of-the-end-fsr4-color-space': 'game_setting',
+  'optiscaler-elden-ring-erss-fg-mod': 'compatibility',
   'optiscaler-escape-simulator-2-demo-dynamic-resolution': 'game_setting',
   'optiscaler-evil-west-dx12': 'compatibility',
   'optiscaler-f1-22-dlss-quality': 'game_setting',
@@ -312,6 +325,7 @@ export const OPTISCALER_MESSAGE_CONTEXTS = {
   'optiscaler-frostpunk-2-fsr4-color-space': 'game_setting',
   'optiscaler-frozenheim-dx12': 'compatibility',
   'optiscaler-funko-fusion-fsr4-color-space': 'game_setting',
+  'optiscaler-ghost-recon-wildlands-dlss-mod': 'compatibility',
   'optiscaler-ghostrunner-2-dx12-performance': 'compatibility',
   'optiscaler-gothic-1-remake-sharpening': 'game_setting',
   'optiscaler-greedland-input-reload': 'game_setting',
@@ -372,6 +386,7 @@ export const OPTISCALER_MESSAGE_CONTEXTS = {
   'optiscaler-saints-row-2022-dx12-fsr4': 'compatibility',
   'optiscaler-scathe-dx12-fsr-input': 'compatibility',
   'optiscaler-scp-secret-files-dx12': 'compatibility',
+  'optiscaler-sekiro-shadows-die-twice-sekirotsr-mod': 'compatibility',
   'optiscaler-shadow-warrior-3-dx12': 'compatibility',
   'optiscaler-shatterline-dx11-upscaler-quality': 'compatibility',
   'optiscaler-smile-protocol-demo-xefg': 'compatibility',

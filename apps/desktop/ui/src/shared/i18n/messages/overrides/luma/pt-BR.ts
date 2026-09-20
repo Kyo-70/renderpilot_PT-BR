@@ -62,7 +62,7 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
   'luma.greedfall.warning':
     'Este perfil oferece suporte apenas a DLSS; HDR não é compatível no momento.',
   'luma.guilty-gear-strive.warning':
-    'O antisserrilhamento não funciona na tela de seleção de personagens. No jogo, use AA “Temporal Anti Aliasing”. No Engine.ini, em [SystemSettings], adicione r.DefaultFeature.AntiAliasing=2 e r.PostProcessAAQuality=4.',
+    'O antisserrilhamento não funciona na tela de seleção de personagens.',
   'luma.hatsune-miku-project-diva-mega-mix-plus.warning':
     'Se ocorrerem problemas de exibição, evite o modo Exclusive Fullscreen. Pressione Alt+Enter para alternar os modos.',
   'luma.heavy-rain.warning': 'O suporte a ultrawide pode funcionar somente na versão Steam.',
@@ -88,7 +88,7 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
     'Este perfil oferece suporte apenas a DLSS; HDR não é compatível no momento.',
   'luma.mothergunship.engine_ini': 'Aplique manualmente as seguintes configurações no Engine.ini.',
   'luma.mutant-year-zero-road-to-eden.game_setting':
-    'Nas configurações do jogo, selecione AA “High”. Para melhorar a nitidez em movimento, defina r.motionblur.amount=0 no Engine.ini.',
+    'Nas configurações do jogo, selecione AA “High”.',
   'luma.narutotoborutoshinobistriker.compatibility': 'Bloqueado pelo Easy Anti-Cheat.',
   'luma.no-more-heroes-3.engine_ini':
     'Aplique manualmente as seguintes configurações no Engine.ini.',
@@ -144,4 +144,18 @@ export const lumaOverrides = defineLocalizedCatalog<'pt-BR', LumaSourceCatalog>(
     'Aplique manualmente as seguintes configurações no Engine.ini.',
   'luma.what-remains-of-edith-finch.warning':
     'O jogo fica instável em resolução 4K. Defina Effects como Low antes de aplicar manualmente as configurações no Engine.ini.',
+  'luma.guilty-gear-strive.game_setting':
+    'Nas configurações do jogo, use AA “Temporal Anti Aliasing”.',
+  'luma.guilty-gear-strive.engine_ini':
+    'Aplique manualmente as seguintes configurações no Engine.ini.',
+  'luma.mutant-year-zero-road-to-eden.engine_ini':
+    'Para melhorar a nitidez em movimento, aplique a seguinte configuração no Engine.ini.',
+  'luma.gylt.game_setting': 'Nas configurações do jogo, defina Upscaling Method como “TAAU, 100%”.',
+  'luma.gylt.engine_ini':
+    'Para melhorar a nitidez em movimento, aplique a seguinte configuração no Engine.ini.',
+  'luma.song-of-nunu.game_setting': 'Nas configurações do jogo, selecione AA “High”.',
+  'luma.song-of-nunu.engine_ini':
+    'Para reduzir a instabilidade temporal, aplique a seguinte configuração no Engine.ini.',
+  'luma.song-of-nunu.warning':
+    'Pode ocorrer instabilidade visível na vegetação e em detalhes muito pequenos.',
 });

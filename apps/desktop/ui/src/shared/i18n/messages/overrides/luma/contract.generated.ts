@@ -50,8 +50,12 @@ export const LUMA_SOURCE_CATALOG = {
   'luma.filament.game_setting': 'In the game settings, use: AA "High" or "Very High".',
   'luma.goat-simulator-3.game_setting': 'In the game settings, use: High AA.',
   'luma.greedfall.warning': 'This profile supports DLSS only; HDR is not currently supported.',
+  'luma.guilty-gear-strive.engine_ini': 'Apply the following settings manually in Engine.ini.',
+  'luma.guilty-gear-strive.game_setting': 'In the game settings, use: AA "Temporal Anti Aliasing".',
   'luma.guilty-gear-strive.warning':
-    'Anti-aliasing does not work on the character selection screen. In-game: AA "Temporal Anti Aliasing". In Engine.ini under [SystemSettings], add: r.DefaultFeature.AntiAliasing=2 and r.PostProcessAAQuality=4.',
+    'Anti-aliasing does not work on the character selection screen.',
+  'luma.gylt.engine_ini': 'For improved motion clarity, apply the following setting in Engine.ini.',
+  'luma.gylt.game_setting': 'In the game settings, set Upscaling Method to "TAAU, 100%".',
   'luma.hatsune-miku-project-diva-mega-mix-plus.warning':
     'If display issues occur, avoid Exclusive Fullscreen. Press Alt+Enter to switch modes.',
   'luma.heavy-rain.warning': 'Ultrawide support may only work on Steam.',
@@ -74,8 +78,9 @@ export const LUMA_SOURCE_CATALOG = {
   'luma.middle-earth-shadow-of-war.dlss-only':
     'This profile supports DLSS only; HDR is not currently supported.',
   'luma.mothergunship.engine_ini': 'Apply the following settings manually in Engine.ini.',
-  'luma.mutant-year-zero-road-to-eden.game_setting':
-    'In the game settings, use: AA "High". For improved motion clarity, set r.motionblur.amount=0 in Engine.ini.',
+  'luma.mutant-year-zero-road-to-eden.engine_ini':
+    'For improved motion clarity, apply the following setting in Engine.ini.',
+  'luma.mutant-year-zero-road-to-eden.game_setting': 'In the game settings, use: AA "High".',
   'luma.narutotoborutoshinobistriker.compatibility': 'Blocked by Easy Anti-Cheat.',
   'luma.no-more-heroes-3.engine_ini': 'Apply the following settings manually in Engine.ini.',
   'luma.octopath-traveler.engine_ini': 'Apply the following settings manually in Engine.ini.',
@@ -96,6 +101,10 @@ export const LUMA_SOURCE_CATALOG = {
     'The required -dx11 launch argument may reduce CPU performance. With Auto Exposure enabled, DLAA produces jagged edges on grass.',
   'luma.shin-megami-tensei-5-vengeance.warning': "Requires Lyall's Fix to force TAA.",
   'luma.solar-ash.engine_ini': 'Apply the following settings manually in Engine.ini.',
+  'luma.song-of-nunu.engine_ini':
+    'To reduce temporal jitter, apply the following setting in Engine.ini.',
+  'luma.song-of-nunu.game_setting': 'In the game settings, use: AA "High".',
+  'luma.song-of-nunu.warning': 'Visible jittering may occur in foliage and very small details.',
   'luma.spirit-of-the-north.game_setting': 'In the game settings, use: Graphics Quality "Ultra".',
   'luma.spongebob-squarepants-the-cosmic-shake.game_setting':
     'In the game settings, use: AA "Ultra".',
@@ -158,7 +167,11 @@ export const LUMA_MESSAGE_CONTEXTS = {
   'luma.filament.game_setting': 'guidance.game_setting',
   'luma.goat-simulator-3.game_setting': 'guidance.game_setting',
   'luma.greedfall.warning': 'guidance.warning',
+  'luma.guilty-gear-strive.engine_ini': 'guidance.engine_ini',
+  'luma.guilty-gear-strive.game_setting': 'guidance.game_setting',
   'luma.guilty-gear-strive.warning': 'guidance.warning',
+  'luma.gylt.engine_ini': 'guidance.engine_ini',
+  'luma.gylt.game_setting': 'guidance.game_setting',
   'luma.hatsune-miku-project-diva-mega-mix-plus.warning': 'guidance.warning',
   'luma.heavy-rain.warning': 'guidance.warning',
   'luma.hellletloose.compatibility': 'guidance.compatibility',
@@ -176,6 +189,7 @@ export const LUMA_MESSAGE_CONTEXTS = {
   'luma.metro-2033-redux.windowed_borderless_only': 'guidance.game_setting',
   'luma.middle-earth-shadow-of-war.dlss-only': 'guidance.compatibility',
   'luma.mothergunship.engine_ini': 'guidance.engine_ini',
+  'luma.mutant-year-zero-road-to-eden.engine_ini': 'guidance.engine_ini',
   'luma.mutant-year-zero-road-to-eden.game_setting': 'guidance.game_setting',
   'luma.narutotoborutoshinobistriker.compatibility': 'guidance.compatibility',
   'luma.no-more-heroes-3.engine_ini': 'guidance.engine_ini',
@@ -194,6 +208,9 @@ export const LUMA_MESSAGE_CONTEXTS = {
   'luma.sherlock-holmes-chapter-one.warning': 'guidance.warning',
   'luma.shin-megami-tensei-5-vengeance.warning': 'guidance.warning',
   'luma.solar-ash.engine_ini': 'guidance.engine_ini',
+  'luma.song-of-nunu.engine_ini': 'guidance.engine_ini',
+  'luma.song-of-nunu.game_setting': 'guidance.game_setting',
+  'luma.song-of-nunu.warning': 'guidance.warning',
   'luma.spirit-of-the-north.game_setting': 'guidance.game_setting',
   'luma.spongebob-squarepants-the-cosmic-shake.game_setting': 'guidance.game_setting',
   'luma.spyro-reignited-trilogy.game_setting': 'guidance.game_setting',

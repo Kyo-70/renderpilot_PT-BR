@@ -4,6 +4,7 @@ import {
   projectSupportedNvapiCatalog,
   validateLumaContract as validateLumaContractCore,
   validateOptiscalerContract as validateOptiscalerContractCore,
+  validateRenodxContract as validateRenodxContractCore,
 } from '../external-contract-core.mjs';
 
 function fail(message) {
@@ -372,12 +373,25 @@ export function validateOptiscalerContract(value) {
   }
 }
 
-export function validateExternalCatalogBoundaries(english, luma, nvapi, optiscaler) {
+/** Validates the reviewed RenoDX guidance-message source. */
+export function validateRenodxContract(value) {
+  try {
+    return validateRenodxContractCore(value);
+  } catch (cause) {
+    if (cause instanceof ExternalContractValidationError) {
+      fail(cause.message);
+    }
+    throw cause;
+  }
+}
+
+export function validateExternalCatalogBoundaries(english, luma, nvapi, optiscaler, renodx = null) {
   const owners = [
     ['English', Object.keys(english)],
     ['Luma', Object.keys(luma.sourceCatalog)],
     ['NVAPI', Object.keys(nvapi.sourceCatalog)],
     ['OptiScaler', Object.keys(optiscaler.sourceCatalog)],
+    ...(renodx ? [['RenoDX', Object.keys(renodx.sourceCatalog)]] : []),
   ];
   const seen = new Map();
   for (const [owner, keys] of owners) {

@@ -7,6 +7,8 @@ import { NVAPI_SOURCE_CATALOG } from '../messages/overrides/nvapi/contract.gener
 import { nvapiOverrides } from '../messages/overrides/nvapi/ja';
 import { optiscalerOverrides } from '../messages/overrides/optiscaler/ja';
 import { OPTISCALER_SOURCE_CATALOG } from '../messages/overrides/optiscaler/contract.generated';
+import { renodxOverrides } from '../messages/overrides/renodx/ja';
+import { RENODX_SOURCE_CATALOG } from '../messages/overrides/renodx/contract.generated';
 import type { LocalePack } from './types';
 
 const jaPack = {
@@ -17,6 +19,7 @@ const jaPack = {
     bindExternalMessages(LUMA_SOURCE_CATALOG, lumaOverrides),
     bindExternalMessages(NVAPI_SOURCE_CATALOG, nvapiOverrides),
     bindExternalMessages(OPTISCALER_SOURCE_CATALOG, optiscalerOverrides),
+    bindExternalMessages(RENODX_SOURCE_CATALOG, renodxOverrides),
   ),
 } as const satisfies LocalePack;
 

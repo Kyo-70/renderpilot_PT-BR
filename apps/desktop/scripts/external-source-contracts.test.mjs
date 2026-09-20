@@ -7,9 +7,11 @@ import {
   verifyLumaSourceContract,
   verifyNvapiSourceContract,
   verifyOptiscalerSourceContract,
+  verifyRenodxSourceContract,
 } from './external-source-contracts.mjs';
 import { projectLumaI18nSource } from './luma-i18n-sync.mjs';
 import { projectOptiscalerI18nSource } from './optiscaler-i18n-sync.mjs';
+import { projectRenodxI18nSource } from './renodx-i18n-sync.mjs';
 
 const lumaContract = {
   schemaVersion: 1,
@@ -80,6 +82,35 @@ test('Luma source check requires the exact reviewed message tuple', () => {
         messages: [{ ...lumaProducer.messages[0], context: 'guidance.compatibility' }],
       }),
     /changed/,
+  );
+  assert.throws(
+    () =>
+      verifyLumaSourceContract(lumaContract, {
+        ...lumaProducer,
+        messages: [
+          {
+            ...lumaProducer.messages[0],
+            sourceText: lumaContract.messages[0].sourceText,
+            fallback_text: 'Changed.',
+          },
+        ],
+      }),
+    /changed/,
+  );
+  assert.throws(
+    () =>
+      verifyLumaSourceContract(lumaContract, {
+        ...lumaProducer,
+        messages: [
+          {
+            id: lumaProducer.messages[0].id,
+            sourceText: lumaContract.messages[0].sourceText,
+            kind: lumaProducer.messages[0].kind,
+            context: lumaProducer.messages[0].context,
+          },
+        ],
+      }),
+    /fallback text must be a non-empty string/,
   );
   assert.throws(
     () =>
@@ -424,6 +455,180 @@ test('OptiScaler i18n projection requires one complete canonical producer catalo
   assert.throws(
     () =>
       projectOptiscalerI18nSource({
+        ...producer,
+        messages: [
+          { ...producer.messages[0], translations: { ...translations, de: 'Hallo {name}' } },
+        ],
+      }),
+    /must not contain placeholders/,
+  );
+});
+
+const renodxContract = {
+  schemaVersion: 1,
+  messages: [
+    {
+      id: 'renodx.game.warning',
+      sourceText: 'Careful.',
+      kind: 'warning',
+      context: 'guidance.warning',
+    },
+  ],
+};
+const renodxProducer = {
+  schema_version: 1,
+  messages: [
+    {
+      id: 'renodx.game.warning',
+      fallback_text: 'Careful.',
+      kind: 'warning',
+      context: 'guidance.warning',
+      translations: {
+        de: 'Vorsichtig.',
+        es: 'Cuidado.',
+        fr: 'Attention.',
+        ja: '注意。',
+        'pt-BR': 'Cuidado.',
+        ru: 'Осторожно.',
+        'zh-Hans': '小心。',
+        'zh-Hant': '小心。',
+      },
+    },
+  ],
+};
+
+test('RenoDX source check requires the exact reviewed message tuple', () => {
+  assert.deepEqual(verifyRenodxSourceContract(renodxContract, renodxProducer), { messageCount: 1 });
+  assert.throws(
+    () => verifyRenodxSourceContract(renodxContract, { ...renodxProducer, messages: [] }),
+    /message count differs/,
+  );
+  assert.throws(
+    () =>
+      verifyRenodxSourceContract(renodxContract, {
+        ...renodxProducer,
+        messages: [{ ...renodxProducer.messages[0], fallback_text: 'Changed.' }],
+      }),
+    /changed/,
+  );
+  assert.throws(
+    () =>
+      verifyRenodxSourceContract(renodxContract, {
+        ...renodxProducer,
+        messages: [{ ...renodxProducer.messages[0], context: 'guidance.compatibility' }],
+      }),
+    /changed/,
+  );
+  assert.throws(
+    () =>
+      verifyRenodxSourceContract(renodxContract, {
+        ...renodxProducer,
+        messages: [
+          {
+            ...renodxProducer.messages[0],
+            sourceText: renodxContract.messages[0].sourceText,
+            fallback_text: 'Changed.',
+          },
+        ],
+      }),
+    /changed/,
+  );
+  assert.throws(
+    () =>
+      verifyRenodxSourceContract(renodxContract, {
+        ...renodxProducer,
+        messages: [
+          {
+            id: renodxProducer.messages[0].id,
+            sourceText: renodxContract.messages[0].sourceText,
+            kind: renodxProducer.messages[0].kind,
+            context: renodxProducer.messages[0].context,
+          },
+        ],
+      }),
+    /fallback text must be a non-empty string/,
+  );
+  assert.throws(
+    () =>
+      verifyRenodxSourceContract(renodxContract, {
+        ...renodxProducer,
+        messages: [renodxProducer.messages[0], renodxProducer.messages[0]],
+      }),
+    /duplicate RenoDX message ID/,
+  );
+});
+
+test('RenoDX i18n projection requires one complete canonical producer catalog', () => {
+  const translations = {
+    de: 'Hinweis.',
+    es: 'Aviso.',
+    fr: 'Conseil.',
+    ja: '案内。',
+    'pt-BR': 'Orientação.',
+    ru: 'Подсказка.',
+    'zh-Hans': '提示。',
+    'zh-Hant': '提示。',
+  };
+  const producer = {
+    schema_version: 1,
+    messages: [
+      {
+        id: 'renodx.game.note',
+        fallback_text: 'Hint.',
+        kind: 'compatibility',
+        context: 'guidance.compatibility',
+        translations,
+      },
+    ],
+  };
+
+  assert.deepEqual(projectRenodxI18nSource(producer), {
+    contract: {
+      schemaVersion: 1,
+      messages: [
+        {
+          id: 'renodx.game.note',
+          sourceText: 'Hint.',
+          kind: 'compatibility',
+          context: 'guidance.compatibility',
+        },
+      ],
+    },
+    localized: Object.fromEntries(
+      Object.entries(translations).map(([locale, translation]) => [
+        locale,
+        { 'renodx.game.note': translation },
+      ]),
+    ),
+  });
+
+  assert.throws(
+    () =>
+      projectRenodxI18nSource({
+        ...producer,
+        schema_version: 2,
+      }),
+    /unsupported shape/,
+  );
+  assert.throws(
+    () =>
+      projectRenodxI18nSource({
+        ...producer,
+        messages: [{ ...producer.messages[0], id: 'bad_id' }],
+      }),
+    /invalid message ID/,
+  );
+  assert.throws(
+    () =>
+      projectRenodxI18nSource({
+        ...producer,
+        messages: [{ ...producer.messages[0], fallback_text: 'Hello {name}' }],
+      }),
+    /must not contain placeholders/,
+  );
+  assert.throws(
+    () =>
+      projectRenodxI18nSource({
         ...producer,
         messages: [
           { ...producer.messages[0], translations: { ...translations, de: 'Hallo {name}' } },

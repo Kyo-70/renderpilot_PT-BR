@@ -3,6 +3,7 @@ import {
   projectSupportedNvapiCatalog as projectSupportedNvapiCatalogCore,
   validateLumaContract as validateLumaContractCore,
   validateOptiscalerContract as validateOptiscalerContractCore,
+  validateRenodxContract as validateRenodxContractCore,
 } from './external-contract-core.mjs';
 
 function fail(message, cause) {
@@ -34,13 +35,13 @@ export function verifyLumaSourceContract(contract, producer) {
   if (producer?.schema_version !== 1 || !Array.isArray(producer.messages)) {
     fail('Luma producer message contract has an unsupported shape');
   }
-  const project = (messages, sourceName) => {
+  const project = (messages, sourceName, textField) => {
     const result = new Map();
     for (const message of messages) {
       const id = nonEmptyString(message?.id, `${sourceName} message id`);
       const sourceText = nonEmptyString(
-        message?.sourceText ?? message?.fallback_text,
-        `${sourceName} message ${id} source text`,
+        message?.[textField],
+        `${sourceName} message ${id} ${textField === 'sourceText' ? 'source text' : 'fallback text'}`,
       );
       const kind = nonEmptyString(message?.kind, `${sourceName} message ${id} kind`);
       const context = nonEmptyString(message?.context, `${sourceName} message ${id} context`);
@@ -51,8 +52,8 @@ export function verifyLumaSourceContract(contract, producer) {
     }
     return result;
   };
-  const checked = project(contract.messages, 'checked-in');
-  const actual = project(producer.messages, 'producer');
+  const checked = project(contract.messages, 'checked-in', 'sourceText');
+  const actual = project(producer.messages, 'producer', 'fallback_text');
   if (checked.size !== actual.size) {
     fail(
       `Luma source contract message count differs from producer (${checked.size} vs ${actual.size})`,
@@ -108,16 +109,16 @@ export function verifyOptiscalerSourceContract(contract, producer) {
   if (producer?.schema_version !== 1 || !Array.isArray(producer.messages)) {
     fail('OptiScaler producer message contract has an unsupported shape');
   }
-  const project = (messages, sourceName) => {
+  const project = (messages, sourceName, textField) => {
     const result = new Map();
     for (const message of messages) {
       const id = nonEmptyString(message?.id, `${sourceName} message id`);
       const sourceText = nonEmptyString(
-        message?.sourceText ?? message?.fallback_text,
-        `${sourceName} message ${id} source text`,
+        message?.[textField],
+        `${sourceName} message ${id} ${textField === 'sourceText' ? 'source text' : 'fallback text'}`,
       );
       const kind = nonEmptyString(
-        message?.kind ?? message?.guidance_kind,
+        sourceName === 'producer' ? (message?.kind ?? message?.guidance_kind) : message?.kind,
         `${sourceName} message ${id} kind`,
       );
       const context = nonEmptyString(message?.context, `${sourceName} message ${id} context`);
@@ -128,8 +129,8 @@ export function verifyOptiscalerSourceContract(contract, producer) {
     }
     return result;
   };
-  const checked = project(contract.messages, 'checked-in');
-  const actual = project(producer.messages, 'producer');
+  const checked = project(contract.messages, 'checked-in', 'sourceText');
+  const actual = project(producer.messages, 'producer', 'fallback_text');
   if (checked.size !== actual.size) {
     fail(
       `OptiScaler source contract message count differs from producer (${checked.size} vs ${actual.size})`,
@@ -146,6 +147,53 @@ export function verifyOptiscalerSourceContract(contract, producer) {
       candidate.context !== expected.context
     ) {
       fail(`OptiScaler source contract changed for ${id}`);
+    }
+  }
+  return { messageCount: actual.size };
+}
+
+/** Verifies the checked-in RenoDX source contract against the producer's
+ * reviewed guidance-message contract. */
+export function verifyRenodxSourceContract(contract, producer) {
+  validate(() => validateRenodxContractCore(contract));
+  if (producer?.schema_version !== 1 || !Array.isArray(producer.messages)) {
+    fail('RenoDX producer message contract has an unsupported shape');
+  }
+  const project = (messages, sourceName, textField) => {
+    const result = new Map();
+    for (const message of messages) {
+      const id = nonEmptyString(message?.id, `${sourceName} message id`);
+      const sourceText = nonEmptyString(
+        message?.[textField],
+        `${sourceName} message ${id} ${textField === 'sourceText' ? 'source text' : 'fallback text'}`,
+      );
+      const kind = nonEmptyString(message?.kind, `${sourceName} message ${id} kind`);
+      const context = nonEmptyString(message?.context, `${sourceName} message ${id} context`);
+      if (result.has(id)) {
+        fail(`duplicate RenoDX message ID ${id}`);
+      }
+      result.set(id, { sourceText, kind, context });
+    }
+    return result;
+  };
+  const checked = project(contract.messages, 'checked-in', 'sourceText');
+  const actual = project(producer.messages, 'producer', 'fallback_text');
+  if (checked.size !== actual.size) {
+    fail(
+      `RenoDX source contract message count differs from producer (${checked.size} vs ${actual.size})`,
+    );
+  }
+  for (const [id, expected] of actual) {
+    const candidate = checked.get(id);
+    if (candidate === undefined) {
+      fail(`RenoDX source contract is missing producer message ${id}`);
+    }
+    if (
+      candidate.sourceText !== expected.sourceText ||
+      candidate.kind !== expected.kind ||
+      candidate.context !== expected.context
+    ) {
+      fail(`RenoDX source contract changed for ${id}`);
     }
   }
   return { messageCount: actual.size };

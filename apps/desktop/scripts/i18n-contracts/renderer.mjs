@@ -59,6 +59,18 @@ export type OptiScalerTranslations = Readonly<Record<OptiScalerMessageKey, strin
 `;
 }
 
+export function renderRenodxContract({ sourceCatalog, contexts }) {
+  return `${GENERATED_HEADER}
+export const RENODX_SOURCE_CATALOG = ${JSON.stringify(sourceCatalog, null, 2)} as const;
+export const RENODX_MESSAGE_CONTEXTS = ${JSON.stringify(contexts, null, 2)} as const;
+
+export type RenoDxSourceCatalog = typeof RENODX_SOURCE_CATALOG;
+export type RenoDxMessageKey = keyof RenoDxSourceCatalog;
+export type RenoDxMessageContext = (typeof RENODX_MESSAGE_CONTEXTS)[RenoDxMessageKey];
+export type RenoDxTranslations = Readonly<Record<RenoDxMessageKey, string>>;
+`;
+}
+
 export function renderContractVersion(version) {
   return `${GENERATED_HEADER}
 export const MESSAGE_CONTRACT_VERSION = ${JSON.stringify(version)} as const;

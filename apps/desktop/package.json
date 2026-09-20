@@ -21,6 +21,7 @@
     "i18n:check": "node scripts/generate-i18n-contracts.mjs --check",
     "i18n:luma-sync": "node scripts/sync-luma-i18n.mjs",
     "i18n:optiscaler-sync": "node scripts/sync-optiscaler-i18n.mjs",
+    "i18n:renodx-sync": "node scripts/sync-renodx-i18n.mjs",
     "i18n:source-check": "node scripts/check-external-source-contracts.mjs",
     "i18n:review": "node scripts/i18n-review.mjs",
     "i18n:test": "node --test scripts/i18n-contracts.test.mjs scripts/external-source-contracts.test.mjs scripts/i18n-review.test.mjs scripts/i18n-bundle-boundaries.test.mjs scripts/accessibility-contracts.test.mjs",

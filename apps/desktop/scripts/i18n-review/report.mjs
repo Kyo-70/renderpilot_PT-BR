@@ -12,6 +12,7 @@ import {
   ExternalContractValidationError,
   projectSupportedNvapiCatalog,
   validateLumaContract,
+  validateRenodxContract,
 } from '../external-contract-core.mjs';
 import { validateOptiscalerContract } from '../i18n-contracts/validator.mjs';
 
@@ -96,14 +97,17 @@ export async function createReviewReport(locale) {
     APP_ROOT,
     'ui/src/shared/i18n/messages/overrides/optiscaler',
   );
+  const renodxDirectory = path.join(APP_ROOT, 'ui/src/shared/i18n/messages/overrides/renodx');
   const [
     lumaContract,
     nvapiCatalog,
     optiscalerContract,
+    renodxContract,
     editorialPolicy,
     lumaSource,
     nvapiSource,
     optiscalerSource,
+    renodxSource,
   ] = await Promise.all([
     readJson(path.join(lumaDirectory, 'source.generated.json')),
     readJson(
@@ -113,10 +117,12 @@ export async function createReviewReport(locale) {
       ),
     ),
     readJson(path.join(optiscalerDirectory, 'source.generated.json')),
+    readJson(path.join(renodxDirectory, 'source.generated.json')),
     readJson(path.join(APP_ROOT, 'data/i18n-editorial-policy.json')),
     readFile(path.join(lumaDirectory, `${locale}.ts`), 'utf8'),
     readFile(path.join(nvapiDirectory, `${locale}.ts`), 'utf8'),
     readFile(path.join(optiscalerDirectory, `${locale}.ts`), 'utf8'),
+    readFile(path.join(renodxDirectory, `${locale}.ts`), 'utf8'),
   ]);
 
   const lumaTranslations = parseTranslationSource(lumaSource, `luma/${locale}.ts`, {
@@ -129,15 +135,21 @@ export async function createReviewReport(locale) {
     `optiscaler/${locale}.ts`,
     { variableName: 'optiscalerOverrides', factoryName: 'defineLocalizedCatalog' },
   );
+  const renodxTranslations = parseTranslationSource(renodxSource, `renodx/${locale}.ts`, {
+    variableName: 'renodxOverrides',
+    factoryName: 'defineLocalizedCatalog',
+  });
   const luma = validateExternalContract(() => validateLumaContract(lumaContract));
   const nvapi = validateExternalContract(() => projectSupportedNvapiCatalog(nvapiCatalog));
   const optiscaler = validateOptiscalerContract(optiscalerContract);
+  const renodx = validateExternalContract(() => validateRenodxContract(renodxContract));
   assertExactKeys(lumaTranslations, Object.keys(luma.sourceCatalog), `Luma ${locale}`);
   assertExactKeys(
     optiscalerTranslations,
     Object.keys(optiscaler.sourceCatalog),
     `OptiScaler ${locale}`,
   );
+  assertExactKeys(renodxTranslations, Object.keys(renodx.sourceCatalog), `RenoDX ${locale}`);
 
   const verbatim = new Set(editorialPolicy.nvapiVerbatimValues);
   const nvapiSources = [];
@@ -166,7 +178,13 @@ export async function createReviewReport(locale) {
     source,
     translation: optiscalerTranslations[key],
   }));
-  const messages = [...lumaRows, ...nvapiRows, ...optiscalerRows];
+  const renodxRows = Object.entries(renodx.sourceCatalog).map(([key, source]) => ({
+    key,
+    context: renodx.contexts[key],
+    source,
+    translation: renodxTranslations[key],
+  }));
+  const messages = [...lumaRows, ...nvapiRows, ...optiscalerRows, ...renodxRows];
   for (const row of messages) {
     if (typeof row.translation !== 'string' || row.translation.trim() === '') {
       fail(`${locale} has no translation for ${row.key}`);
