@@ -323,15 +323,45 @@ async fn check_dlss_fix(record: &InstalledAddon) -> Option<UpdateStatus> {
                 return Some(UpdateStatus::UnknownNeedsValidation);
             };
             let source = binding.source?;
-            // A validator is only a network optimization for the main add-on.
-            // DLSS-Fix availability compares *live* target bytes to upstream so a
-            // manually changed managed file remains safely updateable/removable.
+            // A validator is a safe optimization only when the live target still
+            // matches the recorded source digest and there is a stored validator
+            // to compare. Otherwise skip the inconclusive HEAD request and let the
+            // authoritative fetch below compare the live target bytes to upstream.
+            if digest == source.digest()
+                && source.etag().is_some()
+                && let Ok(validators) = head_validators(source.url(), "DLSS-Fix update check").await
+            {
+                let current = validators.cache_validator();
+                if let Some(status) = dlss_fix_validator_fast_path(
+                    &digest,
+                    source.digest(),
+                    source.etag(),
+                    current.as_deref(),
+                ) {
+                    return Some(status);
+                }
+            }
             match fetch::fetch_addon(source.url(), "DLSS-Fix", None).await {
                 Ok(download) => Some(digest_verdict(&digest, &download.digest)),
                 Err(_) => Some(UpdateStatus::Unknown),
             }
         }
     }
+}
+
+/// Returns the validator verdict only when both the live file and its recorded
+/// source digest agree. A matching validator without that local digest guard is
+/// insufficient because the managed file may have been edited in place.
+fn dlss_fix_validator_fast_path(
+    live_digest: &str,
+    recorded_digest: &str,
+    stored_validator: Option<&str>,
+    current_validator: Option<&str>,
+) -> Option<UpdateStatus> {
+    if live_digest != recorded_digest {
+        return None;
+    }
+    validator_fast_path(stored_validator, current_validator)
 }
 
 /// Checks the selected ReShade channel against the standard layer on disk.
@@ -474,6 +504,34 @@ mod tests {
         let other =
             other_channel_source(&reshade_sources, ReshadeChannel::Nightly, Architecture::X64);
         assert!(other.is_none());
+    }
+
+    #[test]
+    fn dlss_fix_validator_fast_path_requires_matching_live_and_recorded_digests() {
+        assert_eq!(
+            dlss_fix_validator_fast_path("same", "same", Some("etag"), Some("etag")),
+            Some(UpdateStatus::Current)
+        );
+        assert_eq!(
+            dlss_fix_validator_fast_path("edited", "same", Some("etag"), Some("etag")),
+            None
+        );
+    }
+
+    #[test]
+    fn dlss_fix_validator_fast_path_defers_when_validator_is_not_conclusive() {
+        assert_eq!(
+            dlss_fix_validator_fast_path("same", "same", Some("old"), Some("new")),
+            None
+        );
+        assert_eq!(
+            dlss_fix_validator_fast_path("same", "same", None, Some("etag")),
+            None
+        );
+        assert_eq!(
+            dlss_fix_validator_fast_path("same", "same", Some("etag"), None),
+            None
+        );
     }
 
     #[test]

@@ -56,6 +56,45 @@ describe('presentDlssFix', () => {
     });
   });
 
+  it.each([
+    ['current', 'current'],
+    ['unknown', 'unknown'],
+    ['unknown_needs_validation', 'unknown_needs_validation'],
+    ['channel_mismatch', 'channel_mismatch'],
+    ['no verdict', null],
+    ['an unavailable verdict', undefined],
+  ] as const)('does not offer an update for a bound companion with %s', (_, updateStatus) => {
+    expect(
+      presentDlssFix({
+        availability: binding('bound', ['update', 'remove']),
+        fallbackEvidencePresent: false,
+        updateStatus,
+      }),
+    ).toEqual({
+      kind: 'component',
+      primaryAction: null,
+      canRemove: true,
+      descriptionKey: 'gameDetails.renodx.component.dlssFixDesc',
+      status: updateStatus ?? undefined,
+    });
+  });
+
+  it('fails closed when a hidden update capability conflicts with another primary action', () => {
+    expect(
+      presentDlssFix({
+        availability: binding('bound', ['install', 'update', 'remove']),
+        fallbackEvidencePresent: false,
+        updateStatus: 'current',
+      }),
+    ).toEqual({
+      kind: 'component',
+      primaryAction: null,
+      canRemove: true,
+      descriptionKey: 'gameDetails.renodx.component.dlssFixDesc',
+      status: 'unknown_needs_validation',
+    });
+  });
+
   it('uses the dedicated repair label for partial evidence', () => {
     expect(
       presentDlssFix({

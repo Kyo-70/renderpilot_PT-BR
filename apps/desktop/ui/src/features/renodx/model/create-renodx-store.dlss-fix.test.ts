@@ -177,11 +177,12 @@ describe('createRenoDxStore', () => {
     expect(ok).toBe('ok');
     expect(api.installDlssFix).toHaveBeenCalledWith('steam:1091500');
     // After install, the backend reports a DlssFix tracked source, so the state
-    // carries DLSS-Fix evidence and the refreshed action projection exposes a
-    // single update action plus independent removal capability.
+    // carries DLSS-Fix evidence and the refreshed action projection retains
+    // independent removal capability. The update capability is not presented
+    // until the dedicated update probe reports an available verdict.
     expect(store.dlssFix).toMatchObject({
       kind: 'component',
-      primaryAction: { kind: 'update' },
+      primaryAction: null,
       canRemove: true,
     });
   });

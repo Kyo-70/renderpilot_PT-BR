@@ -24,7 +24,7 @@ export type DlssFixPresentation =
 type DlssFixPresentationInput = {
   availability: DlssFixAvailability | null;
   fallbackEvidencePresent: boolean;
-  updateStatus: UpdateStatus | null;
+  updateStatus: UpdateStatus | null | undefined;
 };
 
 const PRIMARY_ACTION_LABELS = {
@@ -38,7 +38,9 @@ const PRIMARY_ACTION_LABELS = {
  *
  * The backend remains the sole authority for allowed actions. This presenter
  * only selects the single primary button and display metadata; it never
- * re-derives ownership policy from the binding state.
+ * re-derives ownership policy from the binding state. The `update` capability
+ * means the dedicated route is allowed, while an `available` verdict means it
+ * is appropriate to offer that route to the user.
  */
 export function presentDlssFix({
   availability,
@@ -55,7 +57,7 @@ export function presentDlssFix({
     return { kind: 'hidden' };
   }
 
-  const primaryActionKind = selectPrimaryAction(actions);
+  const primaryActionKind = selectPrimaryAction(actions, updateStatus);
   return {
     kind: 'component',
     primaryAction: primaryActionKind
@@ -72,15 +74,17 @@ export function presentDlssFix({
   };
 }
 
-function selectPrimaryAction(actions: readonly DlssFixAction[]): DlssFixPrimaryActionKind | null {
-  let selected: DlssFixPrimaryActionKind | null = null;
-  for (const action of actions) {
-    if (isPrimaryAction(action)) {
-      if (selected) {
-        return null;
-      }
-      selected = action;
-    }
+function selectPrimaryAction(
+  actions: readonly DlssFixAction[],
+  updateStatus: UpdateStatus | null | undefined,
+): DlssFixPrimaryActionKind | null {
+  const primaryActions = actions.filter(isPrimaryAction);
+  if (primaryActions.length !== 1) {
+    return null;
+  }
+  const [selected] = primaryActions;
+  if (selected === 'update' && updateStatus !== 'available') {
+    return null;
   }
   return selected;
 }
@@ -89,10 +93,9 @@ function resolveStatus(
   actions: readonly DlssFixAction[],
   primaryAction: DlssFixPrimaryActionKind | null,
   evidencePresent: boolean,
-  updateStatus: UpdateStatus | null,
+  updateStatus: UpdateStatus | null | undefined,
 ): UpdateStatus | undefined {
-  const conflictingPrimaryActions =
-    primaryAction === null && actions.some((action) => isPrimaryAction(action));
+  const conflictingPrimaryActions = actions.filter(isPrimaryAction).length > 1;
   if (actions.includes('validation_required') || conflictingPrimaryActions) {
     return 'unknown_needs_validation';
   }
