@@ -12,38 +12,37 @@ build = "build.rs"
 workspace = true
 
 [build-dependencies]
-json-patch = "4.2.0"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+json-patch = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
-renderpilot-api = { path = "../../../crates/renderpilot-api" }
-renderpilot-orchestration = { path = "../../../crates/renderpilot-orchestration" }
-env_logger = "0.11"
-futures-util = "0.3"
-getrandom = "0.4.3"
-log = "0.4"
-serde = { version = "1", features = ["derive", "rc"] }
-serde_json = "1"
-semver = { version = "1.0.28", optional = true }
-sha2 = { version = "0.11.0", optional = true }
-rusqlite = { version = "0.40", features = ["backup", "bundled"], optional = true }
-reqwest = { version = "0.13.5", features = ["blocking"], optional = true }
-zip = { version = "8", default-features = false, features = ["deflate"], optional = true }
-tauri = { version = "2.11.5", features = [] }
+renderpilot-api = { workspace = true }
+renderpilot-orchestration = { workspace = true }
+env_logger = { workspace = true }
+getrandom = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
+log = { workspace = true }
+serde = { workspace = true, features = ["derive", "rc"] }
+serde_json = { workspace = true }
+semver = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+rusqlite = { workspace = true, features = ["backup", "bundled"], optional = true }
+reqwest = { workspace = true, features = ["blocking", "rustls"], optional = true }
+zip = { workspace = true, features = ["deflate"], optional = true }
+tauri = { version = "2.11.6", features = [] }
 tauri-plugin-dialog = "2.7.3"
 tauri-plugin-shell = "2.3.6"
 tauri-plugin-process = "2.3.1"
 
 [target.'cfg(windows)'.dependencies]
-base64 = { version = "0.23.1", optional = true, default-features = false, features = ["std"] }
-minisign-verify = { version = "0.2.5", optional = true }
-renderpilot-storage-sqlite = { path = "../../../crates/renderpilot-storage-sqlite", optional = true }
-webview2-com-sys = "0.39.1"
-winreg = "0.56"
-windows-core = "=0.62.2"
-windows-sys = { version = "0.61", features = [
+base64 = { workspace = true, optional = true }
+minisign-verify = { workspace = true, optional = true }
+renderpilot-storage-sqlite = { workspace = true, optional = true }
+webview2-com-sys = { workspace = true }
+windows-core = { workspace = true }
+windows-sys = { workspace = true, features = [
     "Win32_Foundation",
     "Win32_Storage_FileSystem",
     "Win32_Security",
@@ -76,12 +75,10 @@ portable = [
 updater-artifact-verify = ["portable"]
 
 [dev-dependencies]
-json-patch = "4.2.0"
+json-patch = { workspace = true }
 
 [target.'cfg(windows)'.dev-dependencies]
-renderpilot-storage-sqlite = { path = "../../../crates/renderpilot-storage-sqlite", features = [
-    "test-instrumentation",
-] }
+renderpilot-storage-sqlite = { workspace = true, features = ["test-instrumentation"] }
 
 [lib]
 name = "renderpilot_desktop"

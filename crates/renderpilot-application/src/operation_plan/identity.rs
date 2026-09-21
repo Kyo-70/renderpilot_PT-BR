@@ -1,6 +1,5 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::Rng;
 use renderpilot_domain::{LibraryArtifact, LibraryComponent, OperationId};
 
 use crate::{AppError, AppResult, OperationKind};
@@ -55,9 +54,11 @@ fn generate_confirmation_token() -> String {
 
 fn random_hex<const N: usize>() -> String {
     let mut bytes = [0u8; N];
-    let mut rng = rand::rng();
 
-    rng.fill_bytes(&mut bytes);
+    // Secure randomness is required for confirmation tokens and operation nonces.
+    // If the OS cannot provide entropy, continuing would violate this security invariant.
+    getrandom::fill(&mut bytes)
+        .expect("OS CSPRNG unavailable; secure token generation cannot continue");
 
     hex::encode(bytes)
 }

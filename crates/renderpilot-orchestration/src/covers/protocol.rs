@@ -84,7 +84,8 @@ fn game_id_from_request_path(request_path: &str) -> Result<GameId, CoverProtocol
         return Err(CoverProtocolError::EmptyPath);
     }
 
-    let decoded = urlencoding::decode(trimmed)
+    let decoded = percent_encoding::percent_decode_str(trimmed)
+        .decode_utf8()
         .map_err(|_| CoverProtocolError::InvalidPathEncoding)?
         .into_owned();
 

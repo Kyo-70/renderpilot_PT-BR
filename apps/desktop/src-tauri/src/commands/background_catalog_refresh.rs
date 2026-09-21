@@ -11,7 +11,6 @@ use crate::{
         CoverGcOperation, EventPublicationOperation,
     },
 };
-use futures_util::future::join;
 use renderpilot_api::{self as desktop, AutoScanOutput, ValidatedCatalogRefreshOutput};
 use renderpilot_orchestration::Context;
 use serde::Serialize;
@@ -206,7 +205,7 @@ async fn coordinate_catalog_refresh(phases: &impl CatalogRefreshPhases) -> Catal
     let mut issues = Vec::new();
     let mut partial_failure_count = 0;
 
-    let (scan, remote_catalog) = join(phases.scan(), phases.refresh_remote_catalog()).await;
+    let (scan, remote_catalog) = tokio::join!(phases.scan(), phases.refresh_remote_catalog());
     match scan {
         Ok(scan) => {
             partial_failure_count = scan.partial_failure_count;

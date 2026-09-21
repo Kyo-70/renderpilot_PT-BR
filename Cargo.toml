@@ -19,6 +19,53 @@ edition = "2024"
 rust-version = "1.98"
 license = "GPL-3.0-only"
 
+[workspace.dependencies]
+renderpilot-api = { path = "crates/renderpilot-api" }
+renderpilot-application = { path = "crates/renderpilot-application" }
+renderpilot-detection = { path = "crates/renderpilot-detection" }
+renderpilot-domain = { path = "crates/renderpilot-domain" }
+renderpilot-nvapi = { path = "crates/renderpilot-nvapi" }
+renderpilot-orchestration = { path = "crates/renderpilot-orchestration" }
+renderpilot-platform-windows = { path = "crates/renderpilot-platform-windows" }
+renderpilot-storage-sqlite = { path = "crates/renderpilot-storage-sqlite" }
+
+base64 = { version = "0.23", default-features = false, features = ["std"] }
+env_logger = "0.11"
+futures-util = { version = "0.3", default-features = false }
+getrandom = "0.4"
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
+http = "1"
+httpdate = "1"
+json-patch = "4.2.0"
+libloading = "0.9"
+log = "0.4"
+minisign-verify = "0.2.5"
+percent-encoding = "2.3"
+quick-xml = "0.42"
+reqwest = { version = "0.13", default-features = false }
+rusqlite = "0.40"
+rustix = { version = "1.1.5", default-features = false }
+semver = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sevenz-rust2 = { version = "0.23.0", default-features = false }
+sha2 = "0.11"
+tempfile = "3"
+tokio = { version = "1", default-features = false }
+ulid = "3"
+# Keep the Windows/WebView2 crate family aligned with the versions used by
+# Tauri/Wry to avoid duplicate bindings. Re-check `cargo tree -d` when upgrading Tauri.
+webview2-com-sys = "0.38.2"
+windows = { version = "0.61.3", default-features = false }
+windows-core = "=0.61.2"
+windows-sys = { version = "0.61.2", default-features = false }
+winreg = "0.56"
+
+# Intentionally aligned with Tauri's dependency graph to avoid duplicate majors.
+# Re-check with `cargo tree -d` when updating Tauri.
+zip = { version = "4", default-features = false }
+zstd = { version = "0.14", default-features = false }
+
 [workspace.lints.rust]
 missing_docs = "warn"
 rust_2018_idioms = { level = "warn", priority = -1 }
