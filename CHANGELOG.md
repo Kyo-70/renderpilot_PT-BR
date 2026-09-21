@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0] - 2026-09-21
+
+### Added
+
+- **Managed Unreal Engine configuration**: Supported RenoDX and Luma profiles can now apply their required `Engine.ini` settings from Game Details. RenderPilot detects first-launch, conflict, repair, and interrupted-operation states, preserves unrelated content, and removes only the settings it owns during updates or removal.
+- **Richer RenoDX and Luma guidance**: Updated catalogs can provide game-specific compatibility notes, in-game and add-on settings, launch arguments, warnings, external-tool links, and copyable manual setup instructions. RenoDX catalog guidance is available in every supported interface language.
+- **Deeper Unreal Engine detection**: RenderPilot now uses multiple independent signals from game executables and packaged project data to identify Unreal projects and versions more reliably, including games that rely on a shared engine profile instead of an exact catalog entry.
+
+### Changed
+
+- **More accurate executable selection**: Reworked Windows executable discovery to filter out launchers, installers, crash reporters, servers, editors, and other helper tools while preferring the actual game binary.
+- **Automatic RenoDX processing mode**: For supported profiles, installation and updates now set the required `[renodx] Set_Path` value in `ReShade.ini`. When RenoDX is removed, RenderPilot restores the previous value when safe, while leaving externally edited or ambiguous configurations untouched.
+- **Maintenance updates**: Refreshed application dependencies and simplified the internal dependency set.
+
+### Fixed
+
+- **OptiScaler compatibility refreshes**: Compatibility guidance can now update without requiring an application release. Successful checks no longer trigger needless repeated downloads, and older remote data cannot replace a newer cached catalog.
+
+### Compatibility
+
+- **Automatic catalog migration**: The local catalog is backed up and upgraded to schema v20 on first launch so RenoDX configuration baselines and recoverable `Engine.ini` changes can be tracked. Returning to an earlier RenderPilot version requires restoring the pre-upgrade backup.
+
 ## [1.12.3] - 2026-09-15
 
 ### Added
