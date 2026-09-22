@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.1] - 2026-09-22
+
+### Added
+
+- **Automatic RenoDX configuration**: RenderPilot now applies reviewed per-game RenoDX settings during installation and updates, including required processing and resource-upgrade options. These settings no longer require Advanced mode or manual setup. When RenoDX is updated or removed, unrelated settings and user changes are preserved.
+
+### Changed
+
+- **Clearer RenoDX guidance**: Removed generic or redundant notices about UE4 `Engine.ini` use, automatic setup, Advanced mode, and restarts. Native HDR and manual `Engine.ini` directions now appear only for games with a reviewed requirement. Required in-game settings are shown once in a compact format, while alert styling is reserved for actual warnings.
+
+### Fixed
+
+- **RenoDX DLSS-Fix updates**: The update action is now shown only when a newer DLSS-Fix is available. Locally changed files are also checked correctly instead of being mistakenly reported as current.
+- **RenoDX resource upgrades**: Fixed a misspelled resource-upgrade option that could prevent a required game profile setting from being applied.
+
+### Security
+
+- **Safer Windows file operations**: Improved validation of protected temporary workspaces used while changing game files. RenderPilot now refuses to use a workspace when its Windows access permissions are malformed or unsafe.
+
 ## [1.13.0] - 2026-09-21
 
 ### Added
