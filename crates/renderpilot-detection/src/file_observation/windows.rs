@@ -156,7 +156,7 @@ fn windows_lease_state(file: &File) -> Option<WindowsLeaseState> {
     })
 }
 
-#[allow(
+#[expect(
     unsafe_code,
     reason = "windows-sys exposes FileIdInfo only as an unsafe handle API"
 )]
@@ -169,6 +169,9 @@ fn windows_file_identity(file: &File) -> Option<WindowsLeaseIdentity> {
 
     windows_lease_state(file)?;
     let mut info = FILE_ID_INFO::default();
+    // SAFETY: `file` owns a live handle for this call, and `info` is a writable,
+    // initialized FILE_ID_INFO buffer whose exact size is passed to the API.
+    // The API does not retain the output pointer.
     if unsafe {
         GetFileInformationByHandleEx(
             file.as_raw_handle() as HANDLE,
@@ -301,7 +304,7 @@ fn strong_cache_keys_for_window(
     })
 }
 
-#[allow(
+#[expect(
     unsafe_code,
     reason = "windows-sys exposes the read-only journal query only as an unsafe handle API"
 )]
@@ -322,6 +325,10 @@ fn query_usn_journal(volume: &File) -> Option<UsnJournalBounds> {
 
     let mut journal = USN_JOURNAL_DATA_V2::default();
     let mut returned = 0_u32;
+    // SAFETY: `volume` owns a live handle for this call. The input is null with
+    // a zero length, and `journal` is an initialized writable output buffer of
+    // the exact size passed. The API does not retain either pointer; `returned`
+    // is checked against the minimum structure size before fields are read.
     let ok = unsafe {
         DeviceIoControl(
             volume.as_raw_handle() as HANDLE,
@@ -346,7 +353,7 @@ fn query_usn_journal(volume: &File) -> Option<UsnJournalBounds> {
     })
 }
 
-#[allow(
+#[expect(
     unsafe_code,
     reason = "windows-sys exposes the read-only per-file USN query only as an unsafe handle API"
 )]
@@ -366,6 +373,10 @@ fn read_file_usn(file: &File) -> Option<i64> {
     };
     let mut output = [0_u8; 128];
     let mut returned = 0_u32;
+    // SAFETY: `file` owns a live handle for this call, `input` is fully
+    // initialized, and `output` is an initialized writable buffer with its
+    // exact capacity passed. The API does not retain these pointers, and
+    // `usn_output_value` validates `returned` before reading the output bytes.
     let ok = unsafe {
         DeviceIoControl(
             file.as_raw_handle() as HANDLE,

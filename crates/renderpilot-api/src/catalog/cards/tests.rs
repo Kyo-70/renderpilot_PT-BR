@@ -66,28 +66,8 @@ fn empty_bootstrap_returns_typed_filters_and_catalog_result() {
 
 #[test]
 fn removal_capability_is_exposed_only_for_user_managed_catalog_roots() {
-    let manual = data_card(
-        "manual",
-        "Manual",
-        Launcher::Manual,
-        &[],
-        &[],
-        false,
-        false,
-        0,
-        CatalogCardRiskLevel::Low,
-    );
-    let mut launcher = data_card(
-        "launcher",
-        "Launcher",
-        Launcher::Steam,
-        &[],
-        &[],
-        false,
-        false,
-        0,
-        CatalogCardRiskLevel::Low,
-    );
+    let manual = GameCardSpec::new("manual", "Manual", Launcher::Manual).build();
+    let mut launcher = GameCardSpec::new("launcher", "Launcher", Launcher::Steam).build();
     launcher.game = launcher
         .game
         .with_root_authority(RootAuthority::LauncherManifest);
@@ -551,39 +531,23 @@ fn stable_game_id_is_not_reversed_by_descending_sort() {
 #[test]
 fn direct_card_facts_match_the_legacy_dto_query_for_all_semantic_axes() {
     let cards = [
-        data_card(
-            "a",
-            "Alpha",
-            Launcher::Steam,
-            &["dlss_super_resolution"],
-            &[],
-            true,
-            false,
-            2,
-            CatalogCardRiskLevel::Low,
-        ),
-        data_card(
-            "b",
-            "Beta",
-            Launcher::Epic,
-            &["intel_xess"],
-            &[AddonKind::Luma],
-            false,
-            false,
-            1,
-            CatalogCardRiskLevel::High,
-        ),
-        data_card(
-            "c",
-            "Gamma",
-            Launcher::Steam,
-            &["fsr_upscaler"],
-            &[AddonKind::RenoDx],
-            false,
-            true,
-            0,
-            CatalogCardRiskLevel::Medium,
-        ),
+        GameCardSpec::new("a", "Alpha", Launcher::Steam)
+            .library_tags(&["dlss_super_resolution"])
+            .favorite()
+            .updates(2)
+            .build(),
+        GameCardSpec::new("b", "Beta", Launcher::Epic)
+            .library_tags(&["intel_xess"])
+            .addon_capabilities(&[AddonKind::Luma])
+            .updates(1)
+            .risk_level(CatalogCardRiskLevel::High)
+            .build(),
+        GameCardSpec::new("c", "Gamma", Launcher::Steam)
+            .library_tags(&["fsr_upscaler"])
+            .addon_capabilities(&[AddonKind::RenoDx])
+            .hidden()
+            .risk_level(CatalogCardRiskLevel::Medium)
+            .build(),
     ];
     let legacy = cards
         .iter()
@@ -700,42 +664,87 @@ fn generated_catalogs_keep_stable_page_bounds_at_supported_scales() {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn data_card(
-    id: &str,
-    title: &str,
+struct GameCardSpec {
+    id: String,
+    title: String,
     launcher: Launcher,
-    library_tags: &[&str],
-    addon_capabilities: &[AddonKind],
+    library_tags: Vec<String>,
+    addon_capabilities: Vec<AddonKind>,
     is_favorite: bool,
     is_hidden: bool,
     update_count: usize,
     risk_level: CatalogCardRiskLevel,
-) -> GameCardData {
-    let game_id = GameId::new(format!("golden:{id}")).expect("game id");
-    let identity = GameIdentity::new(game_id, title, launcher).expect("identity");
-    GameCardData {
-        game: GameInstallation::new(
-            identity,
-            Platform::Windows,
-            GameRuntime::NativeWindows,
-            PathRef::new(format!("C:/Games/{id}")).expect("path"),
-        ),
-        title_search_key: title.to_lowercase(),
-        library_tags: library_tags
-            .iter()
-            .map(|value| (*value).to_owned())
-            .collect(),
-        component_count: library_tags.len(),
-        update_count,
-        risk_level,
-        cover_updated_at_ms: None,
-        rollback_available: false,
-        operation_count: 0,
-        last_operation_status: None,
-        is_favorite,
-        is_hidden,
-        addon_capabilities: addon_capabilities.to_vec(),
+}
+
+impl GameCardSpec {
+    fn new(id: &str, title: &str, launcher: Launcher) -> Self {
+        Self {
+            id: id.to_owned(),
+            title: title.to_owned(),
+            launcher,
+            library_tags: Vec::new(),
+            addon_capabilities: Vec::new(),
+            is_favorite: false,
+            is_hidden: false,
+            update_count: 0,
+            risk_level: CatalogCardRiskLevel::Low,
+        }
+    }
+
+    fn library_tags(mut self, tags: &[&str]) -> Self {
+        self.library_tags = strings(tags);
+        self
+    }
+
+    fn addon_capabilities(mut self, capabilities: &[AddonKind]) -> Self {
+        self.addon_capabilities = capabilities.to_vec();
+        self
+    }
+
+    fn favorite(mut self) -> Self {
+        self.is_favorite = true;
+        self
+    }
+
+    fn hidden(mut self) -> Self {
+        self.is_hidden = true;
+        self
+    }
+
+    fn updates(mut self, count: usize) -> Self {
+        self.update_count = count;
+        self
+    }
+
+    fn risk_level(mut self, risk_level: CatalogCardRiskLevel) -> Self {
+        self.risk_level = risk_level;
+        self
+    }
+
+    fn build(self) -> GameCardData {
+        let game_id = GameId::new(format!("golden:{}", self.id)).expect("game id");
+        let identity =
+            GameIdentity::new(game_id, self.title.clone(), self.launcher).expect("identity");
+        GameCardData {
+            game: GameInstallation::new(
+                identity,
+                Platform::Windows,
+                GameRuntime::NativeWindows,
+                PathRef::new(format!("C:/Games/{}", self.id)).expect("path"),
+            ),
+            title_search_key: self.title.to_lowercase(),
+            component_count: self.library_tags.len(),
+            library_tags: self.library_tags,
+            update_count: self.update_count,
+            risk_level: self.risk_level,
+            cover_updated_at_ms: None,
+            rollback_available: false,
+            operation_count: 0,
+            last_operation_status: None,
+            is_favorite: self.is_favorite,
+            is_hidden: self.is_hidden,
+            addon_capabilities: self.addon_capabilities,
+        }
     }
 }
 

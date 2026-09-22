@@ -64,15 +64,8 @@ pub(crate) enum CoordinatedFilePlan {
         path: PathBuf,
         source: PathBuf,
     },
-    /// Create/verify sidecar for live, then delete the live file.
-    #[allow(dead_code)]
-    ArchiveLiveToSidecarAndRemove {
-        path: PathBuf,
-        expected_live: Sha256Hash,
-    },
     /// Catalog transition archive: the immutable original must still be live
-    /// and its sidecar must be absent.  Unlike the retry-oriented legacy
-    /// variant, this never adopts an already-existing `.bak` as ownership.
+    /// and its sidecar must be absent. This never adopts an existing `.bak`.
     CreateVerifiedArchiveAndRemove {
         path: PathBuf,
         expected_live: Sha256Hash,
@@ -246,13 +239,6 @@ fn execute_file_plan_into(
             })?;
             log.copied.push(path.clone());
             Ok(())
-        }
-        CoordinatedFilePlan::ArchiveLiveToSidecarAndRemove {
-            path,
-            expected_live,
-        } => {
-            ensure_baseline_sidecar(path, expected_live, log)?;
-            crate::fs::remove_file_if_exists(path)
         }
         CoordinatedFilePlan::CreateVerifiedArchiveAndRemove {
             path,

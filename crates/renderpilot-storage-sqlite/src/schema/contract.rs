@@ -101,10 +101,7 @@ pub(super) const CONTRACT_TABLES: &[(&str, &[&str])] = physical::CONTRACT_TABLES
 /// Required handling for every table whose rows are scoped to a game or
 /// component. A contract test discovers scoped columns from
 /// [`CONTRACT_TABLES`] and fails when a new table has no policy.
-#[allow(
-    dead_code,
-    reason = "consumed by the schema contract test; kept beside production schema metadata"
-)]
+#[cfg(test)]
 pub(super) const CONSOLIDATION_POLICIES: &[(&str, &str)] = &[
     ("game_covers", "destination_wins_then_file_gc"),
     ("components", "explicit_component_rekey"),

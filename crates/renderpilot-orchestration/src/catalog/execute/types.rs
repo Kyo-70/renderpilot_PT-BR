@@ -253,10 +253,9 @@ pub(super) fn writes_from_transition(transition: &ResolvedTransition) -> Vec<Tra
 /// manifest — this struct only tracks sidecars/copies for best-effort fsync.
 ///
 /// Pre-mutation validation of the path set is performed once by
-/// `DurableFileTransaction::prepare` (→ `build_manifest`) in the production apply
-/// path. Tests that call `perform_apply_fs` directly rely on the
-/// `DurableFileTransaction` they prepare (or on their controlled fixtures) for
-/// validation, so no separate capture pass is needed here.
+/// `DurableFileTransaction::prepare` (→ `build_manifest`) before the resolved
+/// transition reaches the filesystem executor, so no separate capture pass is
+/// needed here.
 #[derive(Default)]
 pub(super) struct AppliedFsLog {
     /// Classic sidecars created by this apply (target, sidecar).

@@ -44,11 +44,7 @@ fn startup() -> PortableAppSessionV2 {
     }
 }
 
-#[allow(
-    clippy::needless_pass_by_value,
-    reason = "tests assert both pre- and post-decode ownership of each DTO value"
-)]
-fn assert_wire_round_trip<T>(value: T, expected_json: &str)
+fn assert_wire_round_trip<T>(value: &T, expected_json: &str)
 where
     T: fmt::Debug + DeserializeOwned + Eq + Serialize,
 {
@@ -59,17 +55,17 @@ where
         format!("{expected_json}\n")
     );
     let decoded: T = read_message(&mut Cursor::new(frame)).expect("read exact protocol frame");
-    assert_eq!(decoded, value);
+    assert_eq!(&decoded, value);
 }
 
 #[test]
 fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
     assert_wire_round_trip(
-        StartupMode::activation_trial(),
+        &StartupMode::activation_trial(),
         r#"{"mode":"activation_trial"}"#,
     );
     assert_wire_round_trip(
-        StartupMode::CommittedSelection(CommittedSelectionStartupMode {
+        &StartupMode::CommittedSelection(CommittedSelectionStartupMode {
             selection_record_sha256: "selection".to_owned(),
             committed_journal_sequence: 9,
             committed_transcript_sha256: "transcript".to_owned(),
@@ -77,23 +73,23 @@ fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
         r#"{"mode":"committed_selection","selection_record_sha256":"selection","committed_journal_sequence":9,"committed_transcript_sha256":"transcript"}"#,
     );
     assert_wire_round_trip(
-        CatalogMigrationOperation::validate_current(),
+        &CatalogMigrationOperation::validate_current(),
         r#"{"operation":"validate_current"}"#,
     );
     assert_wire_round_trip(
-        CatalogMigrationOperation::upgrade_after_snapshot("snapshot"),
+        &CatalogMigrationOperation::upgrade_after_snapshot("snapshot"),
         r#"{"operation":"upgrade_after_snapshot","snapshot_receipt_sha256":"snapshot"}"#,
     );
 
-    assert_wire_round_trip(PortableUpdateRequest::check(), r#"{"action":"check"}"#);
+    assert_wire_round_trip(&PortableUpdateRequest::check(), r#"{"action":"check"}"#);
     assert_wire_round_trip(
-        PortableUpdateRequest::download(),
+        &PortableUpdateRequest::download(),
         r#"{"action":"download"}"#,
     );
-    assert_wire_round_trip(PortableUpdateRequest::apply(), r#"{"action":"apply"}"#);
+    assert_wire_round_trip(&PortableUpdateRequest::apply(), r#"{"action":"apply"}"#);
 
     assert_wire_round_trip(
-        PortableUpdateResponse::check(
+        &PortableUpdateResponse::check(
             true,
             "1.0.0",
             "2.0.0",
@@ -103,15 +99,15 @@ fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
         r#"{"result":"check","available":true,"current_version":"1.0.0","version":"2.0.0","date":"2026-08-13","body":"notes"}"#,
     );
     assert_wire_round_trip(
-        PortableUpdateResponse::downloaded(42),
+        &PortableUpdateResponse::downloaded(42),
         r#"{"result":"downloaded","content_length":42}"#,
     );
     assert_wire_round_trip(
-        PortableUpdateResponse::apply_accepted(),
+        &PortableUpdateResponse::apply_accepted(),
         r#"{"result":"apply_accepted"}"#,
     );
     assert_wire_round_trip(
-        PortableUpdateResponse::rejected("not-ready"),
+        &PortableUpdateResponse::rejected("not-ready"),
         r#"{"result":"rejected","code":"not-ready"}"#,
     );
 
@@ -133,9 +129,9 @@ fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
         migration_nonce = hash('2'),
         commit_nonce = hash('3'),
     );
-    assert_wire_round_trip(AppControlMessage::startup(startup), &expected_startup);
+    assert_wire_round_trip(&AppControlMessage::startup(startup), &expected_startup);
     assert_wire_round_trip(
-        AppControlMessage::migration_permit(
+        &AppControlMessage::migration_permit(
             CatalogMigrationOperation::upgrade_after_snapshot("snapshot"),
             15,
             16,
@@ -145,36 +141,39 @@ fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
         r#"{"type":"migration_permit","operation":{"operation":"upgrade_after_snapshot","snapshot_receipt_sha256":"snapshot"},"source_schema":15,"target_schema":16,"permit_nonce":"permit","supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppControlMessage::activation_permit("activation", "selection", 6, "session"),
+        &AppControlMessage::activation_permit("activation", "selection", 6, "session"),
         r#"{"type":"activation_permit","activation_nonce":"activation","selection_record_sha256":"selection","journal_sequence":6,"supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppControlMessage::commit_permit("selection", 9, "permit", "session"),
+        &AppControlMessage::commit_permit("selection", 9, "permit", "session"),
         r#"{"type":"commit_permit","selection_record_sha256":"selection","committed_journal_sequence":9,"permit_nonce":"permit","supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppControlMessage::update_response("request", PortableUpdateResponse::apply_accepted()),
+        &AppControlMessage::update_response("request", PortableUpdateResponse::apply_accepted()),
         r#"{"type":"update_response","request_id":"request","response":{"result":"apply_accepted"}}"#,
     );
     assert_wire_round_trip(
-        AppControlMessage::update_event("request", PortableUpdateEvent::download_started(Some(42))),
+        &AppControlMessage::update_event(
+            "request",
+            PortableUpdateEvent::download_started(Some(42)),
+        ),
         r#"{"type":"update_event","request_id":"request","event":{"kind":"download_started","content_length":42}}"#,
     );
     assert_wire_round_trip(
-        AppControlMessage::update_event("request", PortableUpdateEvent::download_progress(7)),
+        &AppControlMessage::update_event("request", PortableUpdateEvent::download_progress(7)),
         r#"{"type":"update_event","request_id":"request","event":{"kind":"download_progress","chunk_length":7}}"#,
     );
     assert_wire_round_trip(
-        AppControlMessage::update_event("request", PortableUpdateEvent::download_finished()),
+        &AppControlMessage::update_event("request", PortableUpdateEvent::download_finished()),
         r#"{"type":"update_event","request_id":"request","event":{"kind":"download_finished"}}"#,
     );
 
     assert_wire_round_trip(
-        AppStatusMessage::trial_hello("challenge"),
+        &AppStatusMessage::trial_hello("challenge"),
         r#"{"type":"trial_hello","challenge":"challenge"}"#,
     );
     assert_wire_round_trip(
-        AppStatusMessage::trial_ready(TrialReady {
+        &AppStatusMessage::trial_ready(TrialReady {
             transcript_sha256: "transcript".to_owned(),
             runtime_paths_sha256: "paths".to_owned(),
             schema_observed: 16,
@@ -188,7 +187,7 @@ fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
         r#"{"type":"trial_ready","transcript_sha256":"transcript","runtime_paths_sha256":"paths","schema_observed":16,"db_query_only":true,"webview_profile_ready":true,"ui_bundle_ready":true,"visible_window_ready":true,"event_loop_roundtrip":true,"supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppStatusMessage::migration_ack(
+        &AppStatusMessage::migration_ack(
             CatalogMigrationReport {
                 source_version: 15,
                 target_version: 16,
@@ -201,15 +200,15 @@ fn canonical_dto_variants_have_golden_flat_json_and_round_trip() {
         r#"{"type":"migration_ack","report":{"source_version":15,"target_version":16,"catalog_sha256":"catalog"},"snapshot_receipt_sha256":null,"permit_nonce":"permit","supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppStatusMessage::activation_ack("activation", "selection", true, true, "session"),
+        &AppStatusMessage::activation_ack("activation", "selection", true, true, "session"),
         r#"{"type":"activation_ack","activation_nonce":"activation","selection_record_sha256":"selection","visible_window_ready":true,"event_loop_roundtrip":true,"supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppStatusMessage::commit_ack("selection", 9, "permit", "session"),
+        &AppStatusMessage::commit_ack("selection", 9, "permit", "session"),
         r#"{"type":"commit_ack","selection_record_sha256":"selection","committed_journal_sequence":9,"permit_nonce":"permit","supervisor_session_transcript_sha256":"session"}"#,
     );
     assert_wire_round_trip(
-        AppStatusMessage::update_request("request", PortableUpdateRequest::check()),
+        &AppStatusMessage::update_request("request", PortableUpdateRequest::check()),
         r#"{"type":"update_request","request_id":"request","request":{"action":"check"}}"#,
     );
 }

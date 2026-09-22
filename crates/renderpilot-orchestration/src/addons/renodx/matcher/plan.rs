@@ -199,7 +199,6 @@ fn resolve_generic(manifest: &RenoDxManifest, facts: &MatchFacts) -> RenoDxResol
             let compat = crate::addons::game_analysis::evaluate_ue_extended_fallback_compatibility(
                 unreal_detection,
                 platform,
-                &crate::addons::game_analysis::VersionRequirement::AnySupportedUnreal,
             );
             if compat != crate::addons::game_analysis::RenoDxCompatibility::Compatible {
                 return RenoDxResolution::NoMatch;

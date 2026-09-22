@@ -4,13 +4,11 @@
 //! pointers are resolved at runtime so the crate does not require NVIDIA
 //! drivers to be present at build time.
 
-// `allow` (not `expect`): this module only names `unsafe extern "C" fn` types.
-// Those signatures do not emit the `unsafe_code` lint; calls live in `api.rs`.
-#![allow(
-    unsafe_code,
-    reason = "NVAPI C ABI function pointer types; call sites with SAFETY notes are in api.rs"
+#![expect(
+    non_snake_case,
+    non_camel_case_types,
+    reason = "NVAPI ABI identifiers must match the vendor C headers exactly"
 )]
-#![allow(non_snake_case, non_camel_case_types)]
 
 use std::os::raw::c_void;
 

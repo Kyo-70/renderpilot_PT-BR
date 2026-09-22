@@ -74,6 +74,7 @@ unsafe_code = "deny"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+allow_attributes_without_reason = "warn"
 assigning_clones = "warn"
 borrow_as_ptr = "warn"
 cast_ptr_alignment = "warn"

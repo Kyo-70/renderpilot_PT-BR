@@ -35,9 +35,7 @@ use self::context::GameInstallationContext;
 use self::facade::{UnrealDetection, analyze_unreal_installation};
 
 pub use facade::EngineDetection;
-pub use renodx_matcher::{
-    RenoDxCompatibility, VersionRequirement, evaluate_ue_extended_fallback_compatibility,
-};
+pub use renodx_matcher::{RenoDxCompatibility, evaluate_ue_extended_fallback_compatibility};
 pub use topology::executable::TargetPlatformDetection;
 
 /// Result of inspecting a game: the facts the matcher needs plus the chosen

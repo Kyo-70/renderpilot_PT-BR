@@ -7,7 +7,8 @@ use std::sync::{
 
 use renderpilot_application::{
     ArtifactRepository, ComponentRepository, D3d12ExecutableAction, D3d12ExecutableProfile,
-    ExternalAliasRequirements, GameRepository, InstalledAddonRepository, resolve_transition,
+    ExternalAliasRequirements, GameRepository, InstalledAddonRepository, ResolvedTransition,
+    resolve_transition,
 };
 use renderpilot_domain::{
     AddonKind, Architecture, ArtifactId, ArtifactMetadata, ArtifactTrustLevel, ComponentFile,
@@ -24,7 +25,7 @@ use renderpilot_storage_sqlite::SqliteStorage;
 use crate::Context;
 use crate::catalog::execute::rollback_component;
 
-use super::fs_ops::{perform_apply_fs, revert_to_baseline_fs};
+use super::fs_ops::{perform_transition_apply_fs, revert_to_baseline_fs};
 use super::planning::{fsr_members_to_remove, planned_target_files};
 use super::types::{PlannedFile, PreparedApplySwap, PreparedD3d12Execution};
 
@@ -53,6 +54,45 @@ fn planned_copy(source: &Path, target: &Path) -> PlannedFile {
         source: source.to_path_buf(),
         file: comp_file(target),
     }
+}
+
+fn component_with_files(
+    technology: LibraryTechnology,
+    files: impl IntoIterator<Item = ComponentFile>,
+) -> LibraryComponent {
+    files.into_iter().fold(
+        LibraryComponent::new(
+            ComponentId::new("component:filesystem-transition-test").expect("component id"),
+            GameId::new("manual:filesystem-transition-test").expect("game id"),
+            ComponentKind::NativeLibrary,
+            technology,
+            Swappability::BundleOnly,
+        ),
+        LibraryComponent::with_file,
+    )
+}
+
+fn artifact_member(source: &Path, install_as: &str) -> ComponentFile {
+    let member = comp_file(source).with_install_as(install_as);
+    if source.is_file() {
+        member.with_sha256(sha_of(source))
+    } else {
+        member.with_sha256(Sha256Hash::new(HEX64).expect("synthetic artifact hash"))
+    }
+}
+
+fn filesystem_transition(
+    component: &LibraryComponent,
+    artifact: &LibraryArtifact,
+    baseline: &[ComponentFile],
+) -> ResolvedTransition {
+    resolve_transition(
+        component,
+        artifact,
+        baseline,
+        &ExternalAliasRequirements::NotRequired,
+    )
+    .expect("resolve filesystem transition")
 }
 
 fn apply_swap_with_current_safety(
@@ -101,19 +141,6 @@ fn apply_swap_confirmed(
     })
 }
 
-/// Minimal FSR component placeholder; `component` is only read on the
-/// re-swap (`first_swap == false`) revert path, so these tests pass it
-/// `first_swap = true` and never depend on its files.
-fn placeholder_component() -> LibraryComponent {
-    LibraryComponent::new(
-        ComponentId::new("component:test").expect("component id"),
-        GameId::new("manual:C:/Games/Test").expect("game id"),
-        ComponentKind::NativeLibrary,
-        LibraryTechnology::AmdFsr,
-        Swappability::Swappable,
-    )
-}
-
 #[test]
 fn overlay_backs_up_existing_target_and_installs_durably() {
     let dir = tempfile::tempdir().expect("temp dir");
@@ -122,10 +149,21 @@ fn overlay_backs_up_existing_target_and_installs_durably() {
     write(&target, b"original");
     write(&source, b"new-version");
 
-    let plans = vec![planned_copy(&source, &target)];
     let baseline = vec![comp_file(&target).with_sha256(sha_of(&target))];
-    let changes = perform_apply_fs(&placeholder_component(), &baseline, &plans, &[])
-        .expect("apply should succeed");
+    let component = component_with_files(
+        LibraryTechnology::DlssSuperResolution,
+        baseline.iter().cloned(),
+    );
+    let artifact = LibraryArtifact::new(
+        ArtifactId::new("artifact:filesystem-overlay").expect("artifact id"),
+        LibraryTechnology::DlssSuperResolution,
+        "nvngx_dlss.dll",
+        vec![artifact_member(&source, "nvngx_dlss.dll")],
+        ArtifactTrustLevel::LocalObserved,
+    )
+    .expect("artifact");
+    let transition = filesystem_transition(&component, &artifact, &baseline);
+    let changes = perform_transition_apply_fs(&transition, None).expect("apply should succeed");
 
     assert_eq!(fs::read(&target).expect("target readable"), b"new-version");
     assert_eq!(
@@ -142,15 +180,33 @@ fn overlay_backs_up_existing_target_and_installs_durably() {
 #[test]
 fn overlay_adds_new_file_without_creating_backup() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let target = dir.path().join("amd_fidelityfx_upscaler_dx12.dll");
+    let target = dir.path().join("nvngx_dlss.dll");
+    let existing = dir.path().join("nvngx_dlssg.dll");
     let source = dir.path().join("source.dll");
+    write(&existing, b"installed-baseline");
     write(&source, b"fresh");
 
-    let plans = vec![planned_copy(&source, &target)];
-    let changes =
-        perform_apply_fs(&placeholder_component(), &[], &plans, &[]).expect("apply should succeed");
+    let baseline = [comp_file(&existing).with_sha256(sha_of(&existing))];
+    let component = component_with_files(
+        LibraryTechnology::DlssSuperResolution,
+        baseline.iter().cloned(),
+    );
+    let artifact = LibraryArtifact::new(
+        ArtifactId::new("artifact:filesystem-new-file").expect("artifact id"),
+        LibraryTechnology::DlssSuperResolution,
+        "nvngx_dlss.dll",
+        vec![artifact_member(&source, "nvngx_dlss.dll")],
+        ArtifactTrustLevel::LocalObserved,
+    )
+    .expect("artifact");
+    let transition = filesystem_transition(&component, &artifact, &baseline);
+    let changes = perform_transition_apply_fs(&transition, None).expect("apply should succeed");
 
     assert_eq!(fs::read(&target).expect("target readable"), b"fresh");
+    assert_eq!(
+        fs::read(&existing).expect("existing component file remains"),
+        b"installed-baseline"
+    );
     assert!(
         !bak_of(&target).exists(),
         "no backup for a newly added file"
@@ -161,14 +217,28 @@ fn overlay_adds_new_file_without_creating_backup() {
 #[test]
 fn removed_member_is_backed_up_then_deleted() {
     let dir = tempfile::tempdir().expect("temp dir");
+    let entry = dir.path().join("amd_fidelityfx_dx12.dll");
     let member = dir.path().join("amd_fidelityfx_framegeneration_dx12.dll");
+    let source = dir.path().join("new-amd_fidelityfx_dx12.dll");
+    write(&entry, b"original-entry");
     write(&member, b"fsr4-member");
+    write(&source, b"replacement-entry");
 
-    let member_file = comp_file(&member).with_sha256(sha_of(&member));
-    let removed = vec![member_file.clone()];
-    let component = placeholder_component().with_file(member_file.clone());
-    let changes =
-        perform_apply_fs(&component, &[member_file], &[], &removed).expect("apply should succeed");
+    let baseline = vec![
+        comp_file(&entry).with_sha256(sha_of(&entry)),
+        comp_file(&member).with_sha256(sha_of(&member)),
+    ];
+    let component = component_with_files(LibraryTechnology::AmdFsr, baseline.iter().cloned());
+    let artifact = LibraryArtifact::new(
+        ArtifactId::new("artifact:filesystem-fsr-removal").expect("artifact id"),
+        LibraryTechnology::AmdFsr,
+        "amd_fidelityfx_dx12.dll",
+        vec![artifact_member(&source, "amd_fidelityfx_dx12.dll")],
+        ArtifactTrustLevel::LocalObserved,
+    )
+    .expect("artifact");
+    let transition = filesystem_transition(&component, &artifact, &baseline);
+    let changes = perform_transition_apply_fs(&transition, None).expect("apply should succeed");
 
     assert!(!member.exists(), "removed member should be gone");
     assert_eq!(
@@ -176,9 +246,22 @@ fn removed_member_is_backed_up_then_deleted() {
         b"fsr4-member",
         "removed member must be preserved as a .bak for rollback"
     );
+    assert_eq!(changes.created_sidecars.len(), 2);
+    assert!(
+        changes
+            .created_sidecars
+            .iter()
+            .any(|(path, _)| path.ends_with("amd_fidelityfx_dx12.dll"))
+    );
+    assert!(
+        changes
+            .created_sidecars
+            .iter()
+            .any(|(path, _)| path.ends_with("amd_fidelityfx_framegeneration_dx12.dll"))
+    );
     assert_eq!(
-        changes.created_sidecars,
-        vec![(member.clone(), bak_of(&member))]
+        fs::read(bak_of(&entry)).expect("entry baseline sidecar"),
+        b"original-entry"
     );
 }
 
@@ -193,10 +276,6 @@ fn dxc_pair_failure_midway_rolls_back_both_members() {
     write(&validator, b"original-validator");
     write(&good_source, b"new-compiler");
 
-    let plans = vec![
-        planned_copy(&good_source, &compiler),
-        planned_copy(&missing_source, &validator),
-    ];
     let baseline = vec![
         comp_file(&compiler).with_sha256(sha_of(&compiler)),
         comp_file(&validator).with_sha256(sha_of(&validator)),
@@ -210,6 +289,18 @@ fn dxc_pair_failure_midway_rolls_back_both_members() {
     )
     .with_file(baseline[0].clone())
     .with_file(baseline[1].clone());
+    let artifact = LibraryArtifact::new(
+        ArtifactId::new("artifact:dxc-atomicity").expect("artifact id"),
+        LibraryTechnology::MicrosoftDxc,
+        "dxcompiler.dll",
+        vec![
+            artifact_member(&good_source, "dxcompiler.dll"),
+            artifact_member(&missing_source, "dxil.dll"),
+        ],
+        ArtifactTrustLevel::LocalObserved,
+    )
+    .expect("artifact");
+    let transition = filesystem_transition(&component, &artifact, &baseline);
     let context = crate::Context::from_storage(SqliteStorage::in_memory().expect("storage"));
     let game_id =
         GameId::new(format!("manual:apply-failure-{}", ulid::Ulid::generate())).expect("game id");
@@ -228,7 +319,7 @@ fn dxc_pair_failure_midway_rolls_back_both_members() {
         ],
     )
     .expect("durable transaction");
-    let result = perform_apply_fs(&component, &baseline, &plans, &[]);
+    let result = perform_transition_apply_fs(&transition, None);
 
     assert!(result.is_err(), "missing source must fail the apply");
     mutation
@@ -251,8 +342,8 @@ fn dxc_pair_failure_midway_rolls_back_both_members() {
 }
 
 #[test]
-fn xiph_pair_failure_after_first_dll_or_before_database_commit_rolls_back_both_members() {
-    for failure_point in ["after_first_dll", "before_database_commit"] {
+fn xiph_transition_failure_during_late_copy_or_before_commit_rolls_back_all_members() {
+    for failure_point in ["during_late_member_copy", "before_database_commit"] {
         let dir = tempfile::tempdir().expect("temp dir");
         let game_dir = dir.path().join("game");
         let source_dir = dir.path().join("source");
@@ -263,21 +354,36 @@ fn xiph_pair_failure_after_first_dll_or_before_database_commit_rolls_back_both_m
         let ogg_dir = game_dir.join("Engine/Binaries/ThirdParty/Ogg/Win64");
         fs::create_dir_all(&vorbis_dir).expect("Vorbis dir");
         fs::create_dir_all(&ogg_dir).expect("Ogg dir");
+        let wrapper = vorbis_dir.join("vorbisfile.dll");
         let vorbis = vorbis_dir.join("vorbis.dll");
         let ogg = ogg_dir.join("ogg.dll");
+        let source_wrapper = source_dir.join("vorbisfile.dll");
         let source_vorbis = source_dir.join("vorbis.dll");
         let source_ogg = source_dir.join("ogg.dll");
-        write(&vorbis, b"original-vorbis");
-        write(&ogg, b"original-ogg");
-        write(&source_vorbis, b"replacement-vorbis");
-        if failure_point == "before_database_commit" {
-            write(&source_ogg, b"replacement-ogg");
-        }
+        write(
+            &wrapper,
+            &synthetic_xiph_pe("ov_open", &["vorbis.dll", "ogg.dll"]),
+        );
+        write(
+            &vorbis,
+            &synthetic_xiph_pe("vorbis_info_init", &["ogg.dll"]),
+        );
+        write(&ogg, &synthetic_xiph_pe("ogg_sync_init", &[]));
+        write(
+            &source_wrapper,
+            &synthetic_xiph_pe("ov_open", &["vorbis.dll", "ogg.dll"]),
+        );
+        write(
+            &source_vorbis,
+            &synthetic_xiph_pe("vorbis_info_init", &["ogg.dll"]),
+        );
+        write(&source_ogg, &synthetic_xiph_pe("ogg_sync_init", &[]));
 
         let game = sample_game_at(&game_dir);
         let baseline = vec![
-            comp_file(&vorbis).with_sha256(sha_of(&vorbis)),
-            comp_file(&ogg).with_sha256(sha_of(&ogg)),
+            observed_xiph_file(&wrapper),
+            observed_xiph_file(&vorbis),
+            observed_xiph_file(&ogg),
         ];
         let component_id =
             ComponentId::new(format!("component:xiph:{failure_point}")).expect("component id");
@@ -289,11 +395,24 @@ fn xiph_pair_failure_after_first_dll_or_before_database_commit_rolls_back_both_m
             Swappability::BundleOnly,
         )
         .with_file(baseline[0].clone())
-        .with_file(baseline[1].clone());
-        let plans = vec![
-            planned_copy(&source_vorbis, &vorbis),
-            planned_copy(&source_ogg, &ogg),
-        ];
+        .with_file(baseline[1].clone())
+        .with_file(baseline[2].clone());
+        let artifact = LibraryArtifact::new(
+            ArtifactId::new(format!("artifact:xiph:{failure_point}")).expect("artifact id"),
+            LibraryTechnology::XiphVorbis,
+            "vorbisfile.dll",
+            vec![
+                observed_xiph_file(&source_wrapper),
+                observed_xiph_file(&source_vorbis),
+                observed_xiph_file(&source_ogg),
+            ],
+            ArtifactTrustLevel::LocalObserved,
+        )
+        .expect("artifact")
+        .with_metadata(
+            ArtifactMetadata::default().with_runtime_target(RuntimeTarget::new(Architecture::X64)),
+        );
+        let transition = filesystem_transition(&component, &artifact, &baseline);
 
         let storage = SqliteStorage::in_memory().expect("storage");
         storage.upsert_game(&game).expect("game");
@@ -308,15 +427,29 @@ fn xiph_pair_failure_after_first_dll_or_before_database_commit_rolls_back_both_m
             &crate::file_mutation::MutationScope::single(&game_dir).expect("scope"),
             "test_xiph_apply_failure",
             Some(component_id.as_str()),
-            [vorbis.clone(), bak_of(&vorbis), ogg.clone(), bak_of(&ogg)],
+            [
+                wrapper.clone(),
+                bak_of(&wrapper),
+                vorbis.clone(),
+                bak_of(&vorbis),
+                ogg.clone(),
+                bak_of(&ogg),
+            ],
         )
         .expect("durable transaction");
 
+        if failure_point == "during_late_member_copy" {
+            fs::remove_file(&source_wrapper).expect("remove final source to inject copy failure");
+        }
         let result: renderpilot_application::AppResult<()> =
-            perform_apply_fs(&component, &baseline, &plans, &[]).and_then(|_| {
-                Err(renderpilot_application::AppError::provider_failed(
-                    "injected failure before database commit",
-                ))
+            perform_transition_apply_fs(&transition, None).and_then(|_| {
+                if failure_point == "before_database_commit" {
+                    Err(renderpilot_application::AppError::provider_failed(
+                        "injected failure before database commit",
+                    ))
+                } else {
+                    Ok(())
+                }
             });
         assert!(result.is_err(), "{failure_point} must abort the apply");
         mutation
@@ -324,17 +457,22 @@ fn xiph_pair_failure_after_first_dll_or_before_database_commit_rolls_back_both_m
             .expect("durable rollback");
 
         assert_eq!(
+            fs::read(&wrapper).expect("wrapper readable"),
+            synthetic_xiph_pe("ov_open", &["vorbis.dll", "ogg.dll"]),
+            "{failure_point}: wrapper must be restored"
+        );
+        assert_eq!(
             fs::read(&vorbis).expect("vorbis readable"),
-            b"original-vorbis",
+            synthetic_xiph_pe("vorbis_info_init", &["ogg.dll"]),
             "{failure_point}: Vorbis must be restored"
         );
         assert_eq!(
             fs::read(&ogg).expect("ogg readable"),
-            b"original-ogg",
+            synthetic_xiph_pe("ogg_sync_init", &[]),
             "{failure_point}: Ogg must be restored"
         );
         assert!(
-            !bak_of(&vorbis).exists() && !bak_of(&ogg).exists(),
+            !bak_of(&wrapper).exists() && !bak_of(&vorbis).exists() && !bak_of(&ogg).exists(),
             "{failure_point}: recovery sidecars must be consumed"
         );
         assert_eq!(

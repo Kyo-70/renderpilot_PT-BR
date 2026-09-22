@@ -206,7 +206,7 @@ pub fn render_command_error_kinds(contract: &DesktopCommandErrorContract) -> Str
         "// Generated from data/contracts/desktop-command-errors.json. Do not edit.\n\
          #[derive(Debug, Clone, Copy, PartialEq, Eq)]\n\
          pub(crate) enum CommandErrorSeverity {{\n    Warning,\n    Error,\n}}\n\n\
-         #[allow(dead_code)] // Platform-specific variants are generated for every target.\n\
+         #[allow(dead_code, reason = \"the generated cross-platform error contract includes target-specific variants\")]\n\
          #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]\n\
          pub(crate) enum CommandErrorKind {{\n{variants}\n}}\n\n\
          impl CommandErrorKind {{\n\

@@ -338,7 +338,7 @@ impl LibraryArtifact {
     }
 
     /// Returns the primary (representative) file of the bundle.
-    #[allow(
+    #[expect(
         clippy::expect_used,
         reason = "construction and deserialization both reject empty artifact bundles"
     )]
@@ -375,7 +375,7 @@ impl LibraryArtifact {
     }
 
     /// Returns the required primary artifact SHA-256 hash.
-    #[allow(
+    #[expect(
         clippy::expect_used,
         reason = "construction and deserialization both require every artifact member hash"
     )]

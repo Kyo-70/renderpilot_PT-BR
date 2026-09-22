@@ -527,20 +527,51 @@ mod tests {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn build_synthetic_compressed_package(
+    #[derive(Clone, Copy)]
+    struct SyntheticCompressedPackageSpec {
         file_version: u16,
         headers_size: i32,
-        u_off: i32,
-        u_size: i32,
-        c_off: i32,
-        c_size: i32,
+        uncompressed_offset: i32,
+        uncompressed_size: i32,
+        compressed_offset: i32,
+        compressed_size: i32,
         container_tag: u32,
         block_size: i32,
-        summary_comp: i32,
-        summary_uncomp: i32,
+        summary_compressed_size: i32,
+        summary_uncompressed_size: i32,
         total_file_len: usize,
-    ) -> Vec<u8> {
+    }
+
+    fn valid_synthetic_compressed_package_spec() -> SyntheticCompressedPackageSpec {
+        SyntheticCompressedPackageSpec {
+            file_version: 845,
+            headers_size: 1470,
+            uncompressed_offset: 129,
+            uncompressed_size: 1866,
+            compressed_offset: 145,
+            compressed_size: 904,
+            container_tag: PACKAGE_FILE_TAG,
+            block_size: 131072,
+            summary_compressed_size: 880,
+            summary_uncompressed_size: 1866,
+            total_file_len: 1049,
+        }
+    }
+
+    fn build_synthetic_compressed_package(spec: SyntheticCompressedPackageSpec) -> Vec<u8> {
+        let SyntheticCompressedPackageSpec {
+            file_version,
+            headers_size,
+            uncompressed_offset: u_off,
+            uncompressed_size: u_size,
+            compressed_offset: c_off,
+            compressed_size: c_size,
+            container_tag,
+            block_size,
+            summary_compressed_size: summary_comp,
+            summary_uncompressed_size: summary_uncomp,
+            total_file_len,
+        } = spec;
         let mut buf = Vec::new();
         buf.extend_from_slice(&PACKAGE_FILE_TAG.to_le_bytes());
         buf.extend_from_slice(&file_version.to_le_bytes());
@@ -608,19 +639,7 @@ mod tests {
 
     #[test]
     fn test_dmc_like_valid_compressed_package_accepted() {
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            129,
-            1866,
-            145,
-            904,
-            PACKAGE_FILE_TAG,
-            131072,
-            880,
-            1866,
-            1049,
-        );
+        let data = build_synthetic_compressed_package(valid_synthetic_compressed_package_spec());
         let len = data.len() as u64;
         let mut cursor = Cursor::new(&data);
         let summary = parse_ue3_package_summary(&mut cursor, len).unwrap();
@@ -632,19 +651,10 @@ mod tests {
     #[test]
     fn test_compressed_rejects_physical_chunk_beyond_eof() {
         // c_off (145) + c_size (904) = 1049, but file_len is only 1000
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            129,
-            1866,
-            145,
-            904,
-            PACKAGE_FILE_TAG,
-            131072,
-            880,
-            1866,
-            1000,
-        );
+        let data = build_synthetic_compressed_package(SyntheticCompressedPackageSpec {
+            total_file_len: 1000,
+            ..valid_synthetic_compressed_package_spec()
+        });
         let mut cursor = Cursor::new(&data);
         assert_eq!(
             parse_ue3_package_summary(&mut cursor, 1000),
@@ -657,19 +667,11 @@ mod tests {
     #[test]
     fn test_compressed_rejects_logical_chunk_not_covering_headers_size() {
         // u_off (129) + u_size (500) = 629, which does not cover headers_size = 1470
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            129,
-            500,
-            145,
-            904,
-            PACKAGE_FILE_TAG,
-            131072,
-            880,
-            500,
-            1049,
-        );
+        let data = build_synthetic_compressed_package(SyntheticCompressedPackageSpec {
+            uncompressed_size: 500,
+            summary_uncompressed_size: 500,
+            ..valid_synthetic_compressed_package_spec()
+        });
         let len = data.len() as u64;
         let mut cursor = Cursor::new(&data);
         assert_eq!(
@@ -683,19 +685,10 @@ mod tests {
     #[test]
     fn test_compressed_rejects_corrupted_inner_container_header() {
         // Container tag is 0xDEADBEEF instead of PACKAGE_FILE_TAG
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            129,
-            1866,
-            145,
-            904,
-            0xDEAD_BEEF,
-            131072,
-            880,
-            1866,
-            1049,
-        );
+        let data = build_synthetic_compressed_package(SyntheticCompressedPackageSpec {
+            container_tag: 0xDEAD_BEEF,
+            ..valid_synthetic_compressed_package_spec()
+        });
         let len = data.len() as u64;
         let mut cursor = Cursor::new(&data);
         assert_eq!(
@@ -709,19 +702,10 @@ mod tests {
     #[test]
     fn test_compressed_rejects_overflow_or_negative_serialized_field() {
         // Negative uncompressed_offset (-1)
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            -1,
-            1866,
-            145,
-            904,
-            PACKAGE_FILE_TAG,
-            131072,
-            880,
-            1866,
-            1049,
-        );
+        let data = build_synthetic_compressed_package(SyntheticCompressedPackageSpec {
+            uncompressed_offset: -1,
+            ..valid_synthetic_compressed_package_spec()
+        });
         let len = data.len() as u64;
         let mut cursor = Cursor::new(&data);
         assert_eq!(
@@ -735,19 +719,10 @@ mod tests {
     #[test]
     fn test_compressed_rejects_first_chunk_overlapping_chunk_metadata() {
         // chunks_end_pos is 133, but c_off is 120 (starts inside chunks array)
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            129,
-            1866,
-            120,
-            904,
-            PACKAGE_FILE_TAG,
-            131072,
-            880,
-            1866,
-            1049,
-        );
+        let data = build_synthetic_compressed_package(SyntheticCompressedPackageSpec {
+            compressed_offset: 120,
+            ..valid_synthetic_compressed_package_spec()
+        });
         let len = data.len() as u64;
         let mut cursor = Cursor::new(&data);
         assert_eq!(
@@ -762,19 +737,10 @@ mod tests {
     fn test_compressed_rejects_first_chunk_overlapping_trailing_summary_bytes() {
         // chunks_end_pos is 133; trailing summary requires at least 12 bytes (up to 145).
         // c_off is 140 (outside chunks array, but inside trailing summary fields).
-        let data = build_synthetic_compressed_package(
-            845,
-            1470,
-            129,
-            1866,
-            140,
-            904,
-            PACKAGE_FILE_TAG,
-            131072,
-            880,
-            1866,
-            1049,
-        );
+        let data = build_synthetic_compressed_package(SyntheticCompressedPackageSpec {
+            compressed_offset: 140,
+            ..valid_synthetic_compressed_package_spec()
+        });
         let len = data.len() as u64;
         let mut cursor = Cursor::new(&data);
         assert_eq!(

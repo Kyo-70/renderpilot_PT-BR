@@ -331,14 +331,14 @@ fn ensure_baseline_sidecar_creates_from_live() {
 }
 
 #[test]
-fn archive_live_to_sidecar_and_remove() {
+fn create_verified_archive_and_remove() {
     let root = tempfile::tempdir().expect("root");
     let live = root.path().join("nvngx_dlss.dll");
     let sidecar = root.path().join("nvngx_dlss.dll.bak");
     fs::write(&live, b"to-archive").expect("live");
     let expected_live = renderpilot_detection::sha256_file(&live).expect("hash");
 
-    execute_file_plan(&CoordinatedFilePlan::ArchiveLiveToSidecarAndRemove {
+    execute_file_plan(&CoordinatedFilePlan::CreateVerifiedArchiveAndRemove {
         path: live.clone(),
         expected_live,
     })

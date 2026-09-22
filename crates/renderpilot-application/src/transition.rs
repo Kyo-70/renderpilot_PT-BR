@@ -93,7 +93,7 @@ pub struct ResolvedWrite {
     member: Option<XiphMember>,
 }
 
-#[allow(
+#[expect(
     missing_docs,
     reason = "accessors repeat the documented resolved-write contract"
 )]
@@ -135,7 +135,7 @@ pub struct ResolvedArchiveAndRemove {
     member: Option<XiphMember>,
 }
 
-#[allow(
+#[expect(
     missing_docs,
     reason = "accessors repeat the documented archive contract"
 )]
@@ -175,7 +175,7 @@ pub struct ResolvedRemove {
     member: Option<XiphMember>,
 }
 
-#[allow(
+#[expect(
     missing_docs,
     reason = "accessors repeat the documented removal contract"
 )]
@@ -206,7 +206,7 @@ pub struct ResolvedUntouchedBaseline {
     member: Option<XiphMember>,
 }
 
-#[allow(
+#[expect(
     missing_docs,
     reason = "accessors repeat the documented untouched-baseline contract"
 )]
@@ -267,7 +267,7 @@ pub struct ResolvedXiphTransition {
     external_aliases: BTreeSet<String>,
 }
 
-#[allow(
+#[expect(
     missing_docs,
     reason = "accessors repeat the documented Xiph transition contract"
 )]
@@ -300,7 +300,7 @@ pub struct ResolvedTransition {
     xiph: Option<ResolvedXiphTransition>,
 }
 
-#[allow(
+#[expect(
     missing_docs,
     reason = "accessors repeat the documented resolved-transition contract"
 )]

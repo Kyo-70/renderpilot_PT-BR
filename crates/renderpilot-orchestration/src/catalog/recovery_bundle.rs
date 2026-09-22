@@ -2,7 +2,7 @@
 
 use std::fmt::Write as _;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use renderpilot_storage_sqlite::{ConsolidationConflictSummary, ConsolidationPlan, SqliteStorage};
 
@@ -27,17 +27,8 @@ pub(crate) fn create_consolidation_recovery_bundle(
     plan: &ConsolidationPlan,
     conflicts: &ConsolidationConflictSummary,
 ) -> Result<PathBuf, ServiceError> {
-    BundleWorkspace::create(storage, RecoveryBundleKind::Consolidation)?.build(|workspace| {
-        build_bundle(
-            storage,
-            plan,
-            conflicts,
-            workspace.catalog_path(),
-            workspace.temporary(),
-            workspace.published(),
-            workspace.timestamp(),
-        )
-    })
+    BundleWorkspace::create(storage, RecoveryBundleKind::Consolidation)?
+        .build(|workspace| build_bundle(storage, plan, conflicts, workspace))
 }
 
 /// Creates a durable database snapshot before root correction removes
@@ -56,9 +47,7 @@ pub(crate) fn create_root_correction_recovery_bundle(
             previous_root,
             corrected_root,
             archived_component_ids,
-            workspace.temporary(),
-            workspace.published(),
-            workspace.timestamp(),
+            workspace,
         )
     })
 }
@@ -77,26 +66,21 @@ pub(crate) fn create_managed_cleanup_recovery_bundle(
             game_id,
             ambiguous_targets,
             associated_paths,
-            workspace.temporary(),
-            workspace.published(),
-            workspace.timestamp(),
+            workspace,
         )
     })
 }
 
-#[allow(
-    clippy::too_many_arguments,
-    reason = "bundle inputs are explicit durability boundaries"
-)]
 fn build_managed_cleanup_bundle(
     storage: &SqliteStorage,
     game_id: &str,
     ambiguous_targets: &[String],
     associated_paths: &[PathBuf],
-    temporary: &Path,
-    published: &Path,
-    timestamp: u128,
+    workspace: &BundleWorkspace,
 ) -> Result<PathBuf, ServiceError> {
+    let temporary = workspace.temporary();
+    let published = workspace.published();
+    let timestamp = workspace.timestamp();
     let database_snapshot = temporary.join("catalog.db");
     if !storage.copy_catalog_snapshot_to(&database_snapshot)? {
         return Err(ServiceError::command_failed(
@@ -160,20 +144,17 @@ fn build_managed_cleanup_bundle(
     publish_directory(temporary, published, "managed-cleanup recovery bundle")
 }
 
-#[allow(
-    clippy::too_many_arguments,
-    reason = "the bundle manifest and publication paths are explicit durability inputs"
-)]
 fn build_root_correction_bundle(
     storage: &SqliteStorage,
     game_id: &str,
     previous_root: &str,
     corrected_root: &str,
     archived_component_ids: &[String],
-    temporary: &Path,
-    published: &Path,
-    timestamp: u128,
+    workspace: &BundleWorkspace,
 ) -> Result<PathBuf, ServiceError> {
+    let temporary = workspace.temporary();
+    let published = workspace.published();
+    let timestamp = workspace.timestamp();
     let database_snapshot = temporary.join("catalog.db");
     if !storage.copy_catalog_snapshot_to(&database_snapshot)? {
         return Err(ServiceError::command_failed(
@@ -210,11 +191,12 @@ fn build_bundle(
     storage: &SqliteStorage,
     plan: &ConsolidationPlan,
     conflicts: &ConsolidationConflictSummary,
-    catalog_path: &Path,
-    temporary: &Path,
-    published: &Path,
-    timestamp: u128,
+    workspace: &BundleWorkspace,
 ) -> Result<PathBuf, ServiceError> {
+    let catalog_path = workspace.catalog_path();
+    let temporary = workspace.temporary();
+    let published = workspace.published();
+    let timestamp = workspace.timestamp();
     let database_snapshot = temporary.join("catalog.db");
     if !storage.copy_catalog_snapshot_to(&database_snapshot)? {
         return Err(ServiceError::command_failed(

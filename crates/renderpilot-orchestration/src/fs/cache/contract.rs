@@ -76,10 +76,22 @@ pub(crate) enum CachePublication<T> {
     Published,
     /// Another process published a valid value first. Its bytes and mtime were
     /// left untouched and this is the value the caller must return.
-    #[cfg_attr(target_os = "linux", allow(dead_code))]
+    #[cfg_attr(
+        target_os = "linux",
+        allow(
+            dead_code,
+            reason = "the Windows cache publication outcome is not constructed on Linux"
+        )
+    )]
     Current(T),
     /// A present pathname must not be classified or replaced by this commit.
-    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+    #[cfg_attr(
+        not(target_os = "linux"),
+        allow(
+            dead_code,
+            reason = "the Linux cache publication outcome is not constructed on non-Linux targets"
+        )
+    )]
     PreservedUnclassified,
 }
 
