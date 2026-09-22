@@ -39,7 +39,25 @@ pub(super) fn plan_fingerprint(plan: &ResolvedInstall) -> Result<Sha256Hash, Ser
     builder.field(host_kind_label(plan.host_kind).as_bytes());
     builder.field(plan.proxy_dll_name.as_bytes());
     builder.field(processing_path_label(plan.processing_path).as_bytes());
+    config_fingerprint_fields(&mut builder, plan.renodx_config.as_ref());
     builder.finish()
+}
+
+fn config_fingerprint_fields(
+    builder: &mut FingerprintBuilder,
+    config: Option<&crate::addons::renodx::types::RenoDxConfig>,
+) {
+    let Some(config) = config else {
+        builder.field(b"none");
+        return;
+    };
+    builder.field(b"present");
+    let mut settings = config.settings.iter().collect::<Vec<_>>();
+    settings.sort_by_key(|setting| setting.key.as_str());
+    for setting in settings {
+        builder.field(setting.key.as_str().as_bytes());
+        builder.field(&setting.value.to_le_bytes());
+    }
 }
 
 pub(super) fn architecture_label(architecture: Architecture) -> &'static str {
@@ -93,6 +111,7 @@ impl FingerprintBuilder {
 mod tests {
     use super::*;
     use crate::addons::matching::MatchConfidence;
+    use crate::addons::renodx::types::{RenoDxConfig, RenoDxConfigKey, RenoDxConfigSetting};
 
     fn plan(
         slug: &str,
@@ -111,6 +130,7 @@ mod tests {
             generic_profile: None,
             profile_id: None,
             processing_path: RenoDxProcessingPath::Unmanaged,
+            renodx_config: None,
             guidance: Vec::new(),
             launch: None,
         }
@@ -218,6 +238,15 @@ mod tests {
                 processing_path: RenoDxProcessingPath::Upgrade,
                 ..base.clone()
             },
+            ResolvedInstall {
+                renodx_config: Some(RenoDxConfig {
+                    settings: vec![RenoDxConfigSetting {
+                        key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                        value: 2,
+                    }],
+                }),
+                ..base.clone()
+            },
         ];
         let expected = plan_fingerprint(&base).expect("base fingerprint");
         for variant in variants {
@@ -226,6 +255,64 @@ mod tests {
                 plan_fingerprint(&variant).expect("variant fingerprint")
             );
         }
+    }
+
+    #[test]
+    fn plan_fingerprint_uses_canonical_renodx_config_content() {
+        let base = plan(
+            "game",
+            "https://example.test/a",
+            Architecture::X64,
+            HostKind::Proxy,
+            "dxgi.dll",
+        );
+        let first = ResolvedInstall {
+            renodx_config: Some(RenoDxConfig {
+                settings: vec![
+                    RenoDxConfigSetting {
+                        key: RenoDxConfigKey::ColorGradeContrast,
+                        value: 80,
+                    },
+                    RenoDxConfigSetting {
+                        key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                        value: 2,
+                    },
+                ],
+            }),
+            ..base.clone()
+        };
+        let reordered = ResolvedInstall {
+            renodx_config: Some(RenoDxConfig {
+                settings: vec![
+                    RenoDxConfigSetting {
+                        key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                        value: 2,
+                    },
+                    RenoDxConfigSetting {
+                        key: RenoDxConfigKey::ColorGradeContrast,
+                        value: 80,
+                    },
+                ],
+            }),
+            ..base.clone()
+        };
+        let changed = ResolvedInstall {
+            renodx_config: Some(RenoDxConfig {
+                settings: vec![RenoDxConfigSetting {
+                    key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                    value: 1,
+                }],
+            }),
+            ..base
+        };
+        assert_eq!(
+            plan_fingerprint(&first).expect("first fingerprint"),
+            plan_fingerprint(&reordered).expect("reordered fingerprint")
+        );
+        assert_ne!(
+            plan_fingerprint(&first).expect("first fingerprint"),
+            plan_fingerprint(&changed).expect("changed fingerprint")
+        );
     }
 
     #[test]

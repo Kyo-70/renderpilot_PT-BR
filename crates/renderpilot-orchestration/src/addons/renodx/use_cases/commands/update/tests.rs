@@ -29,6 +29,7 @@ fn snapshot(record: InstalledAddon, channel: Option<ReshadeChannel>) -> UpdateSn
         record,
         game_dir: PathBuf::new(),
         processing_path: RenoDxProcessingPath::Unmanaged,
+        renodx_config: None,
         shared_vulkan_channel: channel,
         addon: None,
         host: None,

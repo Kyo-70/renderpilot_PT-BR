@@ -1,6 +1,6 @@
 //! Runtime RenoDX catalogue model.
 
-use renderpilot_domain::{Architecture, GraphicsApi};
+use renderpilot_domain::{Architecture, GraphicsApi, RenoDxManagedConfigKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -66,9 +66,9 @@ pub struct RenoDxGeneric {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum RenoDxProcessingPath {
-    /// Enable RenoDX's resource upgrade route (`[renodx] Set_Path=1`).
+    /// Enable RenoDX's resource-upgrade processing route.
     Upgrade,
-    /// Use the engine/native HDR route (`[renodx] Set_Path=0`).
+    /// Use the engine/native HDR processing route.
     Native,
     /// Leave the existing RenoDX processing-path setting untouched.
     #[default]
@@ -76,7 +76,7 @@ pub enum RenoDxProcessingPath {
 }
 
 impl RenoDxProcessingPath {
-    /// Maps the processing path into the typed ReShade.ini `Set_Path` value,
+    /// Maps the processing path into the typed ReShade.ini processing value,
     /// or `None` if the configuration should not be managed.
     #[must_use]
     pub const fn desired_set_path(self) -> Option<renderpilot_domain::RenoDxSetPathValue> {
@@ -149,6 +149,8 @@ pub struct RenoDxTitle {
     /// Optional title-specific processing route.  When absent, the referenced
     /// engine profile supplies the route.
     pub processing_path: Option<RenoDxProcessingPath>,
+    /// Strict, reviewed add-on settings to apply to ReShade.ini.
+    pub renodx_config: Option<RenoDxConfig>,
     /// Whether page-wide guidance is composed into this title's guidance.
     pub inherit_page_guidance: bool,
     /// Launch arguments associated with this title.
@@ -308,6 +310,122 @@ pub struct RenoDxGuidanceCondition {
     pub unreal_minor_min: Option<u32>,
     /// Inclusive maximum Unreal Engine minor version.
     pub unreal_minor_max: Option<u32>,
+}
+
+/// Strict machine-readable RenoDX configuration compiled from reviewed catalog
+/// data. Presentation guidance is deliberately not an authority for writes.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxConfig {
+    /// Canonical typed values to apply under `[renodx]`.
+    pub settings: Vec<RenoDxConfigSetting>,
+}
+
+/// One canonical RenoDX key/value pair.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RenoDxConfigSetting {
+    /// Closed RenoDX key name.
+    pub key: RenoDxConfigKey,
+    /// Canonical integer value accepted by the selected profile.
+    pub value: i32,
+}
+
+/// Closed set of RenoDX configuration keys RenderPilot may manage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum RenoDxConfigKey {
+    /// B8G8R8A8 typeless resource upgrade mode.
+    #[serde(rename = "Upgrade_B8G8R8A8_TYPELESS")]
+    UpgradeB8G8R8A8Typeless,
+    /// B8G8R8A8 UNORM resource upgrade mode.
+    #[serde(rename = "Upgrade_B8G8R8A8_UNORM")]
+    UpgradeB8G8R8A8Unorm,
+    /// R8G8B8A8 typeless resource upgrade mode.
+    #[serde(rename = "Upgrade_R8G8B8A8_TYPELESS")]
+    UpgradeR8G8B8A8Typeless,
+    /// R8G8B8A8 UNORM resource upgrade mode.
+    #[serde(rename = "Upgrade_R8G8B8A8_UNORM")]
+    UpgradeR8G8B8A8Unorm,
+    /// R10G10B10A2 UNORM resource upgrade mode.
+    #[serde(rename = "Upgrade_R10G10B10A2_UNORM")]
+    UpgradeR10G10B10A2Unorm,
+    /// R10G10B10A2 typeless resource upgrade mode.
+    #[serde(rename = "Upgrade_R10G10B10A2_TYPELESS")]
+    UpgradeR10G10B10A2Typeless,
+    /// R11G11B10 float resource upgrade mode.
+    #[serde(rename = "Upgrade_R11G11B10_FLOAT")]
+    UpgradeR11G11B10Float,
+    /// R16G16B16A16 typeless resource upgrade mode.
+    #[serde(rename = "Upgrade_R16G16B16A16_TYPELESS")]
+    UpgradeR16G16B16A16Typeless,
+    /// Copy-destination resource upgrade mode.
+    #[serde(rename = "Upgrade_CopyDestinations")]
+    UpgradeCopyDestinations,
+    /// Force-borderless mode.
+    #[serde(rename = "ForceBorderless")]
+    ForceBorderless,
+    /// Use scRGB swap-chain mode.
+    #[serde(rename = "Upgrade_UseSCRGB")]
+    UpgradeUseScrgb,
+    /// Swap-chain encoding mode.
+    #[serde(rename = "Swapchain_Encoding")]
+    SwapchainEncoding,
+    /// Compatibility scaling offset.
+    #[serde(rename = "Scaling_Offset")]
+    ScalingOffset,
+    /// Compatibility tonemap offset.
+    #[serde(rename = "Tonemap_Offset")]
+    TonemapOffset,
+    /// Compatibility blit-copy workaround mode.
+    #[serde(rename = "Blit_Copy_Hack")]
+    BlitCopyHack,
+    /// Swap-chain proxy mode.
+    #[serde(rename = "Use_Swapchain_Proxy")]
+    UseSwapchainProxy,
+    /// Color-grade contrast preset value.
+    #[serde(rename = "ColorGradeContrast")]
+    ColorGradeContrast,
+    /// Color-grade saturation preset value.
+    #[serde(rename = "ColorGradeSaturation")]
+    ColorGradeSaturation,
+    /// Color-grade blowout preset value.
+    #[serde(rename = "ColorGradeBlowout")]
+    ColorGradeBlowout,
+}
+
+impl RenoDxConfigKey {
+    /// Returns the corresponding durable planner key.
+    pub(crate) const fn managed_key(self) -> RenoDxManagedConfigKey {
+        match self {
+            Self::UpgradeB8G8R8A8Typeless => RenoDxManagedConfigKey::UpgradeB8G8R8A8Typeless,
+            Self::UpgradeB8G8R8A8Unorm => RenoDxManagedConfigKey::UpgradeB8G8R8A8Unorm,
+            Self::UpgradeR8G8B8A8Typeless => RenoDxManagedConfigKey::UpgradeR8G8B8A8Typeless,
+            Self::UpgradeR8G8B8A8Unorm => RenoDxManagedConfigKey::UpgradeR8G8B8A8Unorm,
+            Self::UpgradeR10G10B10A2Unorm => RenoDxManagedConfigKey::UpgradeR10G10B10A2Unorm,
+            Self::UpgradeR10G10B10A2Typeless => RenoDxManagedConfigKey::UpgradeR10G10B10A2Typeless,
+            Self::UpgradeR11G11B10Float => RenoDxManagedConfigKey::UpgradeR11G11B10Float,
+            Self::UpgradeR16G16B16A16Typeless => {
+                RenoDxManagedConfigKey::UpgradeR16G16B16A16Typeless
+            }
+            Self::UpgradeCopyDestinations => RenoDxManagedConfigKey::UpgradeCopyDestinations,
+            Self::ForceBorderless => RenoDxManagedConfigKey::ForceBorderless,
+            Self::UpgradeUseScrgb => RenoDxManagedConfigKey::UpgradeUseScrgb,
+            Self::SwapchainEncoding => RenoDxManagedConfigKey::SwapchainEncoding,
+            Self::ScalingOffset => RenoDxManagedConfigKey::ScalingOffset,
+            Self::TonemapOffset => RenoDxManagedConfigKey::TonemapOffset,
+            Self::BlitCopyHack => RenoDxManagedConfigKey::BlitCopyHack,
+            Self::UseSwapchainProxy => RenoDxManagedConfigKey::UseSwapchainProxy,
+            Self::ColorGradeContrast => RenoDxManagedConfigKey::ColorGradeContrast,
+            Self::ColorGradeSaturation => RenoDxManagedConfigKey::ColorGradeSaturation,
+            Self::ColorGradeBlowout => RenoDxManagedConfigKey::ColorGradeBlowout,
+        }
+    }
+
+    /// Returns the canonical INI key string.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        self.managed_key().as_str()
+    }
 }
 
 /// Launch argument recommendation attached to an exact title.

@@ -9,7 +9,7 @@ use renderpilot_domain::{
 use crate::addons::game_analysis::{analyze_game, install_target_dir};
 use crate::addons::records::{self, source_with_role};
 use crate::addons::renodx::errors;
-use crate::addons::renodx::types::{RenoDxManifest, RenoDxProcessingPath};
+use crate::addons::renodx::types::{RenoDxConfig, RenoDxManifest, RenoDxProcessingPath};
 use crate::addons::renodx::use_cases::reshade_update::{
     HostUpdateTarget, recorded_reshade_channel, resolve_host_update_target,
 };
@@ -26,6 +26,7 @@ pub(super) struct UpdateSnapshot {
     pub(super) record: InstalledAddon,
     pub(super) game_dir: PathBuf,
     pub(super) processing_path: RenoDxProcessingPath,
+    pub(super) renodx_config: Option<RenoDxConfig>,
     pub(super) shared_vulkan_channel: Option<ReshadeChannel>,
     pub(super) addon: Option<TrackedSource>,
     pub(super) host: Option<TrackedSource>,
@@ -64,14 +65,17 @@ pub(super) fn resolve_update_snapshot(
         crate::addons::renodx::game_context::executable_override(context, game_id).as_deref(),
     );
     let game_dir = install_target_dir(&analysis)?;
-    let processing_path = match crate::addons::renodx::matcher::resolve(manifest, &analysis.facts) {
-        crate::addons::renodx::matcher::RenoDxResolution::Installable(plan) => plan.processing_path,
-        crate::addons::renodx::matcher::RenoDxResolution::External {
-            file_install: Some(plan),
-            ..
-        } => plan.processing_path,
-        _ => RenoDxProcessingPath::Unmanaged,
-    };
+    let (processing_path, renodx_config) =
+        match crate::addons::renodx::matcher::resolve(manifest, &analysis.facts) {
+            crate::addons::renodx::matcher::RenoDxResolution::Installable(plan) => {
+                (plan.processing_path, plan.renodx_config)
+            }
+            crate::addons::renodx::matcher::RenoDxResolution::External {
+                file_install: Some(plan),
+                ..
+            } => (plan.processing_path, plan.renodx_config),
+            _ => (RenoDxProcessingPath::Unmanaged, None),
+        };
     if crate::addons::renodx::dlss_fix_binding::resolve(&record).main_payload_collides() {
         return Err(errors::invalid(
             "RenoDX main payload collides with the reserved DLSS-Fix companion target".to_owned(),
@@ -140,6 +144,7 @@ pub(super) fn resolve_update_snapshot(
         record,
         game_dir,
         processing_path,
+        renodx_config,
         shared_vulkan_channel,
         addon,
         host,
@@ -154,6 +159,7 @@ pub(super) fn ensure_update_snapshot_matches(
     if snapshot.record != current.record
         || snapshot.game_dir != current.game_dir
         || snapshot.processing_path != current.processing_path
+        || snapshot.renodx_config != current.renodx_config
         || snapshot.shared_vulkan_channel != current.shared_vulkan_channel
         || snapshot.host_target != current.host_target
     {

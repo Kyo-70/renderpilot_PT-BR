@@ -46,7 +46,7 @@ pub(super) fn install_proxy(
     let adopted_existing = host.initial_owned_existing_paths(paths.ini_path.as_deref());
     let prepared_ini = ini_op_for_game(game_dir, prepared)?;
     let config_receipt = prepared_ini.as_ref().and_then(|operation| match operation {
-        engine::FileOp::RenoDxSetPath { receipt, .. } => Some(receipt),
+        engine::FileOp::RenoDxConfig { receipt, .. } => Some(receipt),
         _ => None,
     });
 
@@ -166,7 +166,7 @@ pub(super) fn install_vulkan(
     let sources: Vec<TrackedSource> = addon_tracked_source(prepared).into_iter().collect();
     let plan = build_vulkan_plan(prepared, game_dir)?;
     let config_receipt = plan.ops.iter().find_map(|operation| match operation {
-        engine::FileOp::RenoDxSetPath { receipt, .. } => Some(receipt.clone()),
+        engine::FileOp::RenoDxConfig { receipt, .. } => Some(receipt.clone()),
         _ => None,
     });
     let pending = engine::install_pending(game_dir, &plan)?;

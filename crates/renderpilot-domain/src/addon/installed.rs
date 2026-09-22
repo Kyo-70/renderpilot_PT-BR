@@ -32,7 +32,7 @@ pub struct InstalledAddonParts {
     pub managed_files: Vec<ManagedAddonFile>,
     /// Upstream provenance for updates.
     pub tracked_sources: Vec<TrackedSource>,
-    /// RenoDX-only provenance for the typed ReShade.ini Set_Path mutation.
+    /// RenoDX-only provenance for managed typed ReShade.ini mutations.
     pub renodx_config_receipt: Option<RenoDxConfigReceipt>,
     /// Shared Unreal Engine.ini ownership journal for RenoDX/Luma.
     pub engine_config_journal: Option<EngineConfigJournal>,
@@ -79,7 +79,7 @@ pub struct InstalledAddon {
     /// uninstall does not depend on the current executable override.
     #[serde(default)]
     registered_exe_path: Option<PathRef>,
-    /// RenoDX-only provenance for the typed ReShade.ini Set_Path mutation.
+    /// RenoDX-only provenance for managed typed ReShade.ini mutations.
     #[serde(default)]
     renodx_config_receipt: Option<RenoDxConfigReceipt>,
     #[serde(default)]
@@ -296,7 +296,7 @@ impl InstalledAddon {
         self
     }
 
-    /// Attaches or clears RenoDX's typed ReShade.ini Set_Path receipt.
+    /// Attaches or clears RenoDX's typed ReShade.ini configuration receipt.
     pub fn with_renodx_config_receipt(
         mut self,
         receipt: Option<RenoDxConfigReceipt>,
@@ -511,7 +511,7 @@ impl InstalledAddon {
         self.registered_exe_path.as_ref()
     }
 
-    /// Returns RenoDX's typed Set_Path provenance, if this record manages it.
+    /// Returns RenoDX's managed typed ReShade.ini provenance, if present.
     #[must_use]
     pub fn renodx_config_receipt(&self) -> Option<&RenoDxConfigReceipt> {
         self.renodx_config_receipt.as_ref()

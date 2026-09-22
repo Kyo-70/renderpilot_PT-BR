@@ -6,7 +6,7 @@
 //! the canonical local file name derived from the slug. A manifest that passes can
 //! be resolved and installed without further structural checks.
 
-use renderpilot_domain::Architecture;
+use renderpilot_domain::{Architecture, RenoDxManagedConfigKey};
 use std::collections::HashSet;
 
 use crate::ServiceError;
@@ -14,8 +14,8 @@ use crate::ServiceError;
 use super::errors;
 use super::source;
 use super::types::{
-    RenoDxCategory, RenoDxEngineIniRecipe, RenoDxGeneric, RenoDxGuidance, RenoDxGuidanceKind,
-    RenoDxManifest, RenoDxTitle,
+    RenoDxCategory, RenoDxConfig, RenoDxEngineIniRecipe, RenoDxGeneric, RenoDxGuidance,
+    RenoDxGuidanceKind, RenoDxManifest, RenoDxTitle,
 };
 use crate::addons::manifest_validate::{
     ensure_not_blank, ensure_safe_file_name, ensure_unique_title_ids, validate_match_rules,
@@ -195,6 +195,15 @@ fn validate_title(title: &RenoDxTitle) -> Result<(), ServiceError> {
     }
     ensure_compatibility_source(title)?;
     validate_category(&title.category)?;
+    if let Some(config) = &title.renodx_config {
+        let Some(profile_id) = title.profile_id.as_deref() else {
+            return Err(errors::failed(format!(
+                "title `{}` RenoDX config requires profile_id",
+                title.id
+            )));
+        };
+        validate_config(config, &title.id, profile_id)?;
+    }
     if let Some(launch) = &title.launch
         && (launch.arguments.is_empty() || launch.arguments.iter().any(|arg| arg.trim().is_empty()))
     {
@@ -204,6 +213,74 @@ fn validate_title(title: &RenoDxTitle) -> Result<(), ServiceError> {
         )));
     }
     Ok(())
+}
+
+fn validate_config(
+    config: &RenoDxConfig,
+    title_id: &str,
+    profile_id: &str,
+) -> Result<(), ServiceError> {
+    if config.settings.is_empty() {
+        return Err(errors::failed(format!(
+            "title `{title_id}` RenoDX config must contain at least one setting"
+        )));
+    }
+    let mut keys = HashSet::new();
+    for setting in &config.settings {
+        if !keys.insert(setting.key) {
+            return Err(errors::failed(format!(
+                "title `{title_id}` RenoDX config contains duplicate key `{}`",
+                setting.key.as_str()
+            )));
+        }
+        if !config_key_supported_by_profile(setting.key, profile_id) {
+            return Err(errors::failed(format!(
+                "title `{title_id}` RenoDX config key `{}` is incompatible with profile `{profile_id}`",
+                setting.key.as_str()
+            )));
+        }
+        let key = setting.key.managed_key();
+        let valid = key != RenoDxManagedConfigKey::SetPath && key.accepts_value(setting.value);
+        if !valid {
+            return Err(errors::failed(format!(
+                "title `{title_id}` RenoDX config value {} is invalid for `{}`",
+                setting.value,
+                setting.key.as_str()
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn config_key_supported_by_profile(key: super::types::RenoDxConfigKey, profile: &str) -> bool {
+    use super::types::RenoDxConfigKey;
+    match profile {
+        "ue_extended" => matches!(
+            key,
+            RenoDxConfigKey::UpgradeB8G8R8A8Typeless
+                | RenoDxConfigKey::UpgradeB8G8R8A8Unorm
+                | RenoDxConfigKey::UpgradeR8G8B8A8Typeless
+                | RenoDxConfigKey::UpgradeR8G8B8A8Unorm
+                | RenoDxConfigKey::UpgradeR10G10B10A2Unorm
+                | RenoDxConfigKey::UpgradeR10G10B10A2Typeless
+                | RenoDxConfigKey::UpgradeR11G11B10Float
+                | RenoDxConfigKey::UpgradeR16G16B16A16Typeless
+                | RenoDxConfigKey::UpgradeCopyDestinations
+        ),
+        "unreal_legacy" => !matches!(
+            key,
+            RenoDxConfigKey::SwapchainEncoding
+                | RenoDxConfigKey::ScalingOffset
+                | RenoDxConfigKey::TonemapOffset
+                | RenoDxConfigKey::BlitCopyHack
+                | RenoDxConfigKey::UseSwapchainProxy
+        ),
+        "unity" => !matches!(
+            key,
+            RenoDxConfigKey::ForceBorderless | RenoDxConfigKey::UpgradeUseScrgb
+        ),
+        _ => false,
+    }
 }
 
 fn validate_guidance(guidance: &RenoDxGuidance, context: &str) -> Result<(), ServiceError> {
@@ -463,9 +540,9 @@ mod tests {
     use super::*;
     use crate::addons::renodx::test_support::{manifest, rule, title};
     use crate::addons::renodx::types::{
-        Engine, MatchKind, RenoDxCategory, RenoDxCompatibility, RenoDxEngineIniEntry,
-        RenoDxEngineIniRecipe, RenoDxEngineIniSection, RenoDxGeneric, RenoDxGuidance,
-        RenoDxGuidanceKind, Status,
+        Engine, MatchKind, RenoDxCategory, RenoDxCompatibility, RenoDxConfig, RenoDxConfigKey,
+        RenoDxConfigSetting, RenoDxEngineIniEntry, RenoDxEngineIniRecipe, RenoDxEngineIniSection,
+        RenoDxGeneric, RenoDxGuidance, RenoDxGuidanceKind, Status,
     };
 
     fn one_title_manifest() -> RenoDxManifest {
@@ -481,6 +558,77 @@ mod tests {
     #[test]
     fn valid_manifest_passes() {
         assert!(validate_manifest(&one_title_manifest()).is_ok());
+    }
+
+    #[test]
+    fn renodx_config_requires_profile_and_enforces_key_ranges() {
+        let mut manifest = one_title_manifest();
+        manifest.titles[0].renodx_config = Some(RenoDxConfig {
+            settings: vec![RenoDxConfigSetting {
+                key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                value: 99,
+            }],
+        });
+        assert!(validate_manifest(&manifest).is_err());
+
+        manifest.titles[0].renodx_config = Some(RenoDxConfig {
+            settings: vec![RenoDxConfigSetting {
+                key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                value: 2,
+            }],
+        });
+        assert!(validate_manifest(&manifest).is_err());
+
+        manifest.generics.push(RenoDxGeneric {
+            engine: Engine::Unreal,
+            status: Status::Working,
+            slug: Some("unrealengine".to_owned()),
+            url64: None,
+            url32: None,
+            message: crate::addons::CatalogMessage::new("renodx.generic.unreal", "Unreal"),
+            profile_id: Some("unreal_legacy".to_owned()),
+            generic_fallback: false,
+            guidance: Vec::new(),
+            processing_path: Default::default(),
+        });
+        manifest.titles[0].profile_id = Some("unreal_legacy".to_owned());
+        assert!(validate_manifest(&manifest).is_ok());
+    }
+
+    #[test]
+    fn typed_config_keys_match_domain_canonical_contract() {
+        let keys = [
+            RenoDxConfigKey::UpgradeB8G8R8A8Typeless,
+            RenoDxConfigKey::UpgradeB8G8R8A8Unorm,
+            RenoDxConfigKey::UpgradeR8G8B8A8Typeless,
+            RenoDxConfigKey::UpgradeR8G8B8A8Unorm,
+            RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+            RenoDxConfigKey::UpgradeR10G10B10A2Typeless,
+            RenoDxConfigKey::UpgradeR11G11B10Float,
+            RenoDxConfigKey::UpgradeR16G16B16A16Typeless,
+            RenoDxConfigKey::UpgradeCopyDestinations,
+            RenoDxConfigKey::ForceBorderless,
+            RenoDxConfigKey::UpgradeUseScrgb,
+            RenoDxConfigKey::SwapchainEncoding,
+            RenoDxConfigKey::ScalingOffset,
+            RenoDxConfigKey::TonemapOffset,
+            RenoDxConfigKey::BlitCopyHack,
+            RenoDxConfigKey::UseSwapchainProxy,
+            RenoDxConfigKey::ColorGradeContrast,
+            RenoDxConfigKey::ColorGradeSaturation,
+            RenoDxConfigKey::ColorGradeBlowout,
+        ];
+        assert_eq!(keys.len(), RenoDxManagedConfigKey::ALL.len() - 1);
+        for key in keys {
+            let canonical = RenoDxManagedConfigKey::parse(key.as_str())
+                .expect("every public key must be in the domain allowlist");
+            assert_ne!(canonical, RenoDxManagedConfigKey::SetPath);
+            let (minimum, maximum) = canonical.value_range();
+            assert!(canonical.accepts_value(minimum));
+            assert!(canonical.accepts_value(maximum));
+            assert!(!canonical.accepts_value(minimum - 1));
+            assert!(!canonical.accepts_value(maximum + 1));
+        }
     }
 
     fn recipe() -> RenoDxEngineIniRecipe {

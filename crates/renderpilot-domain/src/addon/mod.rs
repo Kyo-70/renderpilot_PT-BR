@@ -76,7 +76,10 @@ pub use peer_transition::{
 pub use proxy_topology::{
     GameProxyTopology, ProxyImplementation, ProxyLink, ProxyRootPrestate, ProxyTopologyError,
 };
-pub use renodx_config::{RenoDxConfigReceipt, RenoDxSetPathBaseline, RenoDxSetPathValue};
+pub use renodx_config::{
+    RenoDxConfigEntry, RenoDxConfigReceipt, RenoDxManagedBaseline, RenoDxManagedConfigKey,
+    RenoDxSetPathBaseline, RenoDxSetPathValue,
+};
 pub use shared_artifact::{
     SharedArtifactKind, SharedArtifactOrigin, SharedArtifactRecord, SharedArtifactSource,
 };
@@ -114,6 +117,7 @@ mod tests {
             section_preexisted: false,
             last_written: RenoDxSetPathValue::One,
             newline_anchor: None,
+            entries: Vec::new(),
         };
         let invalid_error = InstalledAddon::new(game_id(), AddonKind::RenoDx, addon_path())
             .with_renodx_config_receipt(Some(invalid))
@@ -127,7 +131,7 @@ mod tests {
             "invalid RenoDX configuration receipt"
         );
 
-        let present_without_section = RenoDxConfigReceipt::new(
+        let mut present_without_section = RenoDxConfigReceipt::new(
             PathRef::new(r"C:\Games\CP2077\ReShade.ini").expect("valid path"),
             RenoDxSetPathBaseline::Present {
                 value: "0".to_owned(),
@@ -135,9 +139,10 @@ mod tests {
             false,
             RenoDxSetPathValue::One,
         );
+        present_without_section.schema_version = 1;
         assert!(!present_without_section.is_supported());
 
-        let present_with_anchor = RenoDxConfigReceipt::new(
+        let mut present_with_anchor = RenoDxConfigReceipt::new(
             PathRef::new(r"C:\Games\CP2077\ReShade.ini").expect("valid path"),
             RenoDxSetPathBaseline::Present {
                 value: "0".to_owned(),
@@ -146,6 +151,7 @@ mod tests {
             RenoDxSetPathValue::One,
         )
         .with_newline_anchor(Some("anchor".to_owned()));
+        present_with_anchor.schema_version = 1;
         assert!(!present_with_anchor.is_supported());
 
         let valid = RenoDxConfigReceipt::new(

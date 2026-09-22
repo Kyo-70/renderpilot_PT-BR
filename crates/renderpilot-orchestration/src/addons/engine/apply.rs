@@ -77,13 +77,13 @@ fn apply_op(
             });
             Ok(())
         }
-        super::FileOp::RenoDxSetPath {
+        super::FileOp::RenoDxConfig {
             name,
             expected_before,
             after,
             receipt: _,
         } => {
-            helpers::ensure_bare_file_name("RenoDX Set_Path file name", name)?;
+            helpers::ensure_bare_file_name("RenoDX configuration file name", name)?;
             let path = helpers::existing_case_insensitive(game_dir, name)
                 .unwrap_or_else(|| game_dir.join(name));
             let original_bytes = read_prepared_regular_file(&path)?;

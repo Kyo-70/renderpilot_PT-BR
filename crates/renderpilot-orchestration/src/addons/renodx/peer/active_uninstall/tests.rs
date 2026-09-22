@@ -4,7 +4,7 @@ use renderpilot_domain::{
     AddonKind, FileOwnership, FileReceipt, GameId, GameProxyTopology, InstalledAddon,
     InstalledAddonHostKind, ManagedAddonFile, ManagedFileBaseline, ManagedFileMode, PathRef,
     PeerEndpointRole, PlannedGameProxyTopology, ProxyImplementation, ProxyLink, ProxyRootPrestate,
-    Sha256Hash,
+    RenoDxConfigReceipt, RenoDxSetPathBaseline, RenoDxSetPathValue, Sha256Hash,
 };
 
 use crate::addons::renodx::peer::{
@@ -229,6 +229,80 @@ fn created_config_is_removed_through_typed_exact_endpoint() {
     );
     assert!(composition.reshade_ini_authority.is_some());
     assert!(composition.payloads[1].is_none());
+}
+
+#[test]
+fn active_uninstall_ignores_wrong_path_config_receipt() {
+    let game = tempfile::tempdir().expect("game");
+    let addon = game.path().join("renodx.addon64");
+    let ini = game.path().join("ReShade.ini");
+    std::fs::write(&addon, b"addon").expect("addon");
+    std::fs::write(&ini, b"[ADDON]\nAddonPath=.\n").expect("ini");
+    let game_id = GameId::new("manual:renodx-active-wrong-receipt").expect("game id");
+    let record = InstalledAddon::new(
+        game_id.clone(),
+        AddonKind::RenoDx,
+        path(game.path(), "renodx.addon64"),
+    )
+    .with_created_file(path(game.path(), "ReShade.ini"))
+    .with_host_kind(InstalledAddonHostKind::SharedVulkanLayer)
+    .with_renodx_config_receipt(Some(RenoDxConfigReceipt::new(
+        path(&game.path().join("other"), "ReShade.ini"),
+        RenoDxSetPathBaseline::Absent,
+        false,
+        RenoDxSetPathValue::One,
+    )))
+    .expect("receipt invariant");
+    let topology = topology(game.path(), &game_id, None);
+    let authority =
+        RenoDxRootAuthority::resolve(game.path(), HostKind::Vulkan, None, None).expect("authority");
+
+    let composition = compose_case(&record, &topology, &authority).expect("composition");
+    assert_eq!(composition.program.endpoints().len(), 2);
+    assert!(composition.reshade_ini_authority.is_some());
+}
+
+#[test]
+fn active_uninstall_keeps_running_when_typed_cleanup_is_ambiguous() {
+    let game = tempfile::tempdir().expect("game");
+    let addon = game.path().join("renodx.addon64");
+    let ini = game.path().join("ReShade.ini");
+    let bytes = b"[renodx]\nSet_Path\n[ADDON]\nAddonPath=.\nUser=keep\n";
+    std::fs::write(&addon, b"addon").expect("addon");
+    std::fs::write(&ini, bytes).expect("ini");
+    let game_id = GameId::new("manual:renodx-active-ambiguous-receipt").expect("game id");
+    let record = InstalledAddon::new(
+        game_id.clone(),
+        AddonKind::RenoDx,
+        path(game.path(), "renodx.addon64"),
+    )
+    .with_created_file(path(game.path(), "ReShade.ini"))
+    .with_backed_up_file(path(game.path(), "ReShade.ini"))
+    .with_host_kind(InstalledAddonHostKind::SharedVulkanLayer)
+    .with_renodx_config_receipt(Some(RenoDxConfigReceipt::new(
+        path(game.path(), "ReShade.ini"),
+        RenoDxSetPathBaseline::Absent,
+        true,
+        RenoDxSetPathValue::One,
+    )))
+    .expect("receipt invariant");
+    let topology = topology(game.path(), &game_id, None);
+    let authority =
+        RenoDxRootAuthority::resolve(game.path(), HostKind::Vulkan, None, None).expect("authority");
+
+    let composition = compose_case(&record, &topology, &authority).expect("composition");
+    let after = composition.game_intents[1].after.as_ref().expect("after");
+    assert!(String::from_utf8_lossy(after).contains("Set_Path"));
+    assert!(
+        after
+            .windows(b"User=keep".len())
+            .any(|window| window == b"User=keep")
+    );
+    assert!(
+        !after
+            .windows(b"AddonPath".len())
+            .any(|window| window == b"AddonPath")
+    );
 }
 
 #[test]

@@ -417,6 +417,7 @@ mod tests {
             game_id,
             host_kind: HostKind::Vulkan,
             processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
+            renodx_config: None,
             proxy_dll_name: String::new(),
             addon_file_name: "renodx.addon64".to_owned(),
             addon_source_url: String::new(),

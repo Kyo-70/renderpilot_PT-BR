@@ -15,7 +15,6 @@ use crate::addons::renodx::peer::{
     RenoDxActiveUpdateComposition, RenoDxActiveUpdateConfigInput, RenoDxActiveUpdateHostInput,
     RenoDxActiveUpdateInput, compose_active_update,
 };
-use crate::addons::renodx::reshade_ini::plan_set_path_reconcile;
 use crate::addons::tracking;
 use crate::addons::tracking::{
     AddonVersionUpdate, ManagedFilesUpdate, PreserveMetadata, RebuildParts,
@@ -187,8 +186,12 @@ fn rebuild_record(
 
 fn lower_config(phase3: &ActiveUpdatePhase1) -> Result<LoweredConfig, ServiceError> {
     let desired = phase3.base.processing_path.desired_set_path();
+    let config = phase3.base.renodx_config.as_ref();
     let current_receipt = phase3.base.record().renodx_config_receipt();
-    if desired.is_none() && current_receipt.is_none() {
+    if desired.is_none()
+        && !config.is_some_and(|config| !config.settings.is_empty())
+        && current_receipt.is_none()
+    {
         return Ok((None, None, None));
     }
     let source = phase3.root_seal.config_source();
@@ -214,25 +217,26 @@ fn lower_config(phase3: &ActiveUpdatePhase1) -> Result<LoweredConfig, ServiceErr
                     .map_err(|error| {
                         invalid(format!("active ReShade.ini seal is invalid: {error}"))
                     })?;
-            (Some(before), Some(owned_bytes.clone()))
+            (Some(before), Some(owned_bytes.as_slice()))
         }
     };
-    let planned = plan_set_path_reconcile(
+    let planned = crate::addons::renodx::reshade_ini::plan_config_reconcile(
         path.clone(),
-        before_bytes.as_deref(),
+        before_bytes,
         desired,
+        config,
         current_receipt,
     )
-    .map_err(|error| invalid(format!("active RenoDX Set_Path reconcile failed: {error}")))?;
-    let physical_changed = before_bytes != planned.after;
+    .map_err(|error| invalid(format!("active RenoDX config reconcile failed: {error}")))?;
+    let physical_changed = before_bytes != planned.after.as_deref();
     let config = if physical_changed {
         let after = planned
             .after
-            .ok_or_else(|| invalid("active Set_Path reconcile removed ReShade.ini"))?;
+            .ok_or_else(|| invalid("active RenoDX configuration reconcile removed ReShade.ini"))?;
         Some(RenoDxActiveUpdateConfigInput::new(
             path,
             before,
-            before_bytes,
+            before_bytes.map(ToOwned::to_owned),
             Some(after),
         ))
     } else {

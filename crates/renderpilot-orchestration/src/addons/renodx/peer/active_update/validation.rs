@@ -122,7 +122,7 @@ fn validate_config(
     }
     if after.is_none() && before.is_some() {
         return Err(RenoDxActiveUpdateError::InvalidInput(
-            "active Set_Path update cannot remove ReShade.ini",
+            "active RenoDX configuration update cannot remove ReShade.ini",
         ));
     }
     Ok(before_bytes != after)

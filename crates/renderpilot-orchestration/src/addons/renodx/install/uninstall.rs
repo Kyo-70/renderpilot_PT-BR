@@ -577,7 +577,7 @@ fn append_ini_rewrite(
         V2DiskObservation::Absent => {}
         V2DiskObservation::Regular { .. } => match std::fs::read(path) {
             Ok(existing_bytes) => {
-                let owned_set_path = receipt.filter(|receipt| {
+                let owned_config = receipt.filter(|receipt| {
                     receipt.is_supported()
                         && path.to_str().is_some_and(|path| {
                             matches!(
@@ -586,13 +586,16 @@ fn append_ini_rewrite(
                             )
                         })
                 });
-                let planned_after = owned_set_path.and_then(|receipt| {
-                    match super::super::reshade_ini::plan_set_path_removal(&existing_bytes, receipt)
-                    {
+                let planned_after = owned_config.and_then(|receipt| {
+                    match super::super::reshade_ini::plan_config_removal(
+                        &receipt.ini_path,
+                        Some(&existing_bytes),
+                        receipt,
+                    ) {
                         Ok(plan) => plan.after,
                         Err(error) => {
                             log::warn!(
-                                "RenoDX uninstall: cannot plan Set_Path removal for `{}`: {error}",
+                                "RenoDX uninstall: cannot plan RenoDX config removal for `{}`: {error}",
                                 path.display()
                             );
                             None
@@ -602,7 +605,7 @@ fn append_ini_rewrite(
                 let set_path_bytes: &[u8] = planned_after.as_deref().unwrap_or(&existing_bytes);
                 // A malformed/non-UTF8 file is never rewritten through the
                 // text cleanup path. In particular, a receipt CAS failure
-                // must preserve the user's current Set_Path bytes exactly.
+                // must preserve the user's current RenoDX configuration bytes exactly.
                 let Ok(existing) = std::str::from_utf8(set_path_bytes) else {
                     log::warn!(
                         "RenoDX uninstall: skipping non-UTF8 ReShade.ini `{}`",

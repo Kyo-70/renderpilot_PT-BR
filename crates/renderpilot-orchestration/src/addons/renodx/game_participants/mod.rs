@@ -100,13 +100,13 @@ pub(crate) fn build(
                 let record_as_created = before.is_none();
                 (path, before, Some(after), record_as_created, None)
             }
-            FileOp::RenoDxSetPath {
+            FileOp::RenoDxConfig {
                 name,
                 expected_before,
                 after,
                 receipt,
             } => {
-                ensure_bare_file_name("RenoDX Set_Path file name", &name)?;
+                ensure_bare_file_name("RenoDX config file name", &name)?;
                 let path = existing_case_insensitive(game_dir, &name)
                     .unwrap_or_else(|| game_dir.join(name));
                 let current_before = read_update_before(&path)?;
@@ -127,7 +127,7 @@ pub(crate) fn build(
             }
             _ => {
                 return Err(crate::addons::errors::invalid(
-                    "RenoDX Vulkan combined planning supports only Replace, UpdateText, and RenoDxSetPath operations",
+                    "RenoDX Vulkan combined planning supports only Replace, UpdateText, and RenoDxConfig operations",
                 ));
             }
         };
@@ -135,7 +135,7 @@ pub(crate) fn build(
             && config_receipt.replace(planned_config_receipt).is_some()
         {
             return Err(crate::addons::errors::invalid(
-                "RenoDX Vulkan plan contains duplicate Set_Path operations",
+                "RenoDX Vulkan plan contains duplicate config operations",
             ));
         }
 
@@ -287,7 +287,7 @@ mod tests {
         .expect("set path prepare");
         let participants = build(
             directory.path(),
-            plan(vec![FileOp::RenoDxSetPath {
+            plan(vec![FileOp::RenoDxConfig {
                 name: "ReShade.ini".to_owned(),
                 expected_before: Some(original.to_vec()),
                 after: prepared.after,

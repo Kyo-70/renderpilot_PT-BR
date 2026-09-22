@@ -157,9 +157,9 @@ pub enum FileOp {
         /// How to fold the required keys into the base.
         strategy: MergeStrategy,
     },
-    /// RenoDX-only text update whose Set_Path key is planned by the typed
+    /// RenoDX-only text update whose typed configuration keys are planned by the typed
     /// RenoDX byte planner before the ordinary merge handles other keys.
-    RenoDxSetPath {
+    RenoDxConfig {
         /// Conventional bare file name.
         name: String,
         /// Exact bytes observed when this operation was prepared. `None`
@@ -167,7 +167,7 @@ pub enum FileOp {
         /// atomic write.
         expected_before: Option<Vec<u8>>,
         /// Fully prepared postimage. Apply never reparses or replans the
-        /// live file, so this remains the sole Set_Path write source.
+        /// live file, so this remains the sole RenoDX configuration write source.
         after: Vec<u8>,
         /// Typed receipt captured from the same preimage/postimage plan.
         receipt: renderpilot_domain::RenoDxConfigReceipt,

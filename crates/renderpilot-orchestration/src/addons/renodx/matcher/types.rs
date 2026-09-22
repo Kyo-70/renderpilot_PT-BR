@@ -3,7 +3,8 @@ use renderpilot_domain::Architecture;
 use crate::addons::CatalogMessage;
 use crate::addons::matching::{IncompatibilityReason, MatchConfidence};
 use crate::addons::renodx::types::{
-    RenoDxGenericProfile, RenoDxGuidance, RenoDxLaunchRequirement, RenoDxProcessingPath,
+    RenoDxConfig, RenoDxGenericProfile, RenoDxGuidance, RenoDxLaunchRequirement,
+    RenoDxProcessingPath,
 };
 use crate::addons::reshade::proxy::HostKind;
 
@@ -32,6 +33,8 @@ pub struct ResolvedInstall {
     pub profile_id: Option<String>,
     /// Closed RenoDX processing route resolved from title > profile > fallback.
     pub processing_path: RenoDxProcessingPath,
+    /// Strict title-specific RenoDX settings to apply during installation.
+    pub renodx_config: Option<RenoDxConfig>,
     /// Materialized title guidance for the resolved game.
     pub guidance: Vec<RenoDxGuidance>,
     /// Curated launch arguments, when the title declares them.
@@ -50,6 +53,7 @@ impl ResolvedInstall {
             generic_profile: self.generic_profile,
             profile_id: self.profile_id,
             processing_path: self.processing_path,
+            renodx_config: self.renodx_config,
             guidance: self.guidance,
             launch: self.launch,
         }
@@ -76,6 +80,8 @@ pub struct ExternalInstall {
     pub profile_id: Option<String>,
     /// Closed RenoDX processing route resolved from title > profile > fallback.
     pub processing_path: RenoDxProcessingPath,
+    /// Strict title-specific RenoDX settings to apply during installation.
+    pub renodx_config: Option<RenoDxConfig>,
     /// Materialized title guidance for the resolved game.
     pub guidance: Vec<RenoDxGuidance>,
     /// Curated launch arguments, when the title declares them.

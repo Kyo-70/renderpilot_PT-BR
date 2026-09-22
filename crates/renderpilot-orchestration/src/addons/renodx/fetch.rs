@@ -171,6 +171,7 @@ async fn build_prepared_install(
         reshade_digest: reshade.digest,
         reshade_channel: reshade.channel,
         processing_path: resolved.processing_path,
+        renodx_config: resolved.renodx_config.clone(),
         ini_tweaks: renodx_ini_defaults(),
     })
 }

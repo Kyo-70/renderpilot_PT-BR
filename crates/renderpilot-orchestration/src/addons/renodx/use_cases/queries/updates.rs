@@ -2,7 +2,8 @@
 
 use renderpilot_application::SharedArtifactRepository;
 use renderpilot_domain::{
-    AddonKind, Architecture, GameId, InstalledAddon, InstalledAddonHostKind, TrackedSourceRole,
+    AddonKind, Architecture, GameId, InstalledAddon, InstalledAddonHostKind, RenoDxConfigReceipt,
+    RenoDxManagedConfigKey, RenoDxSetPathValue, TrackedSourceRole,
 };
 
 use crate::addons::game_analysis::analyze_game;
@@ -12,7 +13,7 @@ use crate::addons::renodx::dto::vulkan::{LayerDiagnosticReason, VulkanLayerDetec
 use crate::addons::renodx::platform::vulkan::validation::{
     LayerUpdateVerdict, resolve_digest_verdict,
 };
-use crate::addons::renodx::types::RenoDxManifest;
+use crate::addons::renodx::types::{RenoDxConfig, RenoDxManifest};
 use crate::addons::renodx::use_cases::reshade_update::{
     recorded_reshade_channel, resolve_host_update_target,
 };
@@ -94,7 +95,7 @@ async fn check_record(
 }
 
 /// ReShade.ini policy availability is derived only from the desired catalogue
-/// path and the durable Set_Path receipt. It deliberately does not read the
+/// path and the durable RenoDX configuration receipt. It deliberately does not read the
 /// live INI, so a user edit remains a reconcile decision for the explicit
 /// update command rather than a background/status mutation.
 fn config_update_status(
@@ -108,23 +109,86 @@ fn config_update_status(
         crate::addons::renodx::game_context::executable_override(context, record.game_id())
             .as_deref(),
     );
-    let desired = match crate::addons::renodx::matcher::resolve(manifest, &analysis.facts) {
+    let receipt = record.renodx_config_receipt();
+    match crate::addons::renodx::matcher::resolve(manifest, &analysis.facts) {
         crate::addons::renodx::matcher::RenoDxResolution::Installable(plan) => {
-            plan.processing_path.desired_set_path()
+            Some(config_status_for_desired(
+                plan.processing_path.desired_set_path(),
+                plan.renodx_config.as_ref(),
+                receipt,
+            ))
         }
         crate::addons::renodx::matcher::RenoDxResolution::External {
             file_install: Some(plan),
             ..
-        } => plan.processing_path.desired_set_path(),
+        } => Some(config_status_for_desired(
+            plan.processing_path.desired_set_path(),
+            plan.renodx_config.as_ref(),
+            receipt,
+        )),
         _ => None,
-    };
-    match (desired, record.renodx_config_receipt()) {
-        (Some(desired), Some(receipt)) if receipt.last_written == desired => {
-            Some(UpdateStatus::Current)
-        }
-        (Some(_), _) | (None, Some(_)) => Some(UpdateStatus::Available),
-        (None, None) => Some(UpdateStatus::Current),
     }
+}
+
+fn config_status_for_desired(
+    desired_set_path: Option<RenoDxSetPathValue>,
+    desired_config: Option<&RenoDxConfig>,
+    receipt: Option<&RenoDxConfigReceipt>,
+) -> UpdateStatus {
+    let desired_has_config = desired_set_path.is_some()
+        || desired_config.is_some_and(|config| !config.settings.is_empty());
+    match (desired_has_config, receipt) {
+        (false, None) => UpdateStatus::Current,
+        (true, Some(receipt))
+            if desired_config_matches_receipt(desired_set_path, desired_config, receipt) =>
+        {
+            UpdateStatus::Current
+        }
+        _ => UpdateStatus::Available,
+    }
+}
+
+/// Compares the complete desired typed RenoDX key set with durable receipt
+/// provenance.  This deliberately does not rely on the legacy mirror fields:
+/// v1 receipts are normalized by `managed_entries`, while v2 receipts expose
+/// every owned key.
+fn desired_config_matches_receipt(
+    desired_set_path: Option<RenoDxSetPathValue>,
+    desired_config: Option<&RenoDxConfig>,
+    receipt: &RenoDxConfigReceipt,
+) -> bool {
+    if !receipt.is_supported() {
+        return false;
+    }
+    let settings = desired_config.map_or(&[][..], |config| config.settings.as_slice());
+    let expected_count = usize::from(desired_set_path.is_some()) + settings.len();
+    let entries = receipt.managed_entries();
+    if entries.len() != expected_count {
+        return false;
+    }
+    if let Some(desired) = desired_set_path {
+        let expected = desired.as_i32();
+        if !entries.iter().any(|entry| {
+            entry.key == RenoDxManagedConfigKey::SetPath.as_str() && entry.last_written == expected
+        }) {
+            return false;
+        }
+    }
+    for (index, setting) in settings.iter().enumerate() {
+        if settings[..index]
+            .iter()
+            .any(|prior| prior.key == setting.key)
+        {
+            return false;
+        }
+        if !entries
+            .iter()
+            .any(|entry| entry.key == setting.key.as_str() && entry.last_written == setting.value)
+        {
+            return false;
+        }
+    }
+    true
 }
 
 /// Result of checking the ReShade host for updates, carrying both the update
@@ -451,8 +515,12 @@ mod tests {
     use super::*;
     use crate::Context;
     use crate::addons::renodx::test_support::{manifest, reshade_sources};
+    use crate::addons::renodx::types::{RenoDxConfigKey, RenoDxConfigSetting};
     use renderpilot_application::InstalledAddonRepository;
-    use renderpilot_domain::{InstalledAddon, PathRef};
+    use renderpilot_domain::{
+        InstalledAddon, PathRef, RenoDxConfigEntry, RenoDxManagedBaseline, RenoDxSetPathBaseline,
+        RenoDxSetPathValue,
+    };
     use tempfile::tempdir;
 
     #[tokio::test]
@@ -504,6 +572,121 @@ mod tests {
         let other =
             other_channel_source(&reshade_sources, ReshadeChannel::Nightly, Architecture::X64);
         assert!(other.is_none());
+    }
+
+    fn receipt_with_entries(entries: Vec<RenoDxConfigEntry>) -> RenoDxConfigReceipt {
+        RenoDxConfigReceipt::from_entries(
+            PathRef::new("C:/Game/ReShade.ini").expect("path"),
+            true,
+            None,
+            entries,
+        )
+    }
+
+    fn entry(key: &str, value: i32) -> RenoDxConfigEntry {
+        RenoDxConfigEntry {
+            key: key.to_owned(),
+            baseline: RenoDxManagedBaseline::Absent,
+            last_written: value,
+        }
+    }
+
+    fn upgrade_config(value: i32) -> RenoDxConfig {
+        RenoDxConfig {
+            settings: vec![RenoDxConfigSetting {
+                key: RenoDxConfigKey::UpgradeR10G10B10A2Unorm,
+                value,
+            }],
+        }
+    }
+
+    #[test]
+    fn config_only_desired_and_receipt_are_current() {
+        let config = upgrade_config(2);
+        let receipt = receipt_with_entries(vec![entry("Upgrade_R10G10B10A2_UNORM", 2)]);
+        assert_eq!(
+            config_status_for_desired(None, Some(&config), Some(&receipt)),
+            UpdateStatus::Current
+        );
+    }
+
+    #[test]
+    fn config_only_value_change_is_available() {
+        let config = upgrade_config(2);
+        let receipt = receipt_with_entries(vec![entry("Upgrade_R10G10B10A2_UNORM", 1)]);
+        assert_eq!(
+            config_status_for_desired(None, Some(&config), Some(&receipt)),
+            UpdateStatus::Available
+        );
+    }
+
+    #[test]
+    fn unchanged_set_path_with_changed_config_is_available() {
+        let config = upgrade_config(2);
+        let receipt = receipt_with_entries(vec![
+            entry("Set_Path", 1),
+            entry("Upgrade_R10G10B10A2_UNORM", 1),
+        ]);
+        assert_eq!(
+            config_status_for_desired(Some(RenoDxSetPathValue::One), Some(&config), Some(&receipt)),
+            UpdateStatus::Available
+        );
+    }
+
+    #[test]
+    fn exact_set_path_and_config_are_current() {
+        let config = upgrade_config(2);
+        let receipt = receipt_with_entries(vec![
+            entry("Set_Path", 1),
+            entry("Upgrade_R10G10B10A2_UNORM", 2),
+        ]);
+        assert_eq!(
+            config_status_for_desired(Some(RenoDxSetPathValue::One), Some(&config), Some(&receipt)),
+            UpdateStatus::Current
+        );
+    }
+
+    #[test]
+    fn removing_a_desired_config_key_is_available() {
+        let config = None;
+        let receipt = receipt_with_entries(vec![
+            entry("Set_Path", 1),
+            entry("Upgrade_R10G10B10A2_UNORM", 2),
+        ]);
+        assert_eq!(
+            config_status_for_desired(Some(RenoDxSetPathValue::One), config, Some(&receipt)),
+            UpdateStatus::Available
+        );
+    }
+
+    #[test]
+    fn schema_v1_set_path_receipt_remains_current() {
+        let mut receipt = RenoDxConfigReceipt::new(
+            PathRef::new("C:/Game/ReShade.ini").expect("path"),
+            RenoDxSetPathBaseline::Absent,
+            false,
+            RenoDxSetPathValue::One,
+        );
+        receipt.schema_version = 1;
+        assert_eq!(
+            config_status_for_desired(Some(RenoDxSetPathValue::One), None, Some(&receipt)),
+            UpdateStatus::Current
+        );
+    }
+
+    #[test]
+    fn inconsistent_or_unsupported_receipt_is_not_current() {
+        let mut receipt = RenoDxConfigReceipt::from_entries(
+            PathRef::new("C:/Game/ReShade.ini").expect("path"),
+            true,
+            None,
+            vec![entry("Upgrade_R10G10B10A2_UNORM", 2)],
+        );
+        receipt.last_written = RenoDxSetPathValue::One;
+        assert_eq!(
+            config_status_for_desired(None, Some(&upgrade_config(2)), Some(&receipt)),
+            UpdateStatus::Available
+        );
     }
 
     #[test]

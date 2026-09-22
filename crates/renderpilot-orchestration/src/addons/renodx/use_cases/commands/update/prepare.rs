@@ -26,7 +26,7 @@ pub(super) struct PreparedUpdateArtifacts {
     pub(super) config: Option<PreparedRenoDxConfig>,
 }
 
-/// Exact Set_Path transition prepared under the phase-three game lock. The
+/// Exact RenoDX configuration transition prepared under the phase-three game lock. The
 /// update commit consumes this projection together with binary replacements;
 /// no later path or value derivation is permitted.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -138,7 +138,7 @@ pub(super) async fn prepare_update_artifacts(
     })
 }
 
-/// Captures and plans only RenoDX's typed Set_Path reconciliation. This is
+/// Captures and plans only RenoDX's typed configuration reconciliation. This is
 /// intentionally called after phase-three route validation while the game
 /// lock is held, so the supplied before image is the one the durable commit
 /// will replace or restore.
@@ -146,8 +146,12 @@ pub(super) fn prepare_config_update(
     snapshot: &UpdateSnapshot,
 ) -> Result<Option<PreparedRenoDxConfig>, ServiceError> {
     let desired = snapshot.processing_path.desired_set_path();
+    let config = snapshot.renodx_config.as_ref();
     let receipt = snapshot.record.renodx_config_receipt();
-    if desired.is_none() && receipt.is_none() {
+    if desired.is_none()
+        && !config.is_some_and(|config| !config.settings.is_empty())
+        && receipt.is_none()
+    {
         return Ok(None);
     }
 
@@ -178,13 +182,14 @@ pub(super) fn prepare_config_update(
     let path_ref = PathRef::new(path_str)
         .map_err(|error| crate::failed(format!("invalid RenoDX ReShade.ini path: {error}")))?;
     let before = read_config_before(&path)?;
-    let planned = crate::addons::renodx::reshade_ini::plan_set_path_reconcile(
+    let planned = crate::addons::renodx::reshade_ini::plan_config_reconcile(
         path_ref,
         before.as_deref(),
         desired,
+        config,
         receipt,
     )
-    .map_err(|error| crate::failed(format!("cannot reconcile RenoDX Set_Path: {error}")))?;
+    .map_err(|error| crate::failed(format!("cannot reconcile RenoDX configuration: {error}")))?;
     let physical_changed = before != planned.after;
     let metadata_changed = receipt != planned.receipt.as_ref();
     if !physical_changed && !metadata_changed {
@@ -245,6 +250,7 @@ mod tests {
             record,
             game_dir: game_dir.to_path_buf(),
             processing_path,
+            renodx_config: None,
             shared_vulkan_channel: None,
             addon: None,
             host: None,
@@ -318,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn config_prepare_relinquishes_unmanaged_path_without_overwriting_user_edits() {
+    fn config_prepare_fails_closed_on_an_external_edit_when_relinquishing_path() {
         let root = tempdir().expect("root");
         let ini = root.path().join("ReShade.ini");
         let receipt = receipt(&ini, RenoDxSetPathBaseline::Absent, RenoDxSetPathValue::One);
@@ -334,19 +340,13 @@ mod tests {
         assert_eq!(prepared.after.as_deref(), Some(b"".as_slice()));
 
         std::fs::write(&ini, b"[renodx]\nSet_Path=user-edit\n").expect("edit ini");
-        let prepared = prepare_config_update(&snapshot(
+        let error = prepare_config_update(&snapshot(
             root.path(),
             RenoDxProcessingPath::Unmanaged,
             Some(receipt),
         ))
-        .expect("relinquish user edit")
-        .expect("metadata projection");
-        assert_eq!(prepared.receipt, None);
-        assert!(!prepared.physical_changed);
-        assert_eq!(
-            prepared.after.as_deref(),
-            Some(b"[renodx]\nSet_Path=user-edit\n".as_slice())
-        );
+        .expect_err("external edit must fail closed");
+        assert!(error.to_string().contains("edited outside RenderPilot"));
     }
 }
 

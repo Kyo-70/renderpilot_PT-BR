@@ -9,10 +9,10 @@ use crate::addons::catalog_message::WireCatalogMessage;
 use crate::addons::matching::{Engine, MatchKind, MatchRule, Status};
 
 use super::catalog::{
-    RenoDxCategory, RenoDxCompatibility, RenoDxEngineIniEntry, RenoDxEngineIniRecipe,
-    RenoDxEngineIniSection, RenoDxGeneric, RenoDxGuidance, RenoDxGuidanceCondition,
-    RenoDxGuidanceKind, RenoDxLaunchRequirement, RenoDxLaunchRequirementLevel, RenoDxManifest,
-    RenoDxProcessingPath, RenoDxSetting, RenoDxTitle,
+    RenoDxCategory, RenoDxCompatibility, RenoDxConfig, RenoDxConfigKey, RenoDxConfigSetting,
+    RenoDxEngineIniEntry, RenoDxEngineIniRecipe, RenoDxEngineIniSection, RenoDxGeneric,
+    RenoDxGuidance, RenoDxGuidanceCondition, RenoDxGuidanceKind, RenoDxLaunchRequirement,
+    RenoDxLaunchRequirementLevel, RenoDxManifest, RenoDxProcessingPath, RenoDxSetting, RenoDxTitle,
 };
 
 #[derive(Debug, Deserialize)]
@@ -134,6 +134,8 @@ struct WireGame {
     profile_id: Option<WireProfileId>,
     #[serde(default)]
     processing_path: Option<WireProcessingPath>,
+    #[serde(default)]
+    renodx_config: Option<WireRenoDxConfig>,
     #[serde(default = "default_true")]
     inherit_page_guidance: bool,
     #[serde(default)]
@@ -146,6 +148,87 @@ struct WireGame {
     constraints: WireCompatibility,
     #[serde(default)]
     proxy_dll: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WireRenoDxConfig {
+    settings: Vec<WireRenoDxConfigSetting>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WireRenoDxConfigSetting {
+    key: WireRenoDxConfigKey,
+    value: i32,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+enum WireRenoDxConfigKey {
+    #[serde(rename = "Upgrade_B8G8R8A8_TYPELESS")]
+    UpgradeB8G8R8A8Typeless,
+    #[serde(rename = "Upgrade_B8G8R8A8_UNORM")]
+    UpgradeB8G8R8A8Unorm,
+    #[serde(rename = "Upgrade_R8G8B8A8_TYPELESS")]
+    UpgradeR8G8B8A8Typeless,
+    #[serde(rename = "Upgrade_R8G8B8A8_UNORM")]
+    UpgradeR8G8B8A8Unorm,
+    #[serde(rename = "Upgrade_R10G10B10A2_UNORM")]
+    UpgradeR10G10B10A2Unorm,
+    #[serde(rename = "Upgrade_R10G10B10A2_TYPELESS")]
+    UpgradeR10G10B10A2Typeless,
+    #[serde(rename = "Upgrade_R11G11B10_FLOAT")]
+    UpgradeR11G11B10Float,
+    #[serde(rename = "Upgrade_R16G16B16A16_TYPELESS")]
+    UpgradeR16G16B16A16Typeless,
+    #[serde(rename = "Upgrade_CopyDestinations")]
+    UpgradeCopyDestinations,
+    #[serde(rename = "ForceBorderless")]
+    ForceBorderless,
+    #[serde(rename = "Upgrade_UseSCRGB")]
+    UpgradeUseScrgb,
+    #[serde(rename = "Swapchain_Encoding")]
+    SwapchainEncoding,
+    #[serde(rename = "Scaling_Offset")]
+    ScalingOffset,
+    #[serde(rename = "Tonemap_Offset")]
+    TonemapOffset,
+    #[serde(rename = "Blit_Copy_Hack")]
+    BlitCopyHack,
+    #[serde(rename = "Use_Swapchain_Proxy")]
+    UseSwapchainProxy,
+    #[serde(rename = "ColorGradeContrast")]
+    ColorGradeContrast,
+    #[serde(rename = "ColorGradeSaturation")]
+    ColorGradeSaturation,
+    #[serde(rename = "ColorGradeBlowout")]
+    ColorGradeBlowout,
+}
+
+impl From<WireRenoDxConfigKey> for RenoDxConfigKey {
+    fn from(value: WireRenoDxConfigKey) -> Self {
+        match value {
+            WireRenoDxConfigKey::UpgradeB8G8R8A8Typeless => Self::UpgradeB8G8R8A8Typeless,
+            WireRenoDxConfigKey::UpgradeB8G8R8A8Unorm => Self::UpgradeB8G8R8A8Unorm,
+            WireRenoDxConfigKey::UpgradeR8G8B8A8Typeless => Self::UpgradeR8G8B8A8Typeless,
+            WireRenoDxConfigKey::UpgradeR8G8B8A8Unorm => Self::UpgradeR8G8B8A8Unorm,
+            WireRenoDxConfigKey::UpgradeR10G10B10A2Unorm => Self::UpgradeR10G10B10A2Unorm,
+            WireRenoDxConfigKey::UpgradeR10G10B10A2Typeless => Self::UpgradeR10G10B10A2Typeless,
+            WireRenoDxConfigKey::UpgradeR11G11B10Float => Self::UpgradeR11G11B10Float,
+            WireRenoDxConfigKey::UpgradeR16G16B16A16Typeless => Self::UpgradeR16G16B16A16Typeless,
+            WireRenoDxConfigKey::UpgradeCopyDestinations => Self::UpgradeCopyDestinations,
+            WireRenoDxConfigKey::ForceBorderless => Self::ForceBorderless,
+            WireRenoDxConfigKey::UpgradeUseScrgb => Self::UpgradeUseScrgb,
+            WireRenoDxConfigKey::SwapchainEncoding => Self::SwapchainEncoding,
+            WireRenoDxConfigKey::ScalingOffset => Self::ScalingOffset,
+            WireRenoDxConfigKey::TonemapOffset => Self::TonemapOffset,
+            WireRenoDxConfigKey::BlitCopyHack => Self::BlitCopyHack,
+            WireRenoDxConfigKey::UseSwapchainProxy => Self::UseSwapchainProxy,
+            WireRenoDxConfigKey::ColorGradeContrast => Self::ColorGradeContrast,
+            WireRenoDxConfigKey::ColorGradeSaturation => Self::ColorGradeSaturation,
+            WireRenoDxConfigKey::ColorGradeBlowout => Self::ColorGradeBlowout,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -342,6 +425,16 @@ impl RenoDxManifest {
                     download_url: game.addon.source,
                     profile_id: game.profile_id.map(|profile| profile.as_str().to_owned()),
                     processing_path: game.processing_path.map(Into::into),
+                    renodx_config: game.renodx_config.map(|config| RenoDxConfig {
+                        settings: config
+                            .settings
+                            .into_iter()
+                            .map(|setting| RenoDxConfigSetting {
+                                key: setting.key.into(),
+                                value: setting.value,
+                            })
+                            .collect(),
+                    }),
                     inherit_page_guidance: game.inherit_page_guidance,
                     launch: game.requirements.map(|r| RenoDxLaunchRequirement {
                         arguments: r.launch.arguments,

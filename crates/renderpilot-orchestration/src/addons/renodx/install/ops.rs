@@ -70,7 +70,10 @@ pub(super) fn ini_op_for_game(
 ) -> Result<Option<FileOp>, crate::ServiceError> {
     let tweaks = effective_ini_tweaks(game_dir, &prepared.ini_tweaks);
     let strategy = ini_merge_strategy(&tweaks);
-    if let Some(desired) = prepared.processing_path.desired_set_path() {
+    let config = prepared.renodx_config.as_ref();
+    if prepared.processing_path.desired_set_path().is_some()
+        || config.is_some_and(|config| !config.settings.is_empty())
+    {
         let path = reshade::reshade_ini_path(game_dir)
             .unwrap_or_else(|| game_dir.join(reshade::RESHADE_INI_FILE_NAME));
         let expected_before = read_ini_preimage(&path)?;
@@ -79,23 +82,24 @@ pub(super) fn ini_op_for_game(
             .ok_or_else(|| crate::addons::errors::invalid("invalid ReShade.ini path"))?;
         let path_ref = renderpilot_domain::PathRef::new(path_str)
             .map_err(|error| crate::addons::errors::invalid(error.to_string()))?;
-        let planned = crate::addons::renodx::reshade_ini::plan_set_path(
+        let planned = crate::addons::renodx::reshade_ini::plan_config(
             path_ref,
             expected_before.as_deref().unwrap_or_default(),
-            desired,
+            prepared.processing_path.desired_set_path(),
+            config,
         )
         .map_err(|error| {
-            crate::addons::errors::invalid(format!("cannot plan RenoDX Set_Path: {error}"))
+            crate::addons::errors::invalid(format!("cannot plan RenoDX configuration: {error}"))
         })?;
         let planned_text = std::str::from_utf8(&planned.after).map_err(|_| {
-            crate::addons::errors::invalid("RenoDX Set_Path planner returned non-UTF-8")
+            crate::addons::errors::invalid("RenoDX configuration planner returned non-UTF-8")
         })?;
         let after = if strategy.has_writes() {
             strategy.apply(planned_text).into_bytes()
         } else {
             planned.after
         };
-        return Ok(Some(FileOp::RenoDxSetPath {
+        return Ok(Some(FileOp::RenoDxConfig {
             name: reshade::RESHADE_INI_FILE_NAME.to_owned(),
             expected_before,
             after,

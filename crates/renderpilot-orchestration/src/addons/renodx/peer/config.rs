@@ -6,7 +6,7 @@ use renderpilot_domain::{RenoDxReshadeIniAuthority, Sha256Hash};
 
 use crate::addons::renodx::install::PreparedInstall;
 use crate::addons::renodx::peer::{InstallActiveSnapshot, RenoDxConfigSourceSeal};
-use crate::addons::renodx::reshade_ini::{RenoDxSetPathError, plan_set_path};
+use crate::addons::renodx::reshade_ini::{RenoDxConfigError as RenoDxIniError, plan_config};
 use crate::addons::reshade::ini_schema::ini_merge_strategy;
 use crate::peer_mutation_executor::VerifiedPeerFile;
 
@@ -19,7 +19,7 @@ pub(crate) enum RenoDxConfigError {
     InvalidSource(&'static str),
     InvalidDigest,
     Effects(RenoDxPeerEffectError),
-    SetPath(RenoDxSetPathError),
+    Ini(RenoDxIniError),
 }
 
 impl std::fmt::Display for RenoDxConfigError {
@@ -34,7 +34,7 @@ impl std::fmt::Display for RenoDxConfigError {
             }
             Self::InvalidDigest => formatter.write_str("invalid retained RenoDX config digest"),
             Self::Effects(error) => error.fmt(formatter),
-            Self::SetPath(error) => error.fmt(formatter),
+            Self::Ini(error) => error.fmt(formatter),
         }
     }
 }
@@ -47,9 +47,9 @@ impl From<RenoDxPeerEffectError> for RenoDxConfigError {
     }
 }
 
-impl From<RenoDxSetPathError> for RenoDxConfigError {
-    fn from(error: RenoDxSetPathError) -> Self {
-        Self::SetPath(error)
+impl From<RenoDxIniError> for RenoDxConfigError {
+    fn from(error: RenoDxIniError) -> Self {
+        Self::Ini(error)
     }
 }
 
@@ -136,7 +136,11 @@ pub(crate) fn lower_config(
         tweaks.disabled_addons.clear();
     }
     let desired_set_path = prepared.processing_path.desired_set_path();
-    if desired_set_path.is_none() && !has_write_keys(&tweaks) {
+    let config = prepared.renodx_config.as_ref();
+    if desired_set_path.is_none()
+        && !config.is_some_and(|config| !config.settings.is_empty())
+        && !has_write_keys(&tweaks)
+    {
         return Ok(RenoDxConfigProjection {
             authority: None,
             created: false,
@@ -144,20 +148,26 @@ pub(crate) fn lower_config(
         });
     }
 
-    let set_path = desired_set_path
-        .map(|desired| plan_set_path(ini_path.clone(), base_bytes, desired))
-        .transpose()?;
+    let typed_config =
+        if desired_set_path.is_some() || config.is_some_and(|config| !config.settings.is_empty()) {
+            Some(
+                plan_config(ini_path.clone(), base_bytes, desired_set_path, config)
+                    .map_err(RenoDxConfigError::Ini)?,
+            )
+        } else {
+            None
+        };
     let strategy = ini_merge_strategy(&tweaks);
-    let (merged, receipt) = match set_path {
-        Some(set_path) => {
-            let text = std::str::from_utf8(&set_path.after)
-                .map_err(|_| RenoDxConfigError::SetPath(RenoDxSetPathError::NonUtf8))?;
+    let (merged, receipt) = match typed_config {
+        Some(config) => {
+            let text = std::str::from_utf8(&config.after)
+                .map_err(|_| RenoDxConfigError::Ini(RenoDxIniError::NonUtf8))?;
             let merged = if strategy.has_writes() {
                 strategy.apply(text).into_bytes()
             } else {
-                set_path.after
+                config.after
             };
-            (merged, Some(set_path.receipt))
+            (merged, Some(config.receipt))
         }
         None => {
             let base = String::from_utf8_lossy(base_bytes);

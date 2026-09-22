@@ -148,6 +148,7 @@ mod tests {
             generic_profile: None,
             profile_id: None,
             processing_path: crate::addons::renodx::types::RenoDxProcessingPath::Unmanaged,
+            renodx_config: None,
             guidance: Vec::new(),
             launch: None,
         };

@@ -5,7 +5,7 @@ use renderpilot_domain::{GameProxyTopology, InstalledAddon, PathRef, PlannedGame
 use crate::addons::shared_vulkan_mutation::FileIntent;
 use crate::peer_mutation_executor::{ExactEndpointProgram, PeerPathSnapshot};
 
-/// Exact Set_Path transition lowered from the sealed ReShade.ini source.
+/// Exact RenoDX configuration transition lowered from the sealed ReShade.ini source.
 pub(super) type RenoDxActiveUpdateConfigParts<'a> = (
     &'a PathRef,
     Option<&'a crate::peer_mutation_executor::VerifiedPeerFile>,

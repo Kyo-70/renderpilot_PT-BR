@@ -74,6 +74,7 @@ fn build_install_plan(
         generic_profile: None,
         profile_id: title.profile_id.clone(),
         processing_path: resolve_title_processing_path(manifest, title),
+        renodx_config: title.renodx_config.clone(),
         guidance: materialize_guidance(
             if title.inherit_page_guidance {
                 manifest.page_guidance.as_slice()
@@ -170,6 +171,7 @@ pub fn generic_file_install_plan(
         guidance: Vec::new(),
         launch: None,
         processing_path: RenoDxProcessingPath::Unmanaged,
+        renodx_config: None,
     })
 }
 
@@ -250,6 +252,7 @@ fn resolve_generic(manifest: &RenoDxManifest, facts: &MatchFacts) -> RenoDxResol
         }),
         profile_id: generic.profile_id.clone(),
         processing_path: generic.processing_path,
+        renodx_config: None,
         guidance: materialize_guidance(
             manifest.page_guidance.iter().chain(generic.guidance.iter()),
             facts,

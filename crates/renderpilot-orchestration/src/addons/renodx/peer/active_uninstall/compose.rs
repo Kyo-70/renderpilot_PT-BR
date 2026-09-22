@@ -19,12 +19,9 @@ pub(crate) fn compose_active_uninstall(
 ) -> Result<ActiveUninstallComposition, RenoDxActiveUninstallError> {
     validate_input(&input)?;
     let ini_path = renderpilot_domain::PathRef::new(
-        input
-            .root
-            .config_source()
-            .exact_ini_path()
-            .to_string_lossy()
-            .into_owned(),
+        input.root.config_source().exact_ini_path().to_str().ok_or(
+            RenoDxActiveUninstallError::Invalid("cannot form exact ReShade.ini path"),
+        )?,
     )
     .map_err(|_| RenoDxActiveUninstallError::Invalid("cannot form exact ReShade.ini path"))?;
     let mut effects = ActiveUninstallEffects::new();

@@ -156,6 +156,7 @@ impl RenoDxManifest {
                     download_url: game.addon.source,
                     profile_id: None,
                     processing_path: None,
+                    renodx_config: None,
                     inherit_page_guidance: true,
                     launch: None,
                 })

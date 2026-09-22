@@ -434,7 +434,7 @@ fn prepared_renodx_set_path_rejects_a_changed_preimage() {
         dir.path(),
         &InstallPlan {
             kind: AddonKind::RenoDx,
-            ops: vec![FileOp::RenoDxSetPath {
+            ops: vec![FileOp::RenoDxConfig {
                 name: "ReShade.ini".to_owned(),
                 expected_before: Some(before.to_vec()),
                 after: planned.after,
