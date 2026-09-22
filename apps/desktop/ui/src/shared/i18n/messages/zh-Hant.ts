@@ -902,8 +902,8 @@ export const zhHant = defineLocalizedCatalog<'zh-Hant', EnglishCatalog>()({
   // ── Game details: Luma attribution ──
   'gameDetails.luma.attribution': 'Luma Framework 由 Filoppi 開發。',
   'gameDetails.luma.attributionLink': '檢視專案',
-  'gameDetails.renodx.guidance.gameSetting': '遊戲內設定',
-  'gameDetails.renodx.guidance.addonSetting': 'RenoDX 設定',
+  'gameDetails.renodx.guidance.gameSetting': '在遊戲選單中設定',
+  'gameDetails.renodx.guidance.addonSetting': '在 RenoDX 覆蓋層中設定',
   'gameDetails.renodx.guidance.engineIni': '手動修改 INI',
   'gameDetails.renodx.guidance.warning': '重要',
   'gameDetails.renodx.guidance.compatibility': '相容性說明',

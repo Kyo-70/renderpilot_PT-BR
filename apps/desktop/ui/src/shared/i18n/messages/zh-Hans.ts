@@ -905,8 +905,8 @@ export const zhHans = defineLocalizedCatalog<'zh-Hans', EnglishCatalog>()({
   // ── Game details: Luma attribution ──
   'gameDetails.luma.attribution': 'Luma Framework 由 Filoppi 开发。',
   'gameDetails.luma.attributionLink': '查看项目',
-  'gameDetails.renodx.guidance.gameSetting': '游戏内设置',
-  'gameDetails.renodx.guidance.addonSetting': 'RenoDX 设置',
+  'gameDetails.renodx.guidance.gameSetting': '在游戏菜单中设置',
+  'gameDetails.renodx.guidance.addonSetting': '在 RenoDX 覆盖层中设置',
   'gameDetails.renodx.guidance.engineIni': '手动修改 INI',
   'gameDetails.renodx.guidance.warning': '重要',
   'gameDetails.renodx.guidance.compatibility': '兼容性说明',

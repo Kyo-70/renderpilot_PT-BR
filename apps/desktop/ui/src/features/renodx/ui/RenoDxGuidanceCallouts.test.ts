@@ -95,6 +95,38 @@ describe('RenoDxGuidanceCallouts', () => {
 
     expect(target.querySelector('dt')?.textContent).toBe('Upgrade Path');
     expect(target.querySelector('dd code')?.textContent).toBe('Off');
+    expect(target.textContent).toContain(t('gameDetails.renodx.guidance.addonSetting'));
+    expect(target.textContent).not.toContain('Use these RenoDX values.');
+    expect(target.querySelector('[data-slot="alert"]')).toBeNull();
+  });
+
+  it('renders in-game settings as a neutral block without an alert', async () => {
+    if (component) {
+      await unmount(component);
+    }
+    component = mount(RenoDxGuidanceCalloutsTestHost, {
+      target,
+      props: {
+        guidance: [
+          {
+            id: 'renodx.test.native-hdr',
+            kind: 'game_setting',
+            message_id: 'renodx.test.native-hdr',
+            fallback_text: 'Turn Native HDR off in the game.',
+            code: null,
+            settings: [{ name: 'Native HDR', value: 'Off' }],
+            url: null,
+          },
+        ],
+      },
+    });
+    flushSync();
+
+    expect(target.querySelector('dt')?.textContent).toBe('Native HDR');
+    expect(target.querySelector('dd code')?.textContent).toBe('Off');
+    expect(target.textContent).toContain(t('gameDetails.renodx.guidance.gameSetting'));
+    expect(target.textContent).not.toContain('Turn Native HDR off in the game.');
+    expect(target.querySelector('[data-slot="alert"]')).toBeNull();
   });
 
   it('renders warning guidance with warning variant and suppresses the alert title', async () => {
@@ -183,6 +215,8 @@ describe('RenoDxGuidanceCallouts', () => {
     expect(link?.href).toBe('https://example.com/tool');
     expect(link?.target).toBe('_blank');
     expect(link?.rel).toBe('noreferrer');
+    expect(target.textContent).toContain('Download the required setup tool.');
+    expect(target.querySelector('[data-slot="alert"]')).toBeNull();
   });
 
   it('publishes error notification when clipboard write fails', async () => {
@@ -260,6 +294,36 @@ describe('RenoDxGuidanceCallouts', () => {
 
     expect(target.querySelector('pre')).toBeNull();
     expect(target.textContent).not.toContain('Automatic Engine.ini recipe.');
+  });
+
+  it('renders external tool guidance in a neutral block with header and link', async () => {
+    if (component) {
+      await unmount(component);
+    }
+    component = mount(RenoDxGuidanceCalloutsTestHost, {
+      target,
+      props: {
+        guidance: [
+          {
+            id: 'renodx.test.tool',
+            kind: 'external_tool',
+            message_id: 'renodx.test.tool',
+            fallback_text: 'Requires Lyall fix.',
+            code: null,
+            settings: [],
+            url: 'https://github.com/Lyall/UltrawideFix',
+          },
+        ],
+      },
+    });
+    flushSync();
+
+    expect(target.textContent).toContain(t('gameDetails.renodx.guidance.externalTool'));
+    expect(target.textContent).toContain('Requires Lyall fix.');
+    expect(target.querySelector('a')?.getAttribute('href')).toBe(
+      'https://github.com/Lyall/UltrawideFix',
+    );
+    expect(target.querySelector('[data-slot="alert"]')).toBeNull();
   });
 
   it('renders Engine.ini guidance in the dialog view', async () => {

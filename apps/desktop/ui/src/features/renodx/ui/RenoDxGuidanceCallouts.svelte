@@ -26,6 +26,7 @@
   };
 
   const { guidance = [], presentation = 'callouts' }: Props = $props();
+
   const visibleGuidance = $derived(
     guidance.filter((item) =>
       presentation === 'engine-ini-dialog'
@@ -76,9 +77,11 @@
 </script>
 
 {#snippet guidanceContent(item: RenoDxGuidance)}
-  <span>{textFor(item)}</span>
+  {#if !(item.settings.length > 0 && (item.kind === 'game_setting' || item.kind === 'addon_setting'))}
+    <span>{textFor(item)}</span>
+  {/if}
   {#if item.settings.length > 0}
-    <dl class="mt-2 grid gap-1.5 text-xs">
+    <dl class="grid gap-1.5 text-xs">
       {#each item.settings as setting (`${item.id}:${setting.name}`)}
         <div
           class="flex min-w-0 items-baseline justify-between gap-3 rounded-sm bg-muted px-2 py-1"
@@ -127,8 +130,28 @@
       <!-- eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -->
       {@render guidanceContent(item)}
     </div>
-  {:else if isPlainCompatibility(item)}
+  {:else if item.settings.length > 0 && (item.kind === 'game_setting' || item.kind === 'addon_setting')}
+    {@const Icon = ICONS[item.kind]}
+    <div class="grid w-full gap-2 rounded-md border border-border/60 bg-muted/30 p-2.5 text-sm">
+      <div class="flex items-center gap-1.5 text-xs font-medium tracking-tight text-foreground">
+        <Icon class="size-3.5 text-muted-foreground" aria-hidden="true" />
+        <span>{t(TITLE_KEYS[item.kind])}</span>
+      </div>
+      <!-- eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -->
+      {@render guidanceContent(item)}
+    </div>
+  {:else if isPlainCompatibility(item) || item.kind === 'game_setting' || item.kind === 'addon_setting'}
     <AddonStateMessage tone="default" icon="info" message={textFor(item)} />
+  {:else if item.kind === 'external_tool'}
+    {@const Icon = ICONS[item.kind]}
+    <div class="grid w-full gap-2 rounded-md border border-border/60 bg-muted/30 p-2.5 text-sm">
+      <div class="flex items-center gap-1.5 text-xs font-medium tracking-tight text-foreground">
+        <Icon class="size-3.5 text-muted-foreground" aria-hidden="true" />
+        <span>{t(TITLE_KEYS[item.kind])}</span>
+      </div>
+      <!-- eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -->
+      {@render guidanceContent(item)}
+    </div>
   {:else}
     {@const Icon = ICONS[item.kind]}
     <Alert variant={item.kind === 'warning' ? 'warning' : 'default'} size="sm" role="note">

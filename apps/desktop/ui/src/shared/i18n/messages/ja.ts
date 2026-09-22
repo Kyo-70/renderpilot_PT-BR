@@ -992,8 +992,8 @@ export const ja = defineLocalizedCatalog<'ja', EnglishCatalog>()({
   // ── Game details: Luma attribution ──
   'gameDetails.luma.attribution': 'Luma Framework by Filoppi。',
   'gameDetails.luma.attributionLink': 'プロジェクトを見る',
-  'gameDetails.renodx.guidance.gameSetting': 'ゲーム内設定',
-  'gameDetails.renodx.guidance.addonSetting': 'RenoDX 設定',
+  'gameDetails.renodx.guidance.gameSetting': 'ゲーム内メニューで設定',
+  'gameDetails.renodx.guidance.addonSetting': 'RenoDXオーバーレイで設定',
   'gameDetails.renodx.guidance.engineIni': '手動 INI 変更',
   'gameDetails.renodx.guidance.warning': '重要',
   'gameDetails.renodx.guidance.compatibility': '互換性に関する注意',
